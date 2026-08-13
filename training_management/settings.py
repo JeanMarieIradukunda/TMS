@@ -1,20 +1,12 @@
-
 from pathlib import Path
 from decouple import config
+
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# AI / Groq
-# ---------------------------------------------------------------------------
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
-
-GROQ_MODEL = os.environ.get(
-    "GROQ_MODEL",
-    "openai/gpt-oss-120b"
-)
+GROQ_API_KEY = config("GROQ_API_KEY", default="")
+GROQ_MODEL = config("GROQ_MODEL", default="openai/gpt-oss-120b")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
