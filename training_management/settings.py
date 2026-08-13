@@ -18,13 +18,13 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
-    "teach-pvc.vercel.app",
+    ".vercel.app",
     "localhost",
     "127.0.0.1",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://teach-pvc.vercel.app",
+    "https://*.vercel.app",
 ]
 
 # ---------------------------------------------------------------------------
