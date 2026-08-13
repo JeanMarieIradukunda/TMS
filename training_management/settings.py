@@ -14,11 +14,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Core / Security
 # ---------------------------------------------------------------------------
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
+
 ALLOWED_HOSTS = [
     "tms-pvc.vercel.app",
     "localhost",
     "127.0.0.1",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://tms-pvc.vercel.app",
 ]
 
 # ---------------------------------------------------------------------------
