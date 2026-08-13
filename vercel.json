@@ -1,9 +1,18 @@
 {
-  "buildCommand": "python manage.py collectstatic --noinput",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api"
+      "src": "training_management/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "staticfiles/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "training_management/wsgi.py"
     }
   ]
 }
