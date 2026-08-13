@@ -1,5 +1,5 @@
+@'
 {
-  "version": 2,
   "builds": [
     {
       "src": "training_management/wsgi.py",
@@ -8,8 +8,13 @@
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "training_management/wsgi.py"
     }
   ]
 }
+'@ | Set-Content -Encoding utf8 vercel.json
