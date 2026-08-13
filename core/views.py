@@ -2,6 +2,8 @@ import json
 import logging
 import re
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
@@ -639,6 +641,7 @@ class LessonPlanDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 # Public generator pages (Scheme of Work / Lesson Plan)
 # ---------------------------------------------------------------------------
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class SchemeOfWorkUserView(TemplateView):
     template_name = "scheme_of_work_user.html"
 
