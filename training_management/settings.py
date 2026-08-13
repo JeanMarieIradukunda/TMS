@@ -14,6 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Core / Security
 # ---------------------------------------------------------------------------
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
+
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
