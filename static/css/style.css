@@ -1117,93 +1117,7 @@ body.sidebar-open .sidebar-overlay { display: block; }
 
 .gen-section-title i { color: var(--teal); }
 
-.gen-step-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 11.5pt;
-  font-weight: 700;
-  color: var(--navy);
-  margin: 0.65rem 0 0.3rem;
-  line-height: 1.2;
-}
-
-.gen-optional-note {
-  font-size: 9pt;
-  font-weight: 500;
-  color: #9199b0;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.gen-step-cell { font-weight: 600; margin-bottom: 0.15rem; }
-
 .gen-table-wrap { overflow-x: auto; width: 100%; }
-
-/* ---------------------------------------------------------------------
-   Session Plan — single continuous table matching the standard
-   competence-based-training session-plan layout (header block,
-   green section rows, Introduction / Development / Conclusion).
-   --------------------------------------------------------------------- */
-.gen-sp-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10pt;
-  table-layout: fixed;
-}
-
-.gen-sp-table td {
-  border: 1px solid #c7cede;
-  padding: 0.4rem 0.55rem;
-  vertical-align: top;
-  color: #2a3352;
-  font-size: 10pt;
-  line-height: 1.3;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.gen-sp-table strong { color: var(--navy); }
-
-.gen-sp-section-row td {
-  background: #dfe8ce;
-  color: var(--navy);
-  font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-size: 10.5pt;
-  padding: 0.35rem 0.55rem;
-}
-
-.gen-sp-subhead-row td {
-  background: #f4f6fa;
-  font-weight: 700;
-  text-align: center;
-  font-size: 9.5pt;
-  padding: 0.25rem 0.55rem;
-  color: var(--navy);
-}
-
-.gen-sp-editable-block {
-  margin-top: 0.15rem;
-  min-height: 1.2em;
-}
-
-.gen-sp-editable-block ul.gen-bullets { margin: 0.15rem 0 0; padding-left: 1.1rem; }
-.gen-sp-editable-block p { margin: 0; }
-
-.gen-sp-duration {
-  font-weight: 700;
-  text-align: center;
-}
-
-.gen-sp-table [contenteditable="true"]:hover,
-.gen-sp-table [contenteditable="true"]:focus {
-  outline: 1px dashed var(--teal);
-  outline-offset: 2px;
-  background: rgba(45, 212, 191, 0.06);
-}
 
 .gen-table {
   width: 100%;
@@ -1246,6 +1160,121 @@ body.sidebar-open .sidebar-overlay { display: block; }
 
 .gen-table ul.gen-bullets li { margin-bottom: 0.1rem; font-size: 10pt; line-height: 1.15; }
 .gen-table ul.gen-bullets li:last-child { margin-bottom: 0; }
+
+/* ---------- Session Plan table (Lesson Plan generator) ---------- */
+.gen-sp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10pt;
+}
+
+.gen-sp-table td {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e9ecf4;
+  vertical-align: top;
+  color: #2a3352;
+  font-size: 10pt;
+  line-height: 1.35;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.gen-sp-table strong {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.gen-sp-table tbody tr:nth-child(even) { background: #fafbfe; }
+
+.gen-sp-section-row td {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10.5pt;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.6rem;
+  border-color: var(--navy);
+}
+
+.gen-sp-subhead-row td {
+  background: #f2f4fa;
+  color: #52597a;
+  font-weight: 700;
+  font-size: 8.5pt;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+}
+
+.gen-sp-editable-block {
+  margin-top: 0.3rem;
+  margin-bottom: 0.55rem;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.gen-sp-editable-block:last-child { margin-bottom: 0; }
+
+.gen-sp-duration {
+  text-align: center;
+  font-weight: 700;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.gen-step-cell {
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 10.5pt;
+  margin-bottom: 0.35rem;
+}
+
+.gen-sp-table td .gen-row-remove {
+  border: none;
+  background: transparent;
+  color: #c3c9dc;
+  font-size: 0.9rem;
+}
+
+.gen-sp-table td .gen-row-remove:hover { color: var(--danger); }
+
+/* Trainer / learner activity bullet lists — each activity gets its own
+   line, and a colour-coded marker (teal = trainer, gold = learner) makes
+   the two roles easy to tell apart at a glance instead of one dense
+   run-on sentence. */
+.gen-activity-list {
+  margin: 0.15rem 0 0.55rem;
+  padding-left: 1.15rem;
+  list-style: none;
+}
+
+.gen-activity-list:last-child { margin-bottom: 0; }
+
+.gen-activity-list li {
+  position: relative;
+  margin-bottom: 0.22rem;
+  padding-left: 0.3rem;
+  font-size: 10pt;
+  line-height: 1.4;
+  color: #2a3352;
+}
+
+.gen-activity-list li:last-child { margin-bottom: 0; }
+
+.gen-activity-list li::before {
+  content: '';
+  position: absolute;
+  left: -1.1rem;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.gen-activity-list--trainer li::before { background: var(--teal); }
+.gen-activity-list--learner li::before { background: var(--gold); }
 
 .gen-week-pill {
   display: inline-block;
@@ -1415,21 +1444,6 @@ body.sidebar-open .sidebar-overlay { display: block; }
     padding: 0.28rem 0.4rem;
   }
 
-  .gen-sp-table { width: 100% !important; font-size: 9.5pt; }
-  .gen-sp-table td { padding: 0.28rem 0.4rem; font-size: 9.5pt; }
-  .gen-sp-section-row td {
-    background: #dfe8ce !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .gen-sp-subhead-row td {
-    background: #f4f6fa !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .gen-sp-section-row, .gen-sp-subhead-row { page-break-inside: avoid; page-break-after: avoid; }
-  .gen-sp-table tr { page-break-inside: avoid; }
-
   .gen-table td {
     font-size: 9.5pt;
     padding: 0.28rem 0.4rem;
@@ -1442,12 +1456,35 @@ body.sidebar-open .sidebar-overlay { display: block; }
   .gen-week-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   .gen-section-title { font-size: 12.5pt; margin: 0.6rem 0 0.35rem; page-break-after: avoid; }
-  .gen-step-title { font-size: 10.5pt; margin: 0.5rem 0 0.25rem; page-break-after: avoid; }
   .gen-doc-title h3 { font-size: 16pt; }
   .gen-meta-grid { padding: 0.4rem 0.6rem; margin-bottom: 0.6rem; }
 
   .gen-table tr { page-break-inside: avoid; }
   thead { display: table-header-group; }
+
+  .gen-sp-table { width: 100% !important; }
+
+  .gen-sp-table td {
+    font-size: 9.5pt;
+    padding: 0.3rem 0.45rem;
+    border-color: #dfe3ee;
+  }
+
+  .gen-sp-section-row td {
+    background: #16223d !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .gen-sp-subhead-row td {
+    background: #f2f4fa !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .gen-activity-list li { font-size: 9.5pt; }
+  .gen-activity-list li::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .gen-sp-table tr { page-break-inside: avoid; }
 
   a[href]::after { content: ''; }
 }
