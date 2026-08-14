@@ -158,9 +158,7 @@
         <div class="gen-doc-logos" id="docLogos"></div>
 
         <div class="gen-doc-title">
-          <div class="gen-doc-kicker">Competence-based training curriculum</div>
           <h3 id="docTitle">Session Plan</h3>
-          <p id="docGeneratedOn"></p>
         </div>
 
         <!-- ============ SESSION PLAN — single continuous table,
@@ -597,7 +595,6 @@
         renderReflectionLoading();
 
         document.getElementById('docTitle').textContent = 'Session Plan — ' + topic;
-        document.getElementById('docGeneratedOn').textContent = 'Generated on ' + TMSGen.todayLong();
         document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
 
         docSection.classList.remove('d-none');
