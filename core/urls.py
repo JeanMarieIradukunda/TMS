@@ -79,4 +79,9 @@ urlpatterns = [
         views.generate_scheme_ai_content,
         name='ai-generate'
     ),
+    path(
+        'api/lesson-plan/ai-generate/',
+        views.generate_lesson_plan_ai_content,
+        name='lessonplan-ai-generate'
+    ),
 ]
