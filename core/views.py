@@ -2,15 +2,14 @@ import json
 import logging
 import re
 
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.urls import reverse_lazy
-from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
 from groq import Groq, APIError, APIConnectionError, RateLimitError
@@ -119,6 +118,114 @@ def _dump_generator_payload():
     """
     raw = json.dumps(_build_generator_payload(), cls=DjangoJSONEncoder)
     return raw.replace('</', '<\\/')
+
+
+# ---------------------------------------------------------------------------
+# Shared defensive coercion helpers for AI (Groq) JSON responses.
+#
+# Models don't always respect "return a single string" / "return an array"
+# instructions perfectly, so every field pulled out of an AI response goes
+# through one of these instead of being trusted as-is - used by both the
+# Scheme of Work and Lesson Plan AI endpoints below.
+# ---------------------------------------------------------------------------
+def _split_items(value):
+    """Break a value (list or string) into a clean list of item strings,
+    regardless of whether the model used commas, semicolons, newlines,
+    or returned a proper array."""
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        parts = re.split(r"\s*(?:\n|;|,)\s*", value)
+        return [p.strip() for p in parts if p.strip()]
+    return []
+
+
+def _coerce_to_csv_line(value, max_items=None):
+    """
+    Defensive normalizer for fields that must render as ONE comma-separated
+    line (no bullets, no numbering, no JSON arrays), even if the model
+    slips and returns an array instead of a string. Also enforces an
+    optional cap on the number of items.
+    """
+    items = _split_items(value)
+    if max_items:
+        items = items[:max_items]
+    return ", ".join(items)
+
+
+def _coerce_to_list(value, min_items=None, max_items=None, fallback=None):
+    """
+    Defensive normalizer for fields that must render as a bullet LIST
+    (an array of short item strings), even if the model returns a single
+    comma/semicolon/newline-separated string instead of a JSON array.
+    Pads with `fallback` items (if provided) to satisfy min_items, and
+    truncates to max_items.
+    """
+    items = _split_items(value)
+    if max_items:
+        items = items[:max_items]
+    if min_items and fallback:
+        i = 0
+        while len(items) < min_items and i < len(fallback):
+            if fallback[i] not in items:
+                items.append(fallback[i])
+            i += 1
+    return items
+
+
+def _ensure_min_steps(steps, outcome_text, min_count=3):
+    """
+    Guarantees the Lesson Plan generator always has at least `min_count`
+    Development/Body steps, even if the AI returns fewer (e.g. because the
+    outcome only has one or two indicative content items). Pads with
+    generic-but-usable progressive steps grounded in the outcome text,
+    which the trainer can edit before printing.
+    """
+    filler_bank = [
+        {
+            "title": "Guided practice",
+            "trainer_activity": [
+                "Circulates to support trainees applying the outcome hands-on",
+                "Checks understanding and corrects common errors",
+            ],
+            "learner_activity": [
+                "Practise the skill individually or in pairs under guidance",
+                "Ask questions where unclear",
+            ],
+            "resources": "Tools & equipment, task sheet",
+        },
+        {
+            "title": "Consolidation and review",
+            "trainer_activity": [
+                "Reviews key points against the learning outcome",
+                "Poses follow-up questions to confirm understanding",
+            ],
+            "learner_activity": [
+                "Summarise what was learned in their own words",
+                "Respond to review questions",
+            ],
+            "resources": "Whiteboard, notebook",
+        },
+        {
+            "title": "Application check",
+            "trainer_activity": [
+                "Sets a short task applying the outcome to a new scenario",
+                "Observes and gives targeted feedback",
+            ],
+            "learner_activity": [
+                "Attempt the task independently",
+                "Reflect on feedback received",
+            ],
+            "resources": "Task sheet, relevant tools/materials",
+        },
+    ]
+
+    padded = list(steps)
+    i = 0
+    while len(padded) < min_count and i < len(filler_bank):
+        padded.append(filler_bank[i])
+        i += 1
+    return padded
 
 
 # ---------------------------------------------------------------------------
@@ -641,8 +748,16 @@ class LessonPlanDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 # Public generator pages (Scheme of Work / Lesson Plan)
 # ---------------------------------------------------------------------------
-@method_decorator(ensure_csrf_cookie, name="dispatch")
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class SchemeOfWorkUserView(TemplateView):
+    """
+    Public generator page. ensure_csrf_cookie is required here because this
+    page has no {% csrf_token %} in its template (it's not a Django <form>
+    POST) - without it, Django never sets the csrftoken cookie for anonymous
+    visitors, so the page's own JS fetch() to /api/scheme-of-work/ai-generate/
+    has no token to send and every request is rejected with 403 CSRF cookie
+    not set, before it ever reaches Groq.
+    """
     template_name = "scheme_of_work_user.html"
 
     def get_context_data(self, **kwargs):
@@ -651,7 +766,9 @@ class SchemeOfWorkUserView(TemplateView):
         return context
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LessonPlanUserView(TemplateView):
+    """Same reasoning as SchemeOfWorkUserView above."""
     template_name = "lesson_plan_user.html"
 
     def get_context_data(self, **kwargs):
@@ -885,30 +1002,6 @@ INPUT DATA:
             status=502,
         )
 
-    def _split_items(value):
-        """Break a value (list or string) into a clean list of item strings,
-        regardless of whether the model used commas, semicolons, newlines,
-        or returned a proper array."""
-        if isinstance(value, list):
-            return [str(item).strip() for item in value if str(item).strip()]
-        if isinstance(value, str):
-            parts = re.split(r"\s*(?:\n|;|,)\s*", value)
-            return [p.strip() for p in parts if p.strip()]
-        return []
-
-    def _coerce_to_csv_line(value, max_items=None):
-        """
-        Defensive normalizer for learning_activities / resources / evidence:
-        these must all render as ONE comma-separated line (no bullets, no
-        numbering, no JSON arrays), even if the model slips and returns an
-        array instead of a string. Also enforces an optional cap on the
-        number of items (3 for learning_activities, 2 for evidence).
-        """
-        items = _split_items(value)
-        if max_items:
-            items = items[:max_items]
-        return ", ".join(items)
-
     # Coerce outcome_id back to int where possible so the frontend's
     # lookup-by-id always matches, even if the model returned a numeric string.
     for r in results:
@@ -933,3 +1026,261 @@ INPUT DATA:
     # 6. Return success
     # --------------------------------------------------
     return JsonResponse({"results": results})
+
+
+# ---------------------------------------------------------------------------
+# AI (Groq) endpoint used by the Lesson Plan (Session Plan) generator page
+# ---------------------------------------------------------------------------
+MIN_LESSON_PLAN_STEPS = 3
+MAX_LESSON_PLAN_STEPS = 6
+
+
+@require_POST
+@csrf_protect
+def generate_lesson_plan_ai_content(request):
+    """
+    Public AI endpoint for the Lesson Plan (Session Plan) generator page.
+
+    Receives the module/trade/level context plus the single learning
+    outcome (with its indicative content) selected in the browser, and
+    asks Groq to draft:
+      - facilitation_techniques: a SINGLE comma-separated line naming at
+        most 3 facilitation methodologies/techniques (same shape/rules as
+        the Scheme of Work's "learning_activities" field) - not a
+        restatement of the outcome or its indicative content.
+      - steps: the Development/Body of the session, as a JSON array of
+        AT LEAST 3 steps (padded server-side if the model returns fewer),
+        each with a short sub-topic "title" plus separate "trainer_activity"
+        and "learner_activity" BULLET LISTS (JSON arrays of short plain
+        phrases - not sentences glued together), and a "resources" line
+        specific to that step.
+
+    The Groq API key never leaves the server - the browser only ever talks
+    to this endpoint.
+    """
+    # --------------------------------------------------
+    # 1. Parse request safely
+    # --------------------------------------------------
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+
+    outcome_text = str(payload.get("outcome_text", ""))[:500]
+    if not outcome_text.strip():
+        return JsonResponse({"error": "Missing or empty 'outcome_text' field"}, status=400)
+
+    indicative_content = [
+        str(c)[:300] for c in (payload.get("indicative_content") or [])
+    ][:20]
+
+    context_bits = []
+    if payload.get("sector"):
+        context_bits.append(f"Sector: {payload['sector']}")
+    if payload.get("trade"):
+        context_bits.append(f"Trade/Occupation: {payload['trade']}")
+    if payload.get("level"):
+        context_bits.append(f"Level: {payload['level']}")
+    if payload.get("module_code") or payload.get("module_name"):
+        context_bits.append(f"Module: {payload.get('module_code', '')} - {payload.get('module_name', '')}")
+    if payload.get("topic"):
+        context_bits.append(f"Session topic: {payload['topic']}")
+    if payload.get("range"):
+        context_bits.append(f"Range (scope for this session): {payload['range']}")
+    if payload.get("total_minutes"):
+        context_bits.append(f"Total session duration: {payload['total_minutes']} minutes")
+    context_block = "\n".join(context_bits) or "No additional session context supplied."
+
+    # --------------------------------------------------
+    # 2. Build a structured, strict-JSON prompt
+    # --------------------------------------------------
+    system_prompt = (
+        "You are an expert TVET (Technical and Vocational Education and Training) "
+        "curriculum designer who writes practical, workshop-ready session/lesson "
+        "plans. You always respond with a single valid JSON object and nothing "
+        "else - no markdown fences, no commentary, no explanations."
+    )
+
+    user_prompt = f"""Using the session context below, draft the facilitation technique(s) and the
+Development/Body of a competence-based training session plan for THIS
+learning outcome.
+
+SESSION CONTEXT:
+{context_block}
+
+LEARNING OUTCOME:
+{outcome_text}
+
+INDICATIVE CONTENT:
+{json.dumps(indicative_content, indent=2)}
+
+Produce a JSON object with exactly two top-level fields:
+
+- "facilitation_techniques": AT MOST 3 facilitation methodologies/teaching
+  techniques the trainer would use across this session (e.g.
+  "Demonstration, Group discussion, Practical exercise"). A SINGLE plain
+  string on one line, items separated by ", " - NOT a JSON array, NOT
+  bullet points. Name ONLY the methodology/technique, not a description.
+
+- "steps": a JSON array covering the Development/Body of the session,
+  broken into logical, progressive sub-topics grounded in the indicative
+  content above. Requirements:
+  - MINIMUM {MIN_LESSON_PLAN_STEPS} steps, MAXIMUM {MAX_LESSON_PLAN_STEPS} steps, ALWAYS.
+  - If fewer than {MIN_LESSON_PLAN_STEPS} indicative content items are given, split
+    the content into progressive stages instead (e.g. explanation and
+    demonstration, guided/hands-on practice, independent practice or
+    verification) so the step count still meets the minimum.
+  - If there are more indicative content items than {MAX_LESSON_PLAN_STEPS}, group
+    closely related items together into a single step.
+  - Each step is an object with FOUR fields:
+    - "title": a short sub-topic label (a few words, NOT a full sentence,
+      NOT prefixed with "Step" or a number - the app numbers steps itself).
+    - "trainer_activity": a JSON array of 2-4 SHORT, concrete, plain-text
+      bullet phrases describing what the trainer does for this step
+      (imperative mood, e.g. "Demonstrates the wiring sequence"). Each
+      item is its own array entry - NOT one long sentence, NOT numbered,
+      NOT starting with a dash or bullet character.
+    - "learner_activity": a JSON array of 2-3 SHORT, concrete, plain-text
+      bullet phrases describing what the trainee does for this step, in
+      the same style as trainer_activity.
+    - "resources": the specific tools, equipment, or materials this step
+      needs - a SINGLE comma-separated plain string, not an array.
+
+Rules:
+- Ground every step in the outcome's own text and its indicative content -
+  do not invent unrelated topics.
+- Use concise, real workshop/training language, not vague filler.
+- Respond with STRICT JSON ONLY, matching exactly this shape:
+{{
+  "facilitation_techniques": "<comma-separated string, max 3 items>",
+  "steps": [
+    {{
+      "title": "<short sub-topic label>",
+      "trainer_activity": ["<bullet 1>", "<bullet 2>"],
+      "learner_activity": ["<bullet 1>", "<bullet 2>"],
+      "resources": "<comma-separated string>"
+    }}
+  ]
+}}
+""".strip()
+
+    # --------------------------------------------------
+    # 3. Call Groq
+    # --------------------------------------------------
+    try:
+        client = get_client()
+    except RuntimeError as e:
+        logger.error("Groq client not configured: %s", e)
+        return JsonResponse({"error": str(e)}, status=500)
+
+    model_name = getattr(settings, "GROQ_MODEL", "openai/gpt-oss-120b")
+
+    try:
+        completion = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+            max_completion_tokens=4096,
+            response_format={"type": "json_object"},
+        )
+    except RateLimitError:
+        logger.warning("Groq rate limit hit")
+        return JsonResponse(
+            {"error": "The AI service is rate-limited right now. Please try again in a moment."},
+            status=429,
+        )
+    except APIConnectionError as e:
+        logger.error("Could not reach Groq: %s", e)
+        return JsonResponse(
+            {"error": "Could not reach the AI service. Check your internet connection and try again."},
+            status=502,
+        )
+    except APIError as e:
+        logger.error("Groq API error (%s): %s", getattr(e, "status_code", "?"), e)
+        message = str(e)
+        if getattr(e, "status_code", None) == 401:
+            message = "The Groq API key is invalid or missing. Check GROQ_API_KEY in your .env file."
+        elif "decommissioned" in message.lower():
+            message = (
+                f"The model '{model_name}' is no longer available on Groq. "
+                "Update GROQ_MODEL in your .env file to a current model "
+                "(see https://console.groq.com/docs/models)."
+            )
+        return JsonResponse({"error": message}, status=502)
+    except Exception as e:
+        logger.exception("Unexpected error calling Groq")
+        return JsonResponse({"error": "Internal server error", "detail": str(e)}, status=500)
+
+    raw_content = (completion.choices[0].message.content or "").strip()
+
+    # --------------------------------------------------
+    # 4. Parse the AI response safely (strip stray ```json fences just in case)
+    # --------------------------------------------------
+    cleaned = raw_content
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        logger.error("AI returned invalid JSON: %s", raw_content)
+        return JsonResponse(
+            {"error": "AI returned invalid JSON", "raw_output": raw_content},
+            status=502,
+        )
+
+    if not isinstance(data, dict):
+        logger.error("AI response is not a JSON object: %s", data)
+        return JsonResponse(
+            {"error": "Invalid AI response structure", "raw_output": data},
+            status=502,
+        )
+
+    # --------------------------------------------------
+    # 5. Validate & defensively coerce structure
+    # --------------------------------------------------
+    facilitation_techniques = _coerce_to_csv_line(
+        data.get("facilitation_techniques"), max_items=3
+    )
+
+    raw_steps = data.get("steps")
+    steps = []
+    if isinstance(raw_steps, list):
+        for s in raw_steps:
+            if not isinstance(s, dict):
+                continue
+            steps.append({
+                "title": str(s.get("title", "")).strip()[:120],
+                "trainer_activity": _coerce_to_list(
+                    s.get("trainer_activity"),
+                    min_items=2,
+                    max_items=4,
+                    fallback=["Guides trainees through this step"],
+                ),
+                "learner_activity": _coerce_to_list(
+                    s.get("learner_activity"),
+                    min_items=2,
+                    max_items=3,
+                    fallback=["Participate in the activity under guidance"],
+                ),
+                "resources": _coerce_to_csv_line(s.get("resources")),
+            })
+
+    # Always guarantee at least MIN_LESSON_PLAN_STEPS steps, and never more
+    # than MAX_LESSON_PLAN_STEPS, regardless of what the model returned.
+    steps = _ensure_min_steps(steps, outcome_text, min_count=MIN_LESSON_PLAN_STEPS)
+    steps = steps[:MAX_LESSON_PLAN_STEPS]
+
+    # --------------------------------------------------
+    # 6. Return success
+    # --------------------------------------------------
+    return JsonResponse({
+        "facilitation_techniques": facilitation_techniques,
+        "steps": steps,
+    })
