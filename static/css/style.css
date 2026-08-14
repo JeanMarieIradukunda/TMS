@@ -1541,3 +1541,117 @@ body.sidebar-open .sidebar-overlay { display: block; }
 
   a[href]::after { content: ''; }
 }
+
+/* ==========================================================================
+   Landing page — enhanced visuals (background pattern, entrance animation,
+   card micro-interactions). Purely additive: every original class above
+   (.landing-wrap, .landing-glow-a/b, .landing-header, .landing-badge,
+   .landing-grid, .landing-card, .lc-icon, .lc-meta, .lc-cta,
+   .landing-footer) is untouched — these rules only extend them.
+   ========================================================================== */
+
+/* Subtle dot-grid behind the glows, for depth without visual noise */
+.landing-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 85%);
+  pointer-events: none;
+}
+
+.landing-glow-c {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 460px;
+  height: 460px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(143, 157, 255, 0.09), transparent 70%);
+  pointer-events: none;
+}
+
+/* Entrance animation, staggered per element */
+@keyframes landing-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.landing-header,
+.landing-card,
+.landing-footer {
+  opacity: 0;
+  animation: landing-fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.landing-header { animation-delay: 0.05s; }
+.landing-card:nth-child(1) { animation-delay: 0.18s; }
+.landing-card:nth-child(2) { animation-delay: 0.30s; }
+.landing-card:nth-child(3) { animation-delay: 0.42s; }
+.landing-footer { animation-delay: 0.55s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-header, .landing-card, .landing-footer {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Badge: gentle breathing glow instead of a static block */
+.landing-badge {
+  animation: landing-badge-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes landing-badge-pulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(212, 175, 55, 0.25); }
+  50%      { box-shadow: 0 10px 42px rgba(212, 175, 55, 0.42); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-badge { animation: none; }
+}
+
+/* Card micro-interactions: gradient border-glow + icon lift + arrow slide */
+.landing-card { position: relative; }
+
+.landing-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0), rgba(45, 212, 191, 0));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: background 0.25s ease;
+  pointer-events: none;
+}
+
+.landing-card:hover::before {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.55), rgba(45, 212, 191, 0.35));
+}
+
+.landing-card .lc-icon {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-card:hover .lc-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.landing-card .lc-cta i {
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+
+.landing-card:hover .lc-cta i {
+  transform: translateX(5px);
+}
+
+/* Count-up numerals inside the existing lc-meta badge */
+.lc-meta-num {
+  font-variant-numeric: tabular-nums;
+}
