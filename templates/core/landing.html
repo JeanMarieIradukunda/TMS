@@ -12,19 +12,17 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-
 <div class="landing-wrap">
+  <div class="landing-pattern"></div>
   <span class="landing-glow-a"></span>
   <span class="landing-glow-b"></span>
-
+  <span class="landing-glow-c"></span>
   <div class="landing-header">
     <div class="landing-badge"><i class="fa-solid fa-graduation-cap"></i></div>
     <h1>Training Management System</h1>
     <p>Padri Vjeko Centre · plan, manage and deliver your training programme from one place.</p>
   </div>
-
   <div class="landing-grid">
-
     <!-- LOGIN ONLY -->
     <a href="{% url 'login' %}" class="landing-card lc-login">
       <div class="lc-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
@@ -32,32 +30,50 @@
       <p>Sign in with your administrator or trainer account to access the full management system.</p>
       <div class="lc-cta">Sign in <i class="fa-solid fa-arrow-right-long"></i></div>
     </a>
-
     <!-- SCHEME OF WORK (DIRECT ACCESS) -->
     <a href="{% url 'schemeofwork-user' %}" class="landing-card lc-scheme">
-      <span class="lc-meta">{{ module_count }} module{{ module_count|pluralize }}</span>
+      <span class="lc-meta"><span class="lc-meta-num">{{ module_count }}</span> module{{ module_count|pluralize }}</span>
       <div class="lc-icon"><i class="fa-solid fa-diagram-project"></i></div>
       <h3>Scheme of Work</h3>
       <p>View and generate structured schemes of work for your selected trade and level.</p>
       <div class="lc-cta">Generate Scheme <i class="fa-solid fa-arrow-right-long"></i></div>
     </a>
-
     <!-- LESSON PLANS (DIRECT ACCESS) -->
     <a href="{% url 'lessonplan-user' %}" class="landing-card lc-lesson">
-      <span class="lc-meta">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span>
+      <span class="lc-meta"><span class="lc-meta-num">{{ lesson_plan_count }}</span> plan{{ lesson_plan_count|pluralize }}</span>
       <div class="lc-icon"><i class="fa-solid fa-chalkboard"></i></div>
       <h3>Lesson Plans</h3>
       <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
       <div class="lc-cta">Generate Lesson Plan <i class="fa-solid fa-arrow-right-long"></i></div>
     </a>
-
   </div>
-
   <div class="landing-footer">
     <i class="fa-solid fa-shield-halved me-1"></i>
     &copy; {% now "Y" %} Padri Vjeko Centre · Training Management System
   </div>
 </div>
-
+<script>
+  // Purely cosmetic count-up for the module/lesson-plan badges. Reads the
+  // number Django already rendered, animates 0 -> that number, then leaves
+  // the original text in place. No-ops safely if anything is unexpected.
+  (function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll('.lc-meta-num').forEach(function (el) {
+      var target = parseInt(el.textContent, 10);
+      if (isNaN(target) || target <= 0) return;
+      var start = 0;
+      var duration = 700;
+      var startTime = null;
+      function step(ts) {
+        if (!startTime) startTime = ts;
+        var progress = Math.min((ts - startTime) / duration, 1);
+        el.textContent = Math.floor(progress * (target - start) + start);
+        if (progress < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  })();
+</script>
 </body>
 </html>
