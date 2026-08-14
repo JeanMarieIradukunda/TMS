@@ -870,7 +870,7 @@ SINGLE plain string on one line - NOT a JSON array, NOT bullet points, NOT
 numbered steps. Where an item has more than one part, separate the parts
 with ", " on that same line.
 
-- "learning_activities": AT MOST 3 facilitation methodologies/teaching
+- "learning_activities": AT MOST 2 facilitation methodologies/teaching
   techniques the trainer would use to deliver that specific outcome (e.g.
   "Demonstration, Group discussion, Practical exercise" or "Role play, Q&A").
   Name ONLY the methodology/technique - do NOT describe, restate, or
@@ -1045,7 +1045,7 @@ def generate_lesson_plan_ai_content(request):
     outcome (with its indicative content) selected in the browser, and
     asks Groq to draft:
       - facilitation_techniques: a SINGLE comma-separated line naming at
-        most 3 facilitation methodologies/techniques (same shape/rules as
+        most 2 facilitation methodologies/techniques (same shape/rules as
         the Scheme of Work's "learning_activities" field) - not a
         restatement of the outcome or its indicative content.
       - steps: the Development/Body of the session, as a JSON array of
@@ -1116,8 +1116,8 @@ INDICATIVE CONTENT:
 
 Produce a JSON object with exactly two top-level fields:
 
-- "facilitation_techniques": AT MOST 3 facilitation methodologies/teaching
-  techniques the trainer would use across this session (e.g.
+- "facilitation_techniques": AT MOST 2 facilitation methodologies/teaching
+  techniques the trainer would use across this session but related to the topic/learning outcome/indicative content provided (e.g.
   "Demonstration, Group discussion, Practical exercise"). A SINGLE plain
   string on one line, items separated by ", " - NOT a JSON array, NOT
   bullet points. Name ONLY the methodology/technique, not a description.
@@ -1152,7 +1152,7 @@ Rules:
 - Use concise, real workshop/training language, not vague filler.
 - Respond with STRICT JSON ONLY, matching exactly this shape:
 {{
-  "facilitation_techniques": "<comma-separated string, max 3 items>",
+  "facilitation_techniques": "<comma-separated string, max 2 items>",
   "steps": [
     {{
       "title": "<short sub-topic label>",
@@ -1246,7 +1246,7 @@ Rules:
     # 5. Validate & defensively coerce structure
     # --------------------------------------------------
     facilitation_techniques = _coerce_to_csv_line(
-        data.get("facilitation_techniques"), max_items=3
+        data.get("facilitation_techniques"), max_items=2
     )
 
     raw_steps = data.get("steps")
