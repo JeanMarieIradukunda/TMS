@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lesson Plan Generator · Training Management System</title>
+  <title>Session Plan Generator · Training Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -25,11 +25,12 @@
     </div>
     <div class="gen-hero-heading">
       <div class="gen-eyebrow"><i class="fa-solid fa-lock-open"></i> Public tool · no login required</div>
-      <h1>Lesson Plan Generator</h1>
+      <h1>Session Plan Generator</h1>
       <p>
-        Pick a module and a learning outcome and this page drafts a full, print-ready lesson
-        plan — objectives, activities, resources and assessment — that you can fine-tune before
-        the session.
+        Pick a module, a learning outcome and the number of teaching periods — this page
+        drafts a complete, print-ready session plan in the standard competence-based
+        training format: session information, facilitation techniques, a fully staged
+        introduction / development / conclusion, and evaluation &amp; reflection sections.
       </p>
     </div>
   </header>
@@ -39,13 +40,13 @@
     <!-- ==================== SELECTOR ==================== -->
     <section class="gen-card no-print" id="selectorCard">
       <h2>1. Choose module, outcome &amp; session details</h2>
-      <p class="gen-card-sub">The learning outcome list narrows down automatically once you pick a module.</p>
+      <p class="gen-card-sub">The learning outcome list narrows down automatically once you pick a module. Duration is calculated from the number of periods you choose.</p>
 
       <div id="noDataAlert" class="gen-alert-empty d-none">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <div>
           No modules have been set up in the system yet. Please ask an administrator to add
-          trades, modules and learning outcomes before a lesson plan can be generated.
+          trades, modules and learning outcomes before a session plan can be generated.
         </div>
       </div>
 
@@ -66,15 +67,20 @@
           </div>
 
           <div>
-            <label class="form-label" for="trainerSelect">Trainer</label>
+            <label class="form-label" for="trainerSelect">Trainer name(s)</label>
             <select class="form-select" id="trainerSelect">
               <option value="">Not assigned</option>
             </select>
           </div>
 
           <div>
-            <label class="form-label" for="titleInput">Lesson title</label>
-            <input type="text" class="form-control" id="titleInput" placeholder="Auto-filled from the outcome — edit if you like">
+            <label class="form-label" for="topicInput">Topic of the session</label>
+            <input type="text" class="form-control" id="topicInput" placeholder="Auto-filled from the outcome — edit if you like">
+          </div>
+
+          <div>
+            <label class="form-label" for="rangeInput">Range</label>
+            <input type="text" class="form-control" id="rangeInput" placeholder="e.g. Limited to single-phase installations">
           </div>
 
           <div>
@@ -83,20 +89,53 @@
           </div>
 
           <div>
-            <label class="form-label" for="lessonDateInput">Lesson date</label>
+            <label class="form-label" for="lessonDateInput">Date</label>
             <input type="date" class="form-control" id="lessonDateInput">
+          </div>
+
+          <div>
+            <label class="form-label" for="schoolYearInput">School year</label>
+            <input type="text" class="form-control" id="schoolYearInput" placeholder="e.g. 2025 - 2026">
+          </div>
+
+          <div>
+            <label class="form-label" for="classInput">Class(es)</label>
+            <input type="text" class="form-control" id="classInput" placeholder="e.g. L5 ELEC A">
+          </div>
+
+          <div>
+            <label class="form-label" for="traineesInput">Number of trainees</label>
+            <input type="number" min="0" class="form-control" id="traineesInput" placeholder="e.g. 25">
+          </div>
+
+          <div>
+            <label class="form-label" for="periodsInput">Number of periods <span class="req">*</span></label>
+            <input type="number" min="1" max="12" step="1" class="form-control" id="periodsInput" value="1">
+          </div>
+
+          <div>
+            <label class="form-label" for="periodLengthSelect">Minutes per period <span class="req">*</span></label>
+            <select class="form-select" id="periodLengthSelect">
+              <option value="40">40 minutes</option>
+              <option value="50">50 minutes</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Total session duration</label>
+            <input type="text" class="form-control" id="totalDurationDisplay" readonly>
           </div>
         </div>
 
         <div class="gen-actions-row">
           <button type="button" class="btn btn-gold" id="generateBtn">
-            <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate lesson plan
+            <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate session plan
           </button>
           <button type="button" class="btn btn-outline-secondary" id="resetBtn">
             <i class="fa-solid fa-rotate-left me-1"></i> Reset
           </button>
         </div>
-        <p class="gen-hint">Week and lesson date are optional — leave them blank and fill them in by hand if the session isn't scheduled yet.</p>
+        <p class="gen-hint">Each period must be 40 or 50 minutes. Time is distributed automatically across the introduction, development and conclusion — you can fine-tune every duration afterwards.</p>
       </div>
     </section>
 
@@ -106,7 +145,7 @@
       <div class="gen-toolbar no-print">
         <div class="gen-toolbar-note">
           <i class="fa-solid fa-pen me-1"></i>
-          Objectives, activities, resources and assessment are editable — click any of them to fine-tune before printing.
+          Every section below is editable — click any text or table cell to fine-tune before printing.
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="editSelectionBtn">
@@ -123,67 +162,112 @@
 
         <div class="gen-doc-title">
           <div class="gen-doc-kicker">Competence-based training curriculum</div>
-          <h3 id="docTitle">Lesson Plan</h3>
+          <h3 id="docTitle">Session Plan</h3>
           <p id="docGeneratedOn"></p>
         </div>
 
-        <dl class="gen-meta-grid" id="docMeta"></dl>
-
-        <div class="gen-section-title">
-          <i class="fa-solid fa-list-check"></i> Indicative content (reference)
-        </div>
-        <ul class="gen-bullets" id="docContentList"></ul>
-
-        <div class="gen-section-title">
-          <i class="fa-solid fa-bullseye"></i> Lesson objectives
-          <span class="gen-editable-badge no-print"><i class="fa-solid fa-pen"></i> editable</span>
-        </div>
-        <div contenteditable="true" id="docObjectives" class="gen-table-wrap"></div>
-
-        <div class="gen-section-title">
-          <i class="fa-solid fa-timeline"></i> Teaching &amp; learning activities
-          <span class="gen-editable-badge no-print"><i class="fa-solid fa-pen"></i> editable</span>
-        </div>
+        <!-- ============ SESSION PLAN — single continuous table,
+             matching the official RTB / competence-based training
+             session-plan layout. 4 base columns; the wide "activity"
+             column of the delivery tables spans 2 of them. ============ -->
         <div class="gen-table-wrap">
-          <table class="gen-table gen-activity-table">
-            <thead>
-              <tr>
-                <th style="width:12%">Time</th>
-                <th>Trainer activity</th>
-                <th>Trainee activity</th>
-                <th style="width:16%">Method</th>
-                <th style="width:16%">Resource</th>
-                <th class="no-print" style="width:5%"></th>
-              </tr>
-            </thead>
-            <tbody id="docActivityBody"></tbody>
-          </table>
-          <button type="button" class="gen-add-row-btn no-print mt-2" id="addActivityRowBtn">
-            <i class="fa-solid fa-plus"></i> Add step
-          </button>
-        </div>
+        <table class="gen-sp-table">
+          <colgroup>
+            <col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%">
+          </colgroup>
+          <tbody id="docHeaderBody">
+            <tr>
+              <td><strong>Sector:</strong> <span id="spSector"></span></td>
+              <td><strong>Trade:</strong> <span id="spTrade"></span></td>
+              <td><strong>Level:</strong> <span id="spLevel"></span></td>
+              <td><strong>Date:</strong> <span id="spDate"></span></td>
+            </tr>
+            <tr>
+              <td colspan="3"><strong>Trainer name(s):</strong> <span id="spTrainer" contenteditable="true"></span></td>
+              <td><strong>School year:</strong> <span id="spSchoolYear" contenteditable="true"></span></td>
+            </tr>
+            <tr>
+              <td><strong>Module (Code &amp; Name):</strong> <span id="spModule"></span></td>
+              <td><strong>Week:</strong> <span id="spWeek"></span></td>
+              <td><strong>No. Trainees:</strong> <span id="spTrainees" contenteditable="true"></span></td>
+              <td><strong>Class(es):</strong> <span id="spClasses" contenteditable="true"></span></td>
+            </tr>
+            <tr><td colspan="4"><strong>Learning Outcome:</strong> <span id="spOutcome"></span></td></tr>
+            <tr><td colspan="4"><strong>Indicative content:</strong> <span id="spContent" contenteditable="true"></span></td></tr>
+            <tr><td colspan="4"><strong>Topic of the session:</strong> <span id="spTopic" contenteditable="true"></span></td></tr>
+            <tr>
+              <td colspan="2"><strong>Range:</strong> <span id="spRange" contenteditable="true"></span></td>
+              <td colspan="2"><strong>Duration of the session:</strong> <span id="spDuration"></span></td>
+            </tr>
+            <tr>
+              <td colspan="4">
+                <strong>Objectives:</strong> At the end of this session, a learner should be able to:
+                <div contenteditable="true" id="spObjectives" class="gen-sp-editable-block"></div>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="4"><strong>Facilitation technique(s):</strong> <span id="spTechniques" contenteditable="true"></span></td>
+            </tr>
 
-        <div class="gen-section-title">
-          <i class="fa-solid fa-toolbox"></i> Resources &amp; materials
-          <span class="gen-editable-badge no-print"><i class="fa-solid fa-pen"></i> editable</span>
-        </div>
-        <div contenteditable="true" id="docResources" class="gen-table-wrap"></div>
+            <tr class="gen-sp-section-row"><td colspan="4">Introduction</td></tr>
+            <tr class="gen-sp-subhead-row"><td colspan="2"></td><td>Resources</td><td>Duration</td></tr>
+            <tr>
+              <td colspan="2">
+                <strong>Trainer's activity:</strong>
+                <div contenteditable="true" id="spIntroTrainer" class="gen-sp-editable-block"></div>
+                <strong>Learner's activity:</strong>
+                <div contenteditable="true" id="spIntroLearner" class="gen-sp-editable-block"></div>
+              </td>
+              <td contenteditable="true" id="spIntroResources"></td>
+              <td contenteditable="true" id="spIntroDuration" class="gen-sp-duration"></td>
+            </tr>
 
-        <div class="gen-section-title">
-          <i class="fa-solid fa-clipboard-check"></i> Assessment
-          <span class="gen-editable-badge no-print"><i class="fa-solid fa-pen"></i> editable</span>
-        </div>
-        <div contenteditable="true" id="docAssessment" class="gen-table-wrap"></div>
+            <tr class="gen-sp-section-row"><td colspan="4">Development / Body</td></tr>
+            <tr class="gen-sp-subhead-row"><td colspan="2"></td><td>Resources</td><td>Duration</td></tr>
+          </tbody>
+          <tbody id="docStepsBody"></tbody>
+          <tbody>
+            <tr class="gen-sp-section-row"><td colspan="4">Conclusion</td></tr>
+            <tr>
+              <td colspan="2"><strong>Summary:</strong>
+                <div contenteditable="true" id="spSummary" class="gen-sp-editable-block"></div>
+              </td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+            <tr>
+              <td colspan="2"><strong>Assessment/Assignment:</strong>
+                <div contenteditable="true" id="spAssessment" class="gen-sp-editable-block"></div>
+              </td>
+              <td contenteditable="true" id="spConclusionResources"></td>
+              <td contenteditable="true" id="spConclusionDuration" class="gen-sp-duration"></td>
+            </tr>
 
-        <div class="gen-signoff-grid">
-          <div class="gen-signoff-line">Prepared by: <span contenteditable="true" id="docPreparedBy">&nbsp;</span></div>
-          <div class="gen-signoff-line">Verified by: <span contenteditable="true">&nbsp;</span></div>
-          <div class="gen-signoff-line">Approved by: <span contenteditable="true">&nbsp;</span></div>
+            <tr><td colspan="4"><strong>Evaluation of the session:</strong>
+              <div contenteditable="true" id="spEvaluation" class="gen-sp-editable-block"></div>
+            </td></tr>
+            <tr><td colspan="4"><strong>Cross-cutting issue(s):</strong>
+              <div contenteditable="true" id="spCrossCutting" class="gen-sp-editable-block"></div>
+            </td></tr>
+            <tr><td colspan="4"><strong>References:</strong>
+              <div contenteditable="true" id="spReferences" class="gen-sp-editable-block"></div>
+            </td></tr>
+            <tr><td colspan="4"><strong>Appendices:</strong> <span class="gen-optional-note">(where applicable)</span>
+              <div contenteditable="true" id="spAppendices" class="gen-sp-editable-block"></div>
+            </td></tr>
+            <tr><td colspan="4"><strong>Reflection:</strong>
+              <div contenteditable="true" id="spReflection" class="gen-sp-editable-block"></div>
+            </td></tr>
+          </tbody>
+        </table>
         </div>
+        <p class="gen-hint no-print mt-2">
+          <i class="fa-solid fa-circle-info"></i> Click <button type="button" class="gen-add-row-btn d-inline" id="addStepRowBtn"><i class="fa-solid fa-plus"></i> Add step</button> to insert another Development/Body step — every duration field, including the total above, stays editable.
+        </p>
 
         <div class="gen-doc-footer">
           <span>Training Management System</span>
-          <span>Lesson Plan · <span id="docFooterModule"></span></span>
+          <span>Session Plan · <span id="docFooterModule"></span></span>
         </div>
       </article>
 
@@ -220,27 +304,40 @@
       var moduleSelect = document.getElementById('moduleSelect');
       var outcomeSelect = document.getElementById('outcomeSelect');
       var trainerSelect = document.getElementById('trainerSelect');
-      var titleInput = document.getElementById('titleInput');
+      var topicInput = document.getElementById('topicInput');
+      var rangeInput = document.getElementById('rangeInput');
       var weekInput = document.getElementById('weekInput');
       var lessonDateInput = document.getElementById('lessonDateInput');
+      var schoolYearInput = document.getElementById('schoolYearInput');
+      var classInput = document.getElementById('classInput');
+      var traineesInput = document.getElementById('traineesInput');
+      var periodsInput = document.getElementById('periodsInput');
+      var periodLengthSelect = document.getElementById('periodLengthSelect');
+      var totalDurationDisplay = document.getElementById('totalDurationDisplay');
       var generateBtn = document.getElementById('generateBtn');
       var resetBtn = document.getElementById('resetBtn');
       var editSelectionBtn = document.getElementById('editSelectionBtn');
       var printBtn = document.getElementById('printBtn');
-      var addActivityRowBtn = document.getElementById('addActivityRowBtn');
+      var addStepRowBtn = document.getElementById('addStepRowBtn');
       var docSection = document.getElementById('docSection');
       var noDataAlert = document.getElementById('noDataAlert');
       var selectorFields = document.getElementById('selectorFields');
-      var docActivityBody = document.getElementById('docActivityBody');
+      var docStepsBody = document.getElementById('docStepsBody');
 
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
 
-      var DEFAULT_ACTIVITY_ROWS = [
-        ['5 min', 'Welcomes trainees, reviews previous session, introduces today\u2019s outcome.', 'Listen, ask questions, recall prior learning.', 'Q&amp;A', 'Whiteboard'],
-        ['15 min', 'Demonstrates the key skill / concept step by step.', 'Observe, take notes, ask clarifying questions.', 'Demonstration', 'Tools &amp; equipment'],
-        ['30 min', 'Guides trainees through hands-on practice, circulates and coaches.', 'Practice the skill individually or in pairs.', 'Guided practice', 'Workstations / materials'],
-        ['10 min', 'Summarises key points, checks understanding, sets follow-up task.', 'Recap learning, ask final questions.', 'Discussion', 'Handout / checklist'],
+      // Default facilitation techniques suggested for every session — trainers
+      // trim/adjust this list to whichever methods actually fit the content.
+      var DEFAULT_TECHNIQUES = [
+        'Trainer-guided practice', 'Demonstration', 'Question and answer',
+        'Individual or group practice', 'Discussion',
+      ];
+
+      var DEFAULT_CROSS_CUTTING = [
+        'Gender equality', 'Environment and sustainability',
+        'Inclusive education / education for all', 'HIV/AIDS awareness',
+        'Peace and values education', 'Standardisation culture',
       ];
 
       function indexBy(list, key) {
@@ -269,22 +366,75 @@
         });
         trainerSelect.disabled = false;
 
+        updateTotalDurationDisplay();
+
         moduleSelect.addEventListener('change', onModuleChange);
         outcomeSelect.addEventListener('change', onOutcomeChange);
+        periodsInput.addEventListener('input', updateTotalDurationDisplay);
+        periodLengthSelect.addEventListener('change', updateTotalDurationDisplay);
         generateBtn.addEventListener('click', onGenerate);
         resetBtn.addEventListener('click', onReset);
         editSelectionBtn.addEventListener('click', function () {
           selectorFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         printBtn.addEventListener('click', TMSGen.print);
-        addActivityRowBtn.addEventListener('click', function () { addActivityRow(['', '', '', '', '']); });
+        addStepRowBtn.addEventListener('click', function () {
+          addStepRow({ label: 'Step ' + (docStepsBody.children.length + 1), trainer: '', learner: '', resources: '', duration: '' });
+        });
 
-        docActivityBody.addEventListener('click', function (e) {
+        docStepsBody.addEventListener('click', function (e) {
           var btn = e.target.closest('.gen-row-remove');
           if (!btn) return;
           var row = btn.closest('tr');
           if (row) row.remove();
+          renumberSteps();
         });
+      }
+
+      // -------------------------------------------------------------
+      // Period / duration maths — every block below always sums back
+      // up to the total session duration chosen by the user.
+      // -------------------------------------------------------------
+      function getTotalMinutes() {
+        var periods = Math.max(1, parseInt(periodsInput.value, 10) || 1);
+        var perPeriod = parseInt(periodLengthSelect.value, 10) || 40;
+        return periods * perPeriod;
+      }
+
+      function updateTotalDurationDisplay() {
+        var periods = Math.max(1, parseInt(periodsInput.value, 10) || 1);
+        var perPeriod = parseInt(periodLengthSelect.value, 10) || 40;
+        var total = periods * perPeriod;
+        totalDurationDisplay.value = periods + ' period' + (periods === 1 ? '' : 's') +
+          ' \u00d7 ' + perPeriod + ' min = ' + total + ' min';
+      }
+
+      // Splits the total session time into Introduction / Development /
+      // Conclusion blocks (roughly 15% / 65% / 20%), rounded to whole
+      // minutes, with the Development block absorbing any rounding
+      // remainder so the three durations always add back up to the total.
+      function splitSessionTime(total) {
+        var intro = Math.max(5, Math.round(total * 0.15));
+        var conclusion = Math.max(5, Math.round(total * 0.20));
+        if (intro + conclusion >= total) {
+          intro = Math.max(1, Math.floor(total * 0.2));
+          conclusion = Math.max(1, Math.floor(total * 0.2));
+        }
+        var development = total - intro - conclusion;
+        return { intro: intro, development: development, conclusion: conclusion };
+      }
+
+      // Splits `total` development minutes evenly across `count` steps,
+      // whole minutes only, with any remainder added to the last step.
+      function splitEvenly(total, count) {
+        if (count <= 0) return [];
+        var base = Math.floor(total / count);
+        var remainder = total - base * count;
+        var out = [];
+        for (var i = 0; i < count; i++) {
+          out.push(base + (i === count - 1 ? remainder : 0));
+        }
+        return out;
       }
 
       function onModuleChange() {
@@ -317,17 +467,24 @@
 
         var mod = modulesById[moduleId];
         var outcome = data.outcomes.find(function (o) { return o.id === outcomeId; });
-        if (!titleInput.value.trim() && mod && outcome) {
-          titleInput.value = mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text);
+        if (!topicInput.value.trim() && mod && outcome) {
+          topicInput.value = mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text);
         }
       }
 
       function onReset() {
         moduleSelect.value = '';
         onModuleChange();
-        titleInput.value = '';
+        topicInput.value = '';
+        rangeInput.value = '';
         weekInput.value = '';
         lessonDateInput.value = '';
+        schoolYearInput.value = '';
+        classInput.value = '';
+        traineesInput.value = '';
+        periodsInput.value = '1';
+        periodLengthSelect.value = '40';
+        updateTotalDurationDisplay();
         docSection.classList.add('d-none');
       }
 
@@ -350,32 +507,50 @@
           : (mod.trainer_name || '');
 
         var contents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
-        var title = titleInput.value.trim() || (mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text));
+        var topic = topicInput.value.trim() || (mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text));
+
+        var total = getTotalMinutes();
+        var blocks = splitSessionTime(total);
+        var periods = Math.max(1, parseInt(periodsInput.value, 10) || 1);
+        var perPeriod = parseInt(periodLengthSelect.value, 10) || 40;
+        var durationLabel = periods + ' period' + (periods === 1 ? '' : 's') + ' \u00d7 ' + perPeriod +
+          ' min = ' + total + ' min';
 
         renderLogos(data.logos);
-        renderMeta({
-          sector: sector ? sector.sector_name : '\u2014',
-          trade: trade ? trade.trade_name : '\u2014',
-          level: level ? level.class_level : '\u2014',
-          mod: mod,
-          outcome: outcome,
-          trainerName: trainerName,
-          week: weekInput.value.trim() || '\u2014',
-          date: lessonDateInput.value ? TMSGen.formatDateLong(lessonDateInput.value) : '\u2014',
-        });
-        renderContentList(contents);
-        renderObjectives(outcome, contents);
-        renderActivities();
-        renderResources();
-        renderAssessment(outcome);
+        setText('spSector', sector ? sector.sector_name : '\u2014');
+        setText('spTrade', trade ? trade.trade_name : '\u2014');
+        setText('spLevel', level ? level.class_level : '\u2014');
+        setText('spDate', lessonDateInput.value ? TMSGen.formatDateLong(lessonDateInput.value) : '\u2014');
+        setText('spTrainer', trainerName || '\u2014');
+        setText('spSchoolYear', schoolYearInput.value.trim() || '\u2014');
+        setText('spModule', mod.mod_code + ' \u2014 ' + mod.mod_name);
+        setText('spWeek', weekInput.value.trim() || '\u2014');
+        setText('spTrainees', traineesInput.value ? traineesInput.value : '\u2014');
+        setText('spClasses', classInput.value.trim() || '\u2014');
+        setText('spOutcome', TMSGen.shortOutcomeText(outcome.outcome_text));
+        setText('spContent', contents.length ? contents.map(function (c) { return c.indic_name; }).join('; ') : '\u2014');
+        setText('spTopic', topic);
+        setText('spRange', rangeInput.value.trim() || '\u2014');
+        setText('spDuration', durationLabel);
 
-        document.getElementById('docTitle').textContent = title;
+        renderObjectives(outcome, contents);
+        renderTechniques();
+        renderIntroduction(blocks.intro, topic);
+        renderSteps(contents, outcome, blocks.development);
+        renderConclusion(blocks.conclusion, outcome);
+        renderEvaluationSections();
+
+        document.getElementById('docTitle').textContent = 'Session Plan — ' + topic;
         document.getElementById('docGeneratedOn').textContent = 'Generated on ' + TMSGen.todayLong();
-        document.getElementById('docPreparedBy').textContent = trainerName || '';
         document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
 
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function setText(id, value) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = value;
       }
 
       function renderLogos(logos) {
@@ -389,70 +564,112 @@
         });
       }
 
-      function renderMeta(ctx) {
-        var mod = ctx.mod;
-        var rows = [
-          ['Sector', ctx.sector],
-          ['Trade', ctx.trade],
-          ['Level', ctx.level],
-          ['Module', mod.mod_code + ' \u2014 ' + mod.mod_name],
-          ['Trainer', ctx.trainerName || '\u2014'],
-          ['Term', mod.term || '\u2014'],
-          ['Week', ctx.week],
-          ['Lesson date', ctx.date],
-          ['Duration', ctx.outcome.learning_hours + ' hrs (outcome total)'],
-        ];
-        var el = document.getElementById('docMeta');
-        el.innerHTML = rows.map(function (r) {
-          return '<div><dt>' + TMSGen.escapeHtml(r[0]) + '</dt><dd>' + TMSGen.escapeHtml(r[1]) + '</dd></div>';
-        }).join('');
-      }
-
-      function renderContentList(contents) {
-        var el = document.getElementById('docContentList');
-        if (!contents.length) {
-          el.innerHTML = '<li class="text-muted">No indicative content has been added for this outcome yet.</li>';
-          return;
-        }
-        el.innerHTML = contents.map(function (c) {
-          return '<li>' + TMSGen.escapeHtml(c.indic_name) + '</li>';
-        }).join('');
-      }
-
       function renderObjectives(outcome, contents) {
-        var el = document.getElementById('docObjectives');
-        var intro = '<p>By the end of this lesson, trainees will be able to:</p>';
+        var el = document.getElementById('spObjectives');
         var items = contents.length
           ? contents.map(function (c) { return '<li>' + TMSGen.escapeHtml(c.indic_name) + '</li>'; }).join('')
           : '<li>' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '</li>';
-        el.innerHTML = intro + '<ul class="gen-bullets">' + items + '</ul>';
+        el.innerHTML = '<ul class="gen-bullets">' + items + '</ul>';
       }
 
-      function renderActivities() {
-        docActivityBody.innerHTML = '';
-        DEFAULT_ACTIVITY_ROWS.forEach(function (row) { addActivityRow(row); });
+      function renderTechniques() {
+        document.getElementById('spTechniques').textContent = DEFAULT_TECHNIQUES.join(', ');
       }
 
-      function addActivityRow(cells) {
+      // -------------------------------------------------------------
+      // Introduction / Development / Conclusion — all durations are
+      // expressed purely in minutes (never hours), derived from the
+      // number of periods × minutes-per-period chosen above, so they
+      // always add back up to the session total shown at the top.
+      // -------------------------------------------------------------
+      function renderIntroduction(minutes, topic) {
+        document.getElementById('spIntroTrainer').innerHTML =
+          'Welcomes trainees, checks attendance, reviews prior learning relevant to &ldquo;' +
+          TMSGen.escapeHtml(topic) + '&rdquo;, introduces the topic and objectives, and motivates learners for the session.';
+        document.getElementById('spIntroLearner').innerHTML =
+          'Settle in, respond to attendance, recall and share prior knowledge, listen and ask clarifying questions.';
+        document.getElementById('spIntroResources').textContent = 'Attendance list, whiteboard, projector';
+        document.getElementById('spIntroDuration').textContent = minutes + ' mins';
+      }
+
+      function renderSteps(contents, outcome, developmentMinutes) {
+        docStepsBody.innerHTML = '';
+        var stepTopics = contents.length
+          ? contents.map(function (c) { return c.indic_name; })
+          : [TMSGen.shortOutcomeText(outcome.outcome_text)];
+
+        var durations = splitEvenly(developmentMinutes, stepTopics.length);
+
+        stepTopics.forEach(function (topicText, i) {
+          addStepRow({
+            label: 'Step ' + (i + 1) + ': ' + TMSGen.shortOutcomeText(topicText),
+            trainer: 'Explains and demonstrates &ldquo;' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(topicText)) +
+              '&rdquo; step by step, checks understanding and guides hands-on practice, circulating to coach individual trainees.',
+            learner: 'Observe the demonstration, ask clarifying questions, and practise the skill individually or in pairs under guidance.',
+            resources: 'Tools &amp; equipment, workstations/materials, task sheet',
+            duration: durations[i] + ' mins',
+          });
+        });
+      }
+
+      function addStepRow(row) {
         var tr = document.createElement('tr');
-        var editableCells = cells.map(function (val) {
-          return '<td contenteditable="true">' + val + '</td>';
-        }).join('');
-        tr.innerHTML = editableCells +
+        tr.innerHTML =
+          '<td colspan="2">' +
+            '<div class="gen-step-cell" contenteditable="true">' + row.label + '</div>' +
+            '<strong>Trainer\'s activity:</strong>' +
+            '<div contenteditable="true" class="gen-sp-editable-block">' + row.trainer + '</div>' +
+            '<strong>Learner\'s activity:</strong>' +
+            '<div contenteditable="true" class="gen-sp-editable-block">' + row.learner + '</div>' +
+          '</td>' +
+          '<td contenteditable="true">' + row.resources + '</td>' +
+          '<td contenteditable="true" class="gen-sp-duration">' + row.duration + '</td>' +
           '<td class="no-print"><button type="button" class="gen-row-remove" title="Remove step"><i class="fa-solid fa-xmark"></i></button></td>';
-        docActivityBody.appendChild(tr);
+        docStepsBody.appendChild(tr);
       }
 
-      function renderResources() {
-        document.getElementById('docResources').innerHTML =
-          '<p>Trainer manual, tools &amp; equipment relevant to the outcome, projector / visual aids, handouts, workstations or lab space as required.</p>';
+      function renumberSteps() {
+        Array.prototype.forEach.call(docStepsBody.children, function (tr, i) {
+          var cell = tr.querySelector('.gen-step-cell');
+          if (!cell) return;
+          var text = cell.textContent.replace(/^Step\s+\d+/, 'Step ' + (i + 1));
+          if (text === cell.textContent && !/^Step\s+\d+/.test(cell.textContent)) {
+            text = 'Step ' + (i + 1) + ': ' + cell.textContent;
+          }
+          cell.textContent = text;
+        });
       }
 
-      function renderAssessment(outcome) {
-        document.getElementById('docAssessment').innerHTML =
-          '<p>Formative: observation checklist and oral questioning during guided practice. ' +
-          'Summative: practical demonstration of "' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) +
-          '" assessed against the module\u2019s performance criteria.</p>';
+      function renderConclusion(minutes, outcome) {
+        document.getElementById('spSummary').innerHTML =
+          'Recaps the key points covered against &ldquo;' +
+          TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '&rdquo; and checks overall understanding.';
+        document.getElementById('spAssessment').innerHTML =
+          'Formative: oral questioning and observation checklist during the session. ' +
+          'Assignment: a short follow-up practical or written task confirming the objectives were met.';
+        document.getElementById('spConclusionResources').textContent = 'Pens, papers, projector and whiteboard';
+        document.getElementById('spConclusionDuration').textContent = minutes + ' mins';
+      }
+
+      function renderEvaluationSections() {
+        document.getElementById('spEvaluation').innerHTML =
+          '<p>Note here, after delivery, whether the objectives were achieved, how trainees responded, ' +
+          'and any adjustments needed to timing, activities or resources.</p>';
+
+        document.getElementById('spCrossCutting').innerHTML =
+          '<ul class="gen-bullets">' +
+          DEFAULT_CROSS_CUTTING.map(function (c) { return '<li>' + TMSGen.escapeHtml(c) + '</li>'; }).join('') +
+          '</ul>';
+
+        document.getElementById('spReferences').innerHTML =
+          '<ul class="gen-bullets"><li>Module curriculum / competence-based training programme</li>' +
+          '<li>Trainer manual and relevant technical references</li></ul>';
+
+        document.getElementById('spAppendices').innerHTML =
+          '<p class="text-muted">Attach handouts, checklists, worksheets or diagrams used in this session, where applicable.</p>';
+
+        document.getElementById('spReflection').innerHTML =
+          '<p>What went well in this session? What would you change next time you teach this outcome?</p>';
       }
 
       init();
