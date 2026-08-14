@@ -80,7 +80,7 @@
 
           <div>
             <label class="form-label" for="rangeInput">Range</label>
-            <input type="text" class="form-control" id="rangeInput" placeholder="e.g. Limited to single-phase installations">
+            <input type="text" class="form-control" id="rangeInput" placeholder="Auto-filled from indicative content — edit if you like">
           </div>
 
           <div>
@@ -100,7 +100,7 @@
 
           <div>
             <label class="form-label" for="classInput">Class(es)</label>
-            <input type="text" class="form-control" id="classInput" placeholder="e.g. L5 ELEC A">
+            <input type="text" class="form-control" id="classInput" placeholder="Auto-filled from Trade + Level — edit if you like">
           </div>
 
           <div>
@@ -327,6 +327,12 @@
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
 
+      // Once the trainer types their own value into Class(es) or Range, we
+      // stop overwriting it on every module/outcome change — auto-fill only
+      // ever fills a field the trainer hasn't touched yet.
+      var classTouchedByUser = false;
+      var rangeTouchedByUser = false;
+
       // Default facilitation techniques suggested for every session — trainers
       // trim/adjust this list to whichever methods actually fit the content.
       var DEFAULT_TECHNIQUES = [
@@ -344,6 +350,40 @@
         var map = {};
         (list || []).forEach(function (item) { map[item[key]] = item; });
         return map;
+      }
+
+      // "Class(es)" auto-fill: Trade + Level is exactly what identifies a
+      // class group in the curriculum (e.g. "Electrical Installation \u2014 L5"),
+      // so we derive it straight from the module's trade/level instead of
+      // asking the trainer to type it every time.
+      function buildClassLabel(trade, level) {
+        if (trade && level) return trade.trade_name + ' \u2014 ' + level.class_level;
+        if (trade) return trade.trade_name;
+        if (level) return level.class_level;
+        return '';
+      }
+
+      // Trims one indicative-content line down to a short "sub-topic" phrase
+      // for the Range field: cut at the first sentence break, then hard-cap
+      // the length so a handful of them still read as a compact list.
+      function shortenToSubtopic(text) {
+        var t = (text || '').trim();
+        var stop = t.search(/[.;]/);
+        if (stop > 0 && stop < 80) t = t.slice(0, stop);
+        if (t.length > 70) t = t.slice(0, 67).replace(/\s+\S*$/, '') + '\u2026';
+        return t.trim();
+      }
+
+      // "Range" auto-fill: pulls the small sub-topics straight from this
+      // outcome's own indicative content in the database, rather than
+      // leaving the trainer to type the scope limitation from scratch.
+      function buildRangeText(contents) {
+        if (!contents || !contents.length) return '';
+        return contents
+          .slice(0, 5)
+          .map(function (c) { return shortenToSubtopic(TMSGen.shortOutcomeText(c.indic_name)); })
+          .filter(Boolean)
+          .join('; ');
       }
 
       function init() {
@@ -370,6 +410,8 @@
 
         moduleSelect.addEventListener('change', onModuleChange);
         outcomeSelect.addEventListener('change', onOutcomeChange);
+        classInput.addEventListener('input', function () { classTouchedByUser = true; });
+        rangeInput.addEventListener('input', function () { rangeTouchedByUser = true; });
         periodsInput.addEventListener('input', updateTotalDurationDisplay);
         periodLengthSelect.addEventListener('change', updateTotalDurationDisplay);
         generateBtn.addEventListener('click', onGenerate);
@@ -379,7 +421,13 @@
         });
         printBtn.addEventListener('click', TMSGen.print);
         addStepRowBtn.addEventListener('click', function () {
-          addStepRow({ label: 'Step ' + (docStepsBody.children.length + 1), trainer: '', learner: '', resources: '', duration: '' });
+          addStepRow({
+            label: 'Step ' + (docStepsBody.children.length + 1),
+            trainerItems: [''],
+            learnerItems: [''],
+            resources: '',
+            duration: '',
+          });
         });
 
         docStepsBody.addEventListener('click', function (e) {
@@ -458,6 +506,12 @@
         } else {
           trainerSelect.value = '';
         }
+
+        if (mod && !classTouchedByUser) {
+          var trade = data.trades.find(function (t) { return t.id === mod.trade_id; });
+          var level = data.levels.find(function (l) { return l.id === mod.level_id; });
+          classInput.value = buildClassLabel(trade, level);
+        }
       }
 
       function onOutcomeChange() {
@@ -470,9 +524,16 @@
         if (!topicInput.value.trim() && mod && outcome) {
           topicInput.value = mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text);
         }
+
+        if (!rangeTouchedByUser) {
+          var outcomeContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+          rangeInput.value = buildRangeText(outcomeContents);
+        }
       }
 
       function onReset() {
+        classTouchedByUser = false;
+        rangeTouchedByUser = false;
         moduleSelect.value = '';
         onModuleChange();
         topicInput.value = '';
@@ -582,12 +643,34 @@
       // number of periods × minutes-per-period chosen above, so they
       // always add back up to the session total shown at the top.
       // -------------------------------------------------------------
+      // Renders a trainer/learner activity as a styled bullet list rather
+      // than one run-on sentence — each item is its own <li> for readability
+      // and stays contenteditable via the wrapping block.
+      function buildActivityListHtml(items, variant) {
+        var lis = (items || [])
+          .map(function (item) { return '<li>' + item + '</li>'; })
+          .join('');
+        return '<ul class="gen-activity-list gen-activity-list--' + variant + '">' + lis + '</ul>';
+      }
+
+      function renderActivityList(elementId, items, variant) {
+        var el = document.getElementById(elementId);
+        if (el) el.innerHTML = buildActivityListHtml(items, variant);
+      }
+
       function renderIntroduction(minutes, topic) {
-        document.getElementById('spIntroTrainer').innerHTML =
-          'Welcomes trainees, checks attendance, reviews prior learning relevant to &ldquo;' +
-          TMSGen.escapeHtml(topic) + '&rdquo;, introduces the topic and objectives, and motivates learners for the session.';
-        document.getElementById('spIntroLearner').innerHTML =
-          'Settle in, respond to attendance, recall and share prior knowledge, listen and ask clarifying questions.';
+        var topicHtml = TMSGen.escapeHtml(topic);
+        renderActivityList('spIntroTrainer', [
+          'Welcomes trainees and checks attendance',
+          'Reviews prior learning relevant to &ldquo;' + topicHtml + '&rdquo;',
+          'Introduces the topic and session objectives',
+          'Motivates learners for the session',
+        ], 'trainer');
+        renderActivityList('spIntroLearner', [
+          'Settle in and respond to attendance',
+          'Recall and share prior knowledge',
+          'Listen and ask clarifying questions',
+        ], 'learner');
         document.getElementById('spIntroResources').textContent = 'Attendance list, whiteboard, projector';
         document.getElementById('spIntroDuration').textContent = minutes + ' mins';
       }
@@ -601,11 +684,20 @@
         var durations = splitEvenly(developmentMinutes, stepTopics.length);
 
         stepTopics.forEach(function (topicText, i) {
+          var shortTopic = TMSGen.shortOutcomeText(topicText);
+          var shortTopicHtml = TMSGen.escapeHtml(shortTopic);
           addStepRow({
-            label: 'Step ' + (i + 1) + ': ' + TMSGen.shortOutcomeText(topicText),
-            trainer: 'Explains and demonstrates &ldquo;' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(topicText)) +
-              '&rdquo; step by step, checks understanding and guides hands-on practice, circulating to coach individual trainees.',
-            learner: 'Observe the demonstration, ask clarifying questions, and practise the skill individually or in pairs under guidance.',
+            label: 'Step ' + (i + 1) + ': ' + shortTopic,
+            trainerItems: [
+              'Explains and demonstrates &ldquo;' + shortTopicHtml + '&rdquo; step by step',
+              'Checks understanding through questioning',
+              'Guides hands-on practice, circulating to coach individual trainees',
+            ],
+            learnerItems: [
+              'Observe the demonstration closely',
+              'Ask clarifying questions',
+              'Practise the skill individually or in pairs under guidance',
+            ],
             resources: 'Tools &amp; equipment, workstations/materials, task sheet',
             duration: durations[i] + ' mins',
           });
@@ -614,13 +706,19 @@
 
       function addStepRow(row) {
         var tr = document.createElement('tr');
+        var trainerHtml = row.trainerItems
+          ? buildActivityListHtml(row.trainerItems, 'trainer')
+          : (row.trainer || '');
+        var learnerHtml = row.learnerItems
+          ? buildActivityListHtml(row.learnerItems, 'learner')
+          : (row.learner || '');
         tr.innerHTML =
           '<td colspan="2">' +
             '<div class="gen-step-cell" contenteditable="true">' + row.label + '</div>' +
             '<strong>Trainer\'s activity:</strong>' +
-            '<div contenteditable="true" class="gen-sp-editable-block">' + row.trainer + '</div>' +
+            '<div contenteditable="true" class="gen-sp-editable-block">' + trainerHtml + '</div>' +
             '<strong>Learner\'s activity:</strong>' +
-            '<div contenteditable="true" class="gen-sp-editable-block">' + row.learner + '</div>' +
+            '<div contenteditable="true" class="gen-sp-editable-block">' + learnerHtml + '</div>' +
           '</td>' +
           '<td contenteditable="true">' + row.resources + '</td>' +
           '<td contenteditable="true" class="gen-sp-duration">' + row.duration + '</td>' +
