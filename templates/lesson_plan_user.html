@@ -861,7 +861,10 @@
           '<p class="text-muted">Attach handouts, checklists, worksheets or diagrams used in this session, where applicable.</p>';
 
         document.getElementById('spReflection').innerHTML =
-          '<p>What went well in this session? What would you change next time you teach this outcome?</p>';
+          '<ul class="gen-bullets">' +
+          '<li>What went well in this session?</li>' +
+          '<li>What would you change next time you teach this outcome?</li>' +
+          '</ul>';
       }
 
       init();
