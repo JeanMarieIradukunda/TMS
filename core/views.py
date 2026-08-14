@@ -8,7 +8,8 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.urls import reverse_lazy
-from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
 from groq import Groq, APIError, APIConnectionError, RateLimitError
@@ -639,7 +640,16 @@ class LessonPlanDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 # Public generator pages (Scheme of Work / Lesson Plan)
 # ---------------------------------------------------------------------------
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class SchemeOfWorkUserView(TemplateView):
+    """
+    Public generator page. ensure_csrf_cookie is required here because this
+    page has no {% csrf_token %} in its template (it's not a Django <form>
+    POST) - without it, Django never sets the csrftoken cookie for anonymous
+    visitors, so the page's own JS fetch() to /api/scheme-of-work/ai-generate/
+    has no token to send and every request is rejected with 403 CSRF cookie
+    not set, before it ever reaches Groq.
+    """
     template_name = "scheme_of_work_user.html"
 
     def get_context_data(self, **kwargs):
@@ -648,7 +658,9 @@ class SchemeOfWorkUserView(TemplateView):
         return context
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LessonPlanUserView(TemplateView):
+    """Same reasoning as SchemeOfWorkUserView above."""
     template_name = "lesson_plan_user.html"
 
     def get_context_data(self, **kwargs):

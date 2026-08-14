@@ -3,7 +3,14 @@ from django.db import models
 
 class Logo(models.Model):
     name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='logos/') 
+    # Stored as a base64 data-URI string (see core/forms.py:encode_image_to_base64),
+    # NOT as an uploaded file on disk. This must stay a TextField: an ImageField's
+    # underlying DB column defaults to varchar(100), which silently works on SQLite
+    # (no length enforcement) but raises "value too long for type character
+    # varying(100)" on PostgreSQL as soon as a real base64 image is saved. Storing
+    # the image as text also means logo uploads work correctly on Vercel, whose
+    # serverless filesystem is ephemeral and cannot persist uploaded files.
+    image = models.TextField(help_text='Base64 data-URI string of the logo image')
 
     class Meta:
         ordering = ['name']

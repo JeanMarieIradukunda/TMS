@@ -17,15 +17,35 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+# Comma-separated env vars let you add hosts/origins (e.g. a custom domain)
+# per-environment without touching code. The known Vercel/local defaults are
+# always included so the app keeps working out of the box.
 ALLOWED_HOSTS = [
-    "tms-pvc.vercel.app",
+    "teach-pvc.vercel.app",
     "localhost",
     "127.0.0.1",
-]
+] + [h.strip() for h in config('ALLOWED_HOSTS', default='').split(',') if h.strip()]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://tms-pvc.vercel.app",
-]
+    "https://teach-pvc.vercel.app",
+] + [o.strip() for o in config('CSRF_TRUSTED_ORIGINS', default='').split(',') if o.strip()]
+
+# ---------------------------------------------------------------------------
+# Production security hardening (only enforced when DEBUG=False, so local
+# development over plain http:// is unaffected). Vercel terminates TLS at
+# its edge and forwards requests over http internally, so Django needs the
+# SECURE_PROXY_SSL_HEADER hint to correctly detect that the original request
+# was secure - without it, SECURE_SSL_REDIRECT would redirect-loop forever.
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -119,6 +139,19 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise's compressed + hashed static storage. Vercel's Django integration
+# explicitly supports this backend: it serves collectstatic's output from its
+# own CDN in production, while WhiteNoise itself serves the same files when
+# running locally via `vercel dev` or `runserver`.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -1,0 +1,250 @@
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'core/models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'core/views.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'training_management/settings.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vercel.json', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex 8ec63b1..1e87878 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -2,6 +2,10 @@[m [m__pycache__/[m
+ *.pyc[m
+ db.sqlite3[m
+ .env[m
+[32m+[m[32m.env.local[m
+ staticfiles/[m
+ .venv/[m
+ venv/[m
+[32m+[m[32m.idea/[m
+[32m+[m[32m.vscode/[m
+[32m+[m[32m*.log[m
+[1mdiff --git a/core/models.py b/core/models.py[m
+[1mindex 4180dd4..9b710fa 100644[m
+[1m--- a/core/models.py[m
+[1m+++ b/core/models.py[m
+[36m@@ -3,7 +3,14 @@[m [mfrom django.db import models[m
+ [m
+ class Logo(models.Model):[m
+     name = models.CharField(max_length=100)[m
+[31m-    image = models.ImageField(upload_to='logos/') [m
+[32m+[m[32m    # Stored as a base64 data-URI string (see core/forms.py:encode_image_to_base64),[m
+[32m+[m[32m    # NOT as an uploaded file on disk. This must stay a TextField: an ImageField's[m
+[32m+[m[32m    # underlying DB column defaults to varchar(100), which silently works on SQLite[m
+[32m+[m[32m    # (no length enforcement) but raises "value too long for type character[m
+[32m+[m[32m    # varying(100)" on PostgreSQL as soon as a real base64 image is saved. Storing[m
+[32m+[m[32m    # the image as text also means logo uploads work correctly on Vercel, whose[m
+[32m+[m[32m    # serverless filesystem is ephemeral and cannot persist uploaded files.[m
+[32m+[m[32m    image = models.TextField(help_text='Base64 data-URI string of the logo image')[m
+ [m
+     class Meta:[m
+         ordering = ['name'][m
+[1mdiff --git a/core/views.py b/core/views.py[m
+[1mindex 18de5b2..13f9ec4 100644[m
+[1m--- a/core/views.py[m
+[1m+++ b/core/views.py[m
+[36m@@ -8,7 +8,8 @@[m [mfrom django.contrib.auth.views import LoginView, LogoutView[m
+ from django.core.serializers.json import DjangoJSONEncoder[m
+ from django.http import JsonResponse[m
+ from django.urls import reverse_lazy[m
+[31m-from django.views.decorators.csrf import csrf_protect[m
+[32m+[m[32mfrom django.utils.decorators import method_decorator[m
+[32m+[m[32mfrom django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie[m
+ from django.views.decorators.http import require_POST[m
+ from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView[m
+ from groq import Groq, APIError, APIConnectionError, RateLimitError[m
+[36m@@ -639,7 +640,16 @@[m [mclass LessonPlanDeleteView(BaseDeleteView):[m
+ # ---------------------------------------------------------------------------[m
+ # Public generator pages (Scheme of Work / Lesson Plan)[m
+ # ---------------------------------------------------------------------------[m
+[32m+[m[32m@method_decorator(ensure_csrf_cookie, name='dispatch')[m
+ class SchemeOfWorkUserView(TemplateView):[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Public generator page. ensure_csrf_cookie is required here because this[m
+[32m+[m[32m    page has no {% csrf_token %} in its template (it's not a Django <form>[m
+[32m+[m[32m    POST) - without it, Django never sets the csrftoken cookie for anonymous[m
+[32m+[m[32m    visitors, so the page's own JS fetch() to /api/scheme-of-work/ai-generate/[m
+[32m+[m[32m    has no token to send and every request is rejected with 403 CSRF cookie[m
+[32m+[m[32m    not set, before it ever reaches Groq.[m
+[32m+[m[32m    """[m
+     template_name = "scheme_of_work_user.html"[m
+ [m
+     def get_context_data(self, **kwargs):[m
+[36m@@ -648,7 +658,9 @@[m [mclass SchemeOfWorkUserView(TemplateView):[m
+         return context[m
+ [m
+ [m
+[32m+[m[32m@method_decorator(ensure_csrf_cookie, name='dispatch')[m
+ class LessonPlanUserView(TemplateView):[m
+[32m+[m[32m    """Same reasoning as SchemeOfWorkUserView above."""[m
+     template_name = "lesson_plan_user.html"[m
+ [m
+     def get_context_data(self, **kwargs):[m
+[1mdiff --git a/requirements.txt b/requirements.txt[m
+[1mindex 2d235aa..cb3fca8 100644[m
+[1m--- a/requirements.txt[m
+[1m+++ b/requirements.txt[m
+[36m@@ -1,47 +1,36 @@[m
+[31m-altgraph==0.17.5[m
+[31m-annotated-types==0.7.0[m
+[31m-anyio==4.13.0[m
+[31m-asgiref==3.11.1[m
+[31m-beautifulsoup4==4.15.0[m
+[31m-certifi==2026.4.22[m
+[31m-charset-normalizer==3.4.7[m
+[31m-distro==1.9.0[m
+[31m-dj-database-url==3.1.2[m
+[32m+[m[32m# --- Web framework ---[m
+ Django==6.0.4[m
+[31m-dotenv==0.9.9[m
+[31m-et_xmlfile==2.0.0[m
+[31m-groq==1.2.0[m
+[32m+[m[32masgiref==3.11.1[m
+[32m+[m[32msqlparse==0.5.5[m
+[32m+[m
+[32m+[m[32m# --- Production server (used for non-Vercel / traditional deployment targets) ---[m
+ gunicorn==26.0.0[m
+[31m-h11==0.16.0[m
+[31m-httpcore==1.0.9[m
+[31m-httpx==0.28.1[m
+[31m-idna==3.13[m
+[31m-lxml==6.1.1[m
+[31m-numpy==2.4.2[m
+[31m-openpyxl==3.1.5[m
+[31m-packaging==26.0[m
+[31m-pandas==3.0.1[m
+[31m-pefile==2024.8.26[m
+[31m-pillow==12.2.0[m
+[32m+[m
+[32m+[m[32m# --- Database (PostgreSQL) ---[m
+ psycopg2-binary==2.9.12[m
+[31m-pydantic==2.13.3[m
+[31m-pydantic_core==2.46.3[m
+[31m-pyinstaller==6.19.0[m
+[31m-pyinstaller-hooks-contrib==2026.1[m
+[31m-pyserial==3.5[m
+[31m-python-dateutil==2.9.0.post0[m
+[32m+[m
+[32m+[m[32m# --- Static files ---[m
+[32m+[m[32mwhitenoise==6.12.0[m
+[32m+[m
+[32m+[m[32m# --- Environment variables ---[m
+ python-decouple==3.8[m
+[31m-python-docx==1.2.0[m
+ python-dotenv==1.2.2[m
+[31m-pywin32-ctypes==0.2.3[m
+[31m-requests==2.33.1[m
+[31m-setuptools==82.0.0[m
+[31m-six==1.17.0[m
+[32m+[m
+[32m+[m[32m# --- Groq AI SDK + its transitive dependencies ---[m
+[32m+[m[32mgroq==1.2.0[m
+[32m+[m[32manyio==4.13.0[m
+[32m+[m[32mdistro==1.9.0[m
+[32m+[m[32mhttpx==0.28.1[m
+[32m+[m[32mhttpcore==1.0.9[m
+[32m+[m[32mh11==0.16.0[m
+ sniffio==1.3.1[m
+[31m-soupsieve==2.8.4[m
+[31m-sqlparse==0.5.5[m
+[31m-typing-inspection==0.4.2[m
+[32m+[m[32midna==3.13[m
+[32m+[m[32mcertifi==2026.4.22[m
+[32m+[m[32mpydantic==2.13.3[m
+[32m+[m[32mpydantic_core==2.46.3[m
+[32m+[m[32mannotated-types==0.7.0[m
+ typing_extensions==4.15.0[m
+[32m+[m[32mtyping-inspection==0.4.2[m
+[32m+[m
+[32m+[m[32m# --- Timezone data (required on systems without a system IANA tz database, e.g. Windows) ---[m
+ tzdata==2025.3[m
+[31m-urllib3==2.6.3[m
+[31m-whitenoise==6.12.0[m
+[1mdiff --git a/training_management/settings.py b/training_management/settings.py[m
+[1mindex 393eb77..fa25c39 100644[m
+[1m--- a/training_management/settings.py[m
+[1m+++ b/training_management/settings.py[m
+[36m@@ -17,15 +17,35 @@[m [mSECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti[m
+ [m
+ DEBUG = config('DEBUG', default=False, cast=bool)[m
+ [m
+[32m+[m[32m# Comma-separated env vars let you add hosts/origins (e.g. a custom domain)[m
+[32m+[m[32m# per-environment without touching code. The known Vercel/local defaults are[m
+[32m+[m[32m# always included so the app keeps working out of the box.[m
+ ALLOWED_HOSTS = [[m
+[31m-    "tms-pvc.vercel.app",[m
+[32m+[m[32m    "teach-pvc.vercel.app",[m
+     "localhost",[m
+     "127.0.0.1",[m
+[31m-][m
+[32m+[m[32m] + [h.strip() for h in config('ALLOWED_HOSTS', default='').split(',') if h.strip()][m
+ [m
+ CSRF_TRUSTED_ORIGINS = [[m
+[31m-    "https://tms-pvc.vercel.app",[m
+[31m-][m
+[32m+[m[32m    "https://teach-pvc.vercel.app",[m
+[32m+[m[32m] + [o.strip() for o in config('CSRF_TRUSTED_ORIGINS', default='').split(',') if o.strip()][m
+[32m+[m
+[32m+[m[32m# ---------------------------------------------------------------------------[m
+[32m+[m[32m# Production security hardening (only enforced when DEBUG=False, so local[m
+[32m+[m[32m# development over plain http:// is unaffected). Vercel terminates TLS at[m
+[32m+[m[32m# its edge and forwards requests over http internally, so Django needs the[m
+[32m+[m[32m# SECURE_PROXY_SSL_HEADER hint to correctly detect that the original request[m
+[32m+[m[32m# was secure - without it, SECURE_SSL_REDIRECT would redirect-loop forever.[m
+[32m+[m[32m# ---------------------------------------------------------------------------[m
+[32m+[m[32mif not DEBUG:[m
+[32m+[m[32m    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')[m
+[32m+[m[32m    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)[m
+[32m+[m[32m    SESSION_COOKIE_SECURE = True[m
+[32m+[m[32m    CSRF_COOKIE_SECURE = True[m
+[32m+[m[32m    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)[m
+[32m+[m[32m    SECURE_HSTS_INCLUDE_SUBDOMAINS = True[m
+[32m+[m[32m    SECURE_HSTS_PRELOAD = True[m
+[32m+[m[32m    SECURE_CONTENT_TYPE_NOSNIFF = True[m
+ [m
+ # ---------------------------------------------------------------------------[m
+ # Applications[m
+[36m@@ -120,6 +140,19 @@[m [mSTATIC_URL = '/static/'[m
+ STATICFILES_DIRS = [BASE_DIR / 'static'][m
+ STATIC_ROOT = BASE_DIR / 'staticfiles'[m
+ [m
+[32m+[m[32m# WhiteNoise's compressed + hashed static storage. Vercel's Django integration[m
+[32m+[m[32m# explicitly supports this backend: it serves collectstatic's output from its[m
+[32m+[m[32m# own CDN in production, while WhiteNoise itself serves the same files when[m
+[32m+[m[32m# running locally via `vercel dev` or `runserver`.[m
+[32m+[m[32mSTORAGES = {[m
+[32m+[m[32m    'default': {[m
+[32m+[m[32m        'BACKEND': 'django.core.files.storage.FileSystemStorage',[m
+[32m+[m[32m    },[m
+[32m+[m[32m    'staticfiles': {[m
+[32m+[m[32m        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',[m
+[32m+[m[32m    },[m
+[32m+[m[32m}[m
+[32m+[m
+ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'[m
+ [m
+ # ---------------------------------------------------------------------------[m
+[1mdiff --git a/vercel.json b/vercel.json[m
+[1mindex bfce2d0..0a2918d 100644[m
+[1m--- a/vercel.json[m
+[1m+++ b/vercel.json[m
+[36m@@ -1,14 +1,8 @@[m
+ {[m
+[31m-  "builds": [[m
+[31m-    {[m
+[31m-      "src": "training_management/wsgi.py",[m
+[31m-      "use": "@vercel/python"[m
+[32m+[m[32m  "$schema": "https://openapi.vercel.sh/vercel.json",[m
+[32m+[m[32m  "functions": {[m
+[32m+[m[32m    "training_management/wsgi.py": {[m
+[32m+[m[32m      "maxDuration": 60[m
+     }[m
+[31m-  ],[m
+[31m-  "routes": [[m
+[31m-    {[m
+[31m-      "src": "/(.*)",[m
+[31m-      "dest": "training_management/wsgi.py"[m
+[31m-    }[m
+[31m-  ][m
+[32m+[m[32m  }[m
+ }[m
