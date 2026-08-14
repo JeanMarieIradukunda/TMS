@@ -333,13 +333,6 @@
       var classTouchedByUser = false;
       var rangeTouchedByUser = false;
 
-      // Default facilitation techniques suggested for every session — trainers
-      // trim/adjust this list to whichever methods actually fit the content.
-      var DEFAULT_TECHNIQUES = [
-        'Trainer-guided practice', 'Demonstration', 'Question and answer',
-        'Individual or group practice', 'Discussion',
-      ];
-
       var DEFAULT_CROSS_CUTTING = [
         'Gender equality', 'Environment and sustainability',
         'Inclusive education / education for all', 'HIV/AIDS awareness',
@@ -595,9 +588,9 @@
         setText('spDuration', durationLabel);
 
         renderObjectives(outcome, contents);
-        renderTechniques();
+        renderTechniquesLoading();
         renderIntroduction(blocks.intro, topic);
-        renderSteps(contents, outcome, blocks.development);
+        renderStepsLoading();
         renderConclusion(blocks.conclusion, outcome);
         renderEvaluationSections();
 
@@ -607,6 +600,23 @@
 
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Facilitation Technique(s) and the Development/Body steps are
+        // drafted server-side by Groq (see core/views.py:
+        // generate_lesson_plan_ai_content) — the backend guarantees at
+        // least 3 steps even if the model returns fewer.
+        fetchAiSessionContent({
+          outcome_text: outcome.outcome_text,
+          indicative_content: contents.map(function (c) { return c.indic_name; }),
+          sector: sector ? sector.sector_name : null,
+          trade: trade ? trade.trade_name : null,
+          level: level ? level.class_level : null,
+          module_code: mod.mod_code,
+          module_name: mod.mod_name,
+          topic: topic,
+          range: rangeInput.value.trim(),
+          total_minutes: total,
+        }, blocks.development);
       }
 
       function setText(id, value) {
@@ -633,8 +643,24 @@
         el.innerHTML = '<ul class="gen-bullets">' + items + '</ul>';
       }
 
-      function renderTechniques() {
-        document.getElementById('spTechniques').textContent = DEFAULT_TECHNIQUES.join(', ');
+      function renderTechniquesLoading() {
+        document.getElementById('spTechniques').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderTechniques(text) {
+        var el = document.getElementById('spTechniques');
+        var clean = (text || '').toString().trim();
+        if (!clean) {
+          renderTechniquesFailed();
+          return;
+        }
+        el.innerHTML = TMSGen.escapeHtml(clean) + ' <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderTechniquesFailed() {
+        document.getElementById('spTechniques').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
       }
 
       // -------------------------------------------------------------
@@ -675,33 +701,53 @@
         document.getElementById('spIntroDuration').textContent = minutes + ' mins';
       }
 
-      function renderSteps(contents, outcome, developmentMinutes) {
+      // Minimum steps kept client-side too, so the manual fallback (AI
+      // unreachable) still gives the trainer at least this many rows to
+      // fill in — mirrors MIN_LESSON_PLAN_STEPS enforced in views.py.
+      var MIN_STEPS_CLIENT = 3;
+
+      function renderStepsLoading() {
+        docStepsBody.innerHTML =
+          '<tr><td colspan="5" class="gen-ai-loading-row">' +
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Drafting development steps…</td></tr>';
+      }
+
+      function renderStepsFromAi(steps, developmentMinutes) {
         docStepsBody.innerHTML = '';
-        var stepTopics = contents.length
-          ? contents.map(function (c) { return c.indic_name; })
-          : [TMSGen.shortOutcomeText(outcome.outcome_text)];
+        var durations = splitEvenly(developmentMinutes, steps.length);
 
-        var durations = splitEvenly(developmentMinutes, stepTopics.length);
+        steps.forEach(function (step, i) {
+          var title = (step && step.title) ? TMSGen.escapeHtml(step.title) : ('Step ' + (i + 1));
+          var trainerItems = (step && step.trainer_activity && step.trainer_activity.length)
+            ? step.trainer_activity.map(TMSGen.escapeHtml)
+            : [''];
+          var learnerItems = (step && step.learner_activity && step.learner_activity.length)
+            ? step.learner_activity.map(TMSGen.escapeHtml)
+            : [''];
+          var resources = (step && step.resources) ? TMSGen.escapeHtml(step.resources) : '';
 
-        stepTopics.forEach(function (topicText, i) {
-          var shortTopic = TMSGen.shortOutcomeText(topicText);
-          var shortTopicHtml = TMSGen.escapeHtml(shortTopic);
           addStepRow({
-            label: 'Step ' + (i + 1) + ': ' + shortTopic,
-            trainerItems: [
-              'Explains and demonstrates &ldquo;' + shortTopicHtml + '&rdquo; step by step',
-              'Checks understanding through questioning',
-              'Guides hands-on practice, circulating to coach individual trainees',
-            ],
-            learnerItems: [
-              'Observe the demonstration closely',
-              'Ask clarifying questions',
-              'Practise the skill individually or in pairs under guidance',
-            ],
-            resources: 'Tools &amp; equipment, workstations/materials, task sheet',
+            label: 'Step ' + (i + 1) + ': ' + title + ' <span class="gen-ai-badge">AI</span>',
+            trainerItems: trainerItems,
+            learnerItems: learnerItems,
+            resources: resources,
             duration: durations[i] + ' mins',
           });
         });
+      }
+
+      function renderStepsFailed(developmentMinutes) {
+        docStepsBody.innerHTML = '';
+        var durations = splitEvenly(developmentMinutes, MIN_STEPS_CLIENT);
+        for (var i = 0; i < MIN_STEPS_CLIENT; i++) {
+          addStepRow({
+            label: 'Step ' + (i + 1),
+            trainerItems: [''],
+            learnerItems: [''],
+            resources: '',
+            duration: durations[i] + ' mins',
+          });
+        }
       }
 
       function addStepRow(row) {
