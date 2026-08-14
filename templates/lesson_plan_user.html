@@ -597,6 +597,7 @@
         renderStepsLoading();
         renderConclusion(blocks.conclusion, outcome);
         renderEvaluationSections();
+        renderReflectionLoading();
 
         document.getElementById('docTitle').textContent = 'Session Plan — ' + topic;
         document.getElementById('docGeneratedOn').textContent = 'Generated on ' + TMSGen.todayLong();
@@ -605,10 +606,11 @@
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // Facilitation Technique(s) and the Development/Body steps are
-        // drafted server-side by Groq (see core/views.py:
-        // generate_lesson_plan_ai_content) — the backend guarantees at
-        // least 3 steps even if the model returns fewer.
+        // Facilitation Technique(s), the Development/Body steps, and the
+        // Reflection draft answers are all drafted server-side by Groq
+        // (see core/views.py: generate_lesson_plan_ai_content) — the
+        // backend guarantees at least 3 steps even if the model returns
+        // fewer, and always returns a usable reflection draft.
         fetchAiSessionContent({
           outcome_text: outcome.outcome_text,
           indicative_content: contents.map(function (c) { return c.indic_name; }),
@@ -789,11 +791,14 @@
             } else {
               renderStepsFailed(developmentMinutes);
             }
+
+            renderReflection(data && data.reflection);
           })
           .catch(function (err) {
             console.error(err);
             renderTechniquesFailed();
             renderStepsFailed(developmentMinutes);
+            renderReflectionFailed();
             TMS.toast('Could not reach the AI service — fill in the development steps manually.', 'danger');
           });
       }
@@ -859,12 +864,38 @@
 
         document.getElementById('spAppendices').innerHTML =
           '<p class="text-muted">Attach handouts, checklists, worksheets or diagrams used in this session, where applicable.</p>';
+      }
 
+      // Reflection is drafted server-side by Groq — the two standard
+      // post-session prompts ("What went well?" / "What would you change
+      // next time?") come back already ANSWERED as a grounded draft, which
+      // the trainer edits after actually teaching the session.
+      function renderReflectionLoading() {
         document.getElementById('spReflection').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderReflection(reflection) {
+        var el = document.getElementById('spReflection');
+        var wentWell = reflection && reflection.went_well ? reflection.went_well.toString().trim() : '';
+        var changeNext = reflection && reflection.change_next_time ? reflection.change_next_time.toString().trim() : '';
+
+        if (!wentWell && !changeNext) {
+          renderReflectionFailed();
+          return;
+        }
+
+        el.innerHTML =
           '<ul class="gen-bullets">' +
-          '<li>What went well in this session?</li>' +
-          '<li>What would you change next time you teach this outcome?</li>' +
-          '</ul>';
+          '<li><strong>What went well:</strong> ' + TMSGen.escapeHtml(wentWell || '\u2014') + '</li>' +
+          '<li><strong>What to change next time:</strong> ' + TMSGen.escapeHtml(changeNext || '\u2014') + '</li>' +
+          '</ul>' +
+          '<span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderReflectionFailed() {
+        document.getElementById('spReflection').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
       }
 
       init();
