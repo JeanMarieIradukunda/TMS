@@ -324,6 +324,10 @@
       var selectorFields = document.getElementById('selectorFields');
       var docStepsBody = document.getElementById('docStepsBody');
 
+      // Facilitation Technique(s) + Development/Body steps are drafted
+      // server-side by Groq — see core/views.py: generate_lesson_plan_ai_content.
+      var AI_ENDPOINT = '/api/lesson-plan/ai-generate/';
+
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
 
@@ -748,6 +752,50 @@
             duration: durations[i] + ' mins',
           });
         }
+      }
+
+      function getCookie(name) {
+        var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return match ? decodeURIComponent(match.pop()) : '';
+      }
+
+      // Calls the Groq-backed endpoint for Facilitation Technique(s) and the
+      // Development/Body steps, then fills in whichever loading state each
+      // field is currently showing. Falls back to editable blank fields
+      // (never leaves the page stuck loading) if the request fails or the
+      // AI response comes back empty.
+      function fetchAiSessionContent(payload, developmentMinutes) {
+        fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(payload),
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('AI request failed with status ' + response.status);
+            }
+            return response.json();
+          })
+          .then(function (data) {
+            renderTechniques(data && data.facilitation_techniques);
+
+            var steps = (data && Array.isArray(data.steps) && data.steps.length) ? data.steps : null;
+            if (steps) {
+              renderStepsFromAi(steps, developmentMinutes);
+            } else {
+              renderStepsFailed(developmentMinutes);
+            }
+          })
+          .catch(function (err) {
+            console.error(err);
+            renderTechniquesFailed();
+            renderStepsFailed(developmentMinutes);
+            TMS.toast('Could not reach the AI service — fill in the development steps manually.', 'danger');
+          });
       }
 
       function addStepRow(row) {
