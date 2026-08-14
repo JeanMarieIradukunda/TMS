@@ -870,7 +870,7 @@ SINGLE plain string on one line - NOT a JSON array, NOT bullet points, NOT
 numbered steps. Where an item has more than one part, separate the parts
 with ", " on that same line.
 
-- "learning_activities": AT MOST 2 facilitation methodologies/teaching
+- "learning_activities": AT MOST 3 facilitation methodologies/teaching
   techniques the trainer would use to deliver that specific outcome (e.g.
   "Demonstration, Group discussion, Practical exercise" or "Role play, Q&A").
   Name ONLY the methodology/technique - do NOT describe, restate, or
@@ -1045,7 +1045,7 @@ def generate_lesson_plan_ai_content(request):
     outcome (with its indicative content) selected in the browser, and
     asks Groq to draft:
       - facilitation_techniques: a SINGLE comma-separated line naming at
-        most 2 facilitation methodologies/techniques (same shape/rules as
+        most 3 facilitation methodologies/techniques (same shape/rules as
         the Scheme of Work's "learning_activities" field) - not a
         restatement of the outcome or its indicative content.
       - steps: the Development/Body of the session, as a JSON array of
@@ -1054,6 +1054,10 @@ def generate_lesson_plan_ai_content(request):
         and "learner_activity" BULLET LISTS (JSON arrays of short plain
         phrases - not sentences glued together), and a "resources" line
         specific to that step.
+      - reflection: a draft ANSWER (not the bare question) for each of the
+        two standard post-session reflection prompts - "went_well" and
+        "change_next_time" - grounded in this specific outcome/content, for
+        the trainer to revise once the session has actually been taught.
 
     The Groq API key never leaves the server - the browser only ever talks
     to this endpoint.
@@ -1116,8 +1120,8 @@ INDICATIVE CONTENT:
 
 Produce a JSON object with exactly two top-level fields:
 
-- "facilitation_techniques": AT MOST 2 facilitation methodologies/teaching
-  techniques the trainer would use across this session but related to the topic/learning outcome/indicative content provided (e.g.
+- "facilitation_techniques": AT MOST 3 facilitation methodologies/teaching
+  techniques the trainer would use across this session (e.g.
   "Demonstration, Group discussion, Practical exercise"). A SINGLE plain
   string on one line, items separated by ", " - NOT a JSON array, NOT
   bullet points. Name ONLY the methodology/technique, not a description.
@@ -1146,13 +1150,25 @@ Produce a JSON object with exactly two top-level fields:
     - "resources": the specific tools, equipment, or materials this step
       needs - a SINGLE comma-separated plain string, not an array.
 
+- "reflection": a JSON object with exactly two fields, each a short DRAFT
+  ANSWER (1-2 plain sentences) written from the trainer's point of view,
+  grounded in this specific outcome/content - NOT the question itself,
+  and NOT generic filler. Since the session hasn't been delivered yet,
+  phrase both as realistic, specific anticipations the trainer can revise
+  after actually teaching it:
+  - "went_well": what is likely to land well in this session, and why
+    (e.g. which activity, demonstration, or hands-on moment).
+  - "change_next_time": one concrete thing worth watching or adjusting
+    (e.g. pacing, a step that may need more practice time, a resource
+    that may be in short supply).
+
 Rules:
 - Ground every step in the outcome's own text and its indicative content -
   do not invent unrelated topics.
 - Use concise, real workshop/training language, not vague filler.
 - Respond with STRICT JSON ONLY, matching exactly this shape:
 {{
-  "facilitation_techniques": "<comma-separated string, max 2 items>",
+  "facilitation_techniques": "<comma-separated string, max 3 items>",
   "steps": [
     {{
       "title": "<short sub-topic label>",
@@ -1160,7 +1176,11 @@ Rules:
       "learner_activity": ["<bullet 1>", "<bullet 2>"],
       "resources": "<comma-separated string>"
     }}
-  ]
+  ],
+  "reflection": {{
+    "went_well": "<1-2 sentence draft answer>",
+    "change_next_time": "<1-2 sentence draft answer>"
+  }}
 }}
 """.strip()
 
@@ -1246,7 +1266,7 @@ Rules:
     # 5. Validate & defensively coerce structure
     # --------------------------------------------------
     facilitation_techniques = _coerce_to_csv_line(
-        data.get("facilitation_techniques"), max_items=2
+        data.get("facilitation_techniques"), max_items=3
     )
 
     raw_steps = data.get("steps")
@@ -1277,10 +1297,26 @@ Rules:
     steps = _ensure_min_steps(steps, outcome_text, min_count=MIN_LESSON_PLAN_STEPS)
     steps = steps[:MAX_LESSON_PLAN_STEPS]
 
+    raw_reflection = data.get("reflection")
+    raw_reflection = raw_reflection if isinstance(raw_reflection, dict) else {}
+    went_well = str(raw_reflection.get("went_well", "")).strip()[:400]
+    change_next_time = str(raw_reflection.get("change_next_time", "")).strip()[:400]
+    reflection = {
+        "went_well": went_well or (
+            f"Trainees engaging hands-on with \"{outcome_text.strip()[:80]}\" through the "
+            "planned demonstration and guided practice."
+        ),
+        "change_next_time": change_next_time or (
+            "Watch the pacing of the guided-practice step and be ready to extend it "
+            "if trainees need more time to master the skill."
+        ),
+    }
+
     # --------------------------------------------------
     # 6. Return success
     # --------------------------------------------------
     return JsonResponse({
         "facilitation_techniques": facilitation_techniques,
         "steps": steps,
+        "reflection": reflection,
     })
