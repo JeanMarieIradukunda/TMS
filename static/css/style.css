@@ -1153,13 +1153,16 @@ body.sidebar-open .sidebar-overlay { display: block; }
 .gen-table tbody tr:nth-child(even) { background: #fafbfe; }
 .gen-table tbody tr:last-child td { border-bottom: none; }
 
-.gen-table ul.gen-bullets {
+.gen-table ul.gen-bullets,
+.gen-sp-table ul.gen-bullets {
   margin: 0;
   padding-left: 1rem;
 }
 
-.gen-table ul.gen-bullets li { margin-bottom: 0.1rem; font-size: 10pt; line-height: 1.15; }
-.gen-table ul.gen-bullets li:last-child { margin-bottom: 0; }
+.gen-table ul.gen-bullets li,
+.gen-sp-table ul.gen-bullets li { margin-bottom: 0.1rem; font-size: 10pt; line-height: 1.15; }
+.gen-table ul.gen-bullets li:last-child,
+.gen-sp-table ul.gen-bullets li:last-child { margin-bottom: 0; }
 
 /* ---------- Session Plan table (Lesson Plan generator) ---------- */
 .gen-sp-table {
