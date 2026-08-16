@@ -1933,3 +1933,210 @@ body.sidebar-open .sidebar-overlay { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .btn-hero, .landing-quick-item, .lq-arrow { transition: none !important; }
 }
+
+/* =========================================================
+   DASHBOARD (Admin too dashboard)
+   Append this block to style.css. Purely additive — existing
+   .stat-grid / .card-stat / .quick-nav / .qn-card rules are
+   left untouched in case other templates still use them.
+   ========================================================= */
+
+/* Tinted content background — replaces the flat #f4f6fb feel
+   for this page specifically, without touching .main-content
+   globally. */
+.dash-page {
+  background: radial-gradient(circle at 100% 0%, rgba(212, 175, 55, 0.07), transparent 45%),
+              radial-gradient(circle at 0% 20%, rgba(45, 212, 191, 0.07), transparent 40%),
+              linear-gradient(180deg, #eef1f9 0%, #f6f8fc 100%);
+  margin: -1.75rem -2rem -3rem;
+  padding: 1.75rem 2rem 3rem;
+  min-height: calc(100vh - 0px);
+}
+
+/* ---------- Welcome hero ---------- */
+.dash-hero {
+  background: radial-gradient(circle at 15% 20%, #16223d, #0b1220 70%);
+  border-radius: 18px;
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-hero::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.22), transparent 70%);
+  pointer-events: none;
+}
+
+.dash-hero-eyebrow {
+  color: var(--gold-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 0.4rem;
+}
+
+.dash-hero h1 {
+  color: var(--text-main);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.dash-hero-sub {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Sections ---------- */
+.dash-section { margin-bottom: 2.25rem; }
+
+.dash-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 1rem;
+}
+
+/* ---------- Overview stats ---------- */
+.dash-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.dash-stat-card {
+  background: #fff;
+  border: 1px solid #e9ecf4;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 4px 20px rgba(16, 26, 48, 0.05);
+  border-left: 4px solid var(--teal);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(16, 26, 48, 0.09); }
+
+.dash-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  background: var(--teal);
+}
+
+.dash-stat-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8a93aa;
+  margin-bottom: 0.2rem;
+}
+
+.dash-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* ---------- Category accents ---------- */
+.dash-accent-teal { border-left-color: var(--teal); }
+.dash-accent-teal .dash-stat-icon,
+.dash-accent-teal .dash-nav-icon { background: var(--teal); }
+
+.dash-accent-gold { border-left-color: var(--gold); }
+.dash-accent-gold .dash-stat-icon,
+.dash-accent-gold .dash-nav-icon { background: linear-gradient(135deg, var(--gold), #c69a2b); }
+
+.dash-accent-purple { border-left-color: #8f9dff; }
+.dash-accent-purple .dash-stat-icon,
+.dash-accent-purple .dash-nav-icon { background: linear-gradient(135deg, #8f9dff, #6a78e0); }
+
+/* ---------- Quick navigation ---------- */
+.dash-nav-group { margin-bottom: 1.5rem; }
+.dash-nav-group:last-child { margin-bottom: 0; }
+
+.dash-nav-group-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7b859d;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.65rem;
+}
+
+.dash-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.dash-nav-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1.1rem;
+  background: #fff;
+  border: 1px solid #e9ecf4;
+  border-left: 4px solid var(--teal);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--navy);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.dash-nav-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(16, 26, 48, 0.08);
+  color: var(--navy);
+}
+
+.dash-nav-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.dash-nav-icon-image {
+  background: #fff !important;
+  border: 1px solid #e9ecf4;
+  padding: 4px;
+}
+
+.dash-nav-icon-image img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
+
+.dash-nav-title { font-weight: 700; font-size: 0.92rem; }
+.dash-nav-sub { font-size: 0.76rem; color: #8a93aa; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .dash-page { margin: -1.25rem -1.25rem -2rem; padding: 1.25rem 1.25rem 2rem; }
+  .dash-hero { padding: 1.4rem 1.25rem; }
+  .dash-hero h1 { font-size: 1.25rem; }
+}
