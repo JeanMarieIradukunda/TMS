@@ -2,149 +2,152 @@
 {% block title %}Dashboard · TMS{% endblock %}
 {% block content %}
 
-<div class="dash-hero">
-  <span class="dash-hero-glow" aria-hidden="true"></span>
-  <div class="topbar">
+<div class="dash-page">
+
+  <!-- Welcome header -->
+  <div class="dash-hero">
     <div>
       <p class="dash-hero-eyebrow">Dashboard</p>
       <h1>Welcome back, {{ request.user.username|title }} 👋</h1>
-      <div class="subtitle">Here's what's happening across your training programme.</div>
+      <p class="dash-hero-sub">Here's what's happening across your training programme.</p>
     </div>
   </div>
-</div>
 
-<div class="stat-grid">
-  <div class="card-stat">
-    <div class="label">Sectors</div>
-    <div class="value">{{ sector_count }}</div>
-    <i class="fa-solid fa-industry"></i>
-  </div>
-  <div class="card-stat">
-    <div class="label">Trades</div>
-    <div class="value">{{ trade_count }}</div>
-    <i class="fa-solid fa-toolbox"></i>
-  </div>
-  <div class="card-stat">
-    <div class="label">Levels</div>
-    <div class="value">{{ level_count }}</div>
-    <i class="fa-solid fa-layer-group"></i>
-  </div>
-  <div class="card-stat">
-    <div class="label">Modules</div>
-    <div class="value">{{ module_count }}</div>
-    <i class="fa-solid fa-book-open"></i>
-  </div>
-  <div class="card-stat">
-    <div class="label">Trainers</div>
-    <div class="value">{{ trainer_count }}</div>
-    <i class="fa-solid fa-chalkboard-user"></i>
-  </div>
-  <div class="card-stat">
-    <div class="label">Lesson Plans</div>
-    <div class="value">{{ lesson_plan_count }}</div>
-    <i class="fa-solid fa-chalkboard"></i>
-  </div>
-</div>
+  <!-- Overview stats -->
+  <section class="dash-section">
+    <h2 class="dash-section-title">Overview</h2>
+    <div class="dash-stat-grid">
+      <div class="dash-stat-card dash-accent-teal">
+        <div class="dash-stat-icon"><i class="fa-solid fa-industry"></i></div>
+        <div class="dash-stat-label">Sectors</div>
+        <div class="dash-stat-value">{{ sector_count }}</div>
+      </div>
+      <div class="dash-stat-card dash-accent-gold">
+        <div class="dash-stat-icon"><i class="fa-solid fa-toolbox"></i></div>
+        <div class="dash-stat-label">Trades</div>
+        <div class="dash-stat-value">{{ trade_count }}</div>
+      </div>
+      <div class="dash-stat-card dash-accent-purple">
+        <div class="dash-stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="dash-stat-label">Levels</div>
+        <div class="dash-stat-value">{{ level_count }}</div>
+      </div>
+      <div class="dash-stat-card dash-accent-teal">
+        <div class="dash-stat-icon"><i class="fa-solid fa-book-open"></i></div>
+        <div class="dash-stat-label">Modules</div>
+        <div class="dash-stat-value">{{ module_count }}</div>
+      </div>
+      <div class="dash-stat-card dash-accent-gold">
+        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+        <div class="dash-stat-label">Trainers</div>
+        <div class="dash-stat-value">{{ trainer_count }}</div>
+      </div>
+      <div class="dash-stat-card dash-accent-purple">
+        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard"></i></div>
+        <div class="dash-stat-label">Lesson Plans</div>
+        <div class="dash-stat-value">{{ lesson_plan_count }}</div>
+      </div>
+    </div>
+  </section>
 
-<div class="dash-section">
-  <div class="dash-section-header">
-    <h2 class="h5 mb-1" style="color: var(--navy); font-weight:700;">Curriculum Structure</h2>
-    <p class="dash-section-sub">Sectors, trades, levels and modules that make up your programme.</p>
-  </div>
-  <div class="quick-nav">
-    <a href="{% url 'sector-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-industry"></i></div>
-      <div>
-        <div class="qn-title">Sectors</div>
-        <div class="qn-sub">{{ sector_count }} record{{ sector_count|pluralize }}</div>
-      </div>
-    </a>
-    <a href="{% url 'trade-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-toolbox"></i></div>
-      <div>
-        <div class="qn-title">Trades</div>
-        <div class="qn-sub">{{ trade_count }} record{{ trade_count|pluralize }}</div>
-      </div>
-    </a>
-    <a href="{% url 'level-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-layer-group"></i></div>
-      <div>
-        <div class="qn-title">Levels</div>
-        <div class="qn-sub">{{ level_count }} record{{ level_count|pluralize }}</div>
-      </div>
-    </a>
-    <a href="{% url 'tradelevel-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-diagram-project"></i></div>
-      <div>
-        <div class="qn-title">Trade Levels</div>
-        <div class="qn-sub">Mappings</div>
-      </div>
-    </a>
-    <a href="{% url 'module-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-book-open"></i></div>
-      <div>
-        <div class="qn-title">Modules</div>
-        <div class="qn-sub">{{ module_count }} record{{ module_count|pluralize }}</div>
-      </div>
-    </a>
-  </div>
-</div>
+  <!-- Quick navigation, grouped -->
+  <section class="dash-section">
+    <h2 class="dash-section-title">Quick navigation</h2>
 
-<div class="dash-section">
-  <div class="dash-section-header">
-    <h2 class="h5 mb-1" style="color: var(--navy); font-weight:700;">People &amp; Learning Content</h2>
-    <p class="dash-section-sub">Trainers, learning outcomes and indicative content records.</p>
-  </div>
-  <div class="quick-nav">
-    <a href="{% url 'trainer-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-      <div>
-        <div class="qn-title">Trainers</div>
-        <div class="qn-sub">{{ trainer_count }} record{{ trainer_count|pluralize }}</div>
+    <div class="dash-nav-group">
+      <div class="dash-nav-group-title">Curriculum data</div>
+      <div class="dash-nav-grid">
+        <a href="{% url 'sector-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-industry"></i></div>
+          <div>
+            <div class="dash-nav-title">Sectors</div>
+            <div class="dash-nav-sub">{{ sector_count }} record{{ sector_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'trade-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-toolbox"></i></div>
+          <div>
+            <div class="dash-nav-title">Trades</div>
+            <div class="dash-nav-sub">{{ trade_count }} record{{ trade_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'level-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <div class="dash-nav-title">Levels</div>
+            <div class="dash-nav-sub">{{ level_count }} record{{ level_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'tradelevel-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-diagram-project"></i></div>
+          <div>
+            <div class="dash-nav-title">Trade Levels</div>
+            <div class="dash-nav-sub">Mappings</div>
+          </div>
+        </a>
+        <a href="{% url 'module-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-book-open"></i></div>
+          <div>
+            <div class="dash-nav-title">Modules</div>
+            <div class="dash-nav-sub">{{ module_count }} record{{ module_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'outcome-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-list-check"></i></div>
+          <div>
+            <div class="dash-nav-title">Learning Outcomes</div>
+            <div class="dash-nav-sub">{{ outcome_count }} record{{ outcome_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'content-list' %}" class="dash-nav-card dash-accent-teal">
+          <div class="dash-nav-icon"><i class="fa-solid fa-file-lines"></i></div>
+          <div>
+            <div class="dash-nav-title">Indicative Contents</div>
+            <div class="dash-nav-sub">{{ content_count }} record{{ content_count|pluralize }}</div>
+          </div>
+        </a>
       </div>
-    </a>
-    <a href="{% url 'outcome-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-list-check"></i></div>
-      <div>
-        <div class="qn-title">Learning Outcomes</div>
-        <div class="qn-sub">{{ outcome_count }} record{{ outcome_count|pluralize }}</div>
-      </div>
-    </a>
-    <a href="{% url 'content-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-file-lines"></i></div>
-      <div>
-        <div class="qn-title">Indicative Contents</div>
-        <div class="qn-sub">{{ content_count }} record{{ content_count|pluralize }}</div>
-      </div>
-    </a>
-  </div>
-</div>
+    </div>
 
-<div class="dash-section">
-  <div class="dash-section-header">
-    <h2 class="h5 mb-1" style="color: var(--navy); font-weight:700;">Documents &amp; Branding</h2>
-    <p class="dash-section-sub">Generated lesson plans and centre logos.</p>
-  </div>
-  <div class="quick-nav">
-    <a href="{% url 'lessonplan-list' %}" class="qn-card">
-      <div class="qn-icon"><i class="fa-solid fa-chalkboard"></i></div>
-      <div>
-        <div class="qn-title">Lesson Plans</div>
-        <div class="qn-sub">{{ lesson_plan_count }} record{{ lesson_plan_count|pluralize }}</div>
+    <div class="dash-nav-group">
+      <div class="dash-nav-group-title">People</div>
+      <div class="dash-nav-grid">
+        <a href="{% url 'trainer-list' %}" class="dash-nav-card dash-accent-gold">
+          <div class="dash-nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+          <div>
+            <div class="dash-nav-title">Trainers</div>
+            <div class="dash-nav-sub">{{ trainer_count }} record{{ trainer_count|pluralize }}</div>
+          </div>
+        </a>
       </div>
-    </a>
-    <a href="{% url 'logo-list' %}" class="qn-card">
-      {% if latest_logo and latest_logo.image %}
-        <div class="qn-icon qn-icon-image"><img src="{{ latest_logo.image }}" alt="{{ latest_logo.name }}"></div>
-      {% else %}
-        <div class="qn-icon"><i class="fa-solid fa-image"></i></div>
-      {% endif %}
-      <div>
-        <div class="qn-title">Logos</div>
-        <div class="qn-sub">{{ logo_count }} record{{ logo_count|pluralize }}</div>
+    </div>
+
+    <div class="dash-nav-group">
+      <div class="dash-nav-group-title">Documents &amp; media</div>
+      <div class="dash-nav-grid">
+        <a href="{% url 'lessonplan-list' %}" class="dash-nav-card dash-accent-purple">
+          <div class="dash-nav-icon"><i class="fa-solid fa-chalkboard"></i></div>
+          <div>
+            <div class="dash-nav-title">Lesson Plans</div>
+            <div class="dash-nav-sub">{{ lesson_plan_count }} record{{ lesson_plan_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'logo-list' %}" class="dash-nav-card dash-accent-purple">
+          {% if latest_logo and latest_logo.image %}
+            <div class="dash-nav-icon dash-nav-icon-image"><img src="{{ latest_logo.image }}" alt="{{ latest_logo.name }}"></div>
+          {% else %}
+            <div class="dash-nav-icon"><i class="fa-solid fa-image"></i></div>
+          {% endif %}
+          <div>
+            <div class="dash-nav-title">Logos</div>
+            <div class="dash-nav-sub">{{ logo_count }} record{{ logo_count|pluralize }}</div>
+          </div>
+        </a>
       </div>
-    </a>
-  </div>
+    </div>
+
+  </section>
+
 </div>
 
 {% endblock %}
