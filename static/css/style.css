@@ -802,6 +802,46 @@ body.sidebar-open .sidebar-overlay { display: block; }
 
 .gen-field-grid .form-label .req { color: var(--danger); }
 
+.gen-field-span-all { grid-column: 1 / -1; }
+
+.gen-indic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f7f8fc;
+  border: 1px solid #e9ecf4;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.gen-indic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--navy);
+}
+
+.gen-indic-item input[type="checkbox"] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  accent-color: var(--gold);
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.gen-indic-item label {
+  cursor: pointer;
+}
+
+.gen-indic-empty {
+  color: #9199b0;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .gen-actions-row {
   display: flex;
   align-items: center;
