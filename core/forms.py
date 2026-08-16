@@ -152,7 +152,10 @@ class TrainerForm(BootstrapModelForm):
 class ModuleForm(BootstrapModelForm):
     class Meta:
         model = Module
-        fields = ['trade', 'level', 'trainer', 'mod_code', 'mod_name', 'learning_hours', 'term']
+        # Trainer first: recording a Module starts with "who teaches
+        # it", then the curriculum placement (trade/level), then the
+        # module's own identity.
+        fields = ['trainer', 'trade', 'level', 'mod_code', 'mod_name', 'learning_hours', 'term']
 
 
 class LearningOutcomeForm(BootstrapModelForm):
