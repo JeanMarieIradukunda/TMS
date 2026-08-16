@@ -301,6 +301,15 @@
         modules: [], outcomes: [], contents: [], trainers: [], logos: [],
       };
 
+      // The browser's "Save as PDF" dialog uses document.title as the
+      // default file name — we set it to the indicative content once a
+      // plan is generated (see onGenerate) and put it back afterwards so
+      // the browser tab itself doesn't stay renamed.
+      var ORIGINAL_DOCUMENT_TITLE = document.title;
+      window.addEventListener('afterprint', function () {
+        document.title = ORIGINAL_DOCUMENT_TITLE;
+      });
+
       var moduleSelect = document.getElementById('moduleSelect');
       var outcomeSelect = document.getElementById('outcomeSelect');
       var indicativeContentField = document.getElementById('indicativeContentField');
@@ -631,6 +640,7 @@
         periodsInput.value = '1';
         periodLengthSelect.value = '40';
         updateTotalDurationDisplay();
+        document.title = ORIGINAL_DOCUMENT_TITLE;
         docSection.classList.add('d-none');
       }
 
@@ -694,11 +704,14 @@
 
         // Title is built from the selected Indicative content — not the
         // Learning outcome / topic — per the fixed "SESSION PLAN - ..."
-        // document heading format.
+        // document heading format. document.title is set the same way so
+        // "Save as PDF" defaults to this name instead of the generic
+        // page title.
         var contentLabel = contents.length
           ? contents.map(function (c) { return c.indic_name; }).join('; ')
           : '\u2014';
         document.getElementById('docTitle').textContent = 'SESSION PLAN - ' + contentLabel;
+        document.title = TMSGen.filenameSafe(contentLabel, 'Session Plan');
 
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
