@@ -42,36 +42,63 @@
       <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
         <i class="fa-solid fa-gauge-high"></i> Dashboard
       </a>
-      <a href="{% url 'sector-list' %}" class="nav-link {% if 'sector' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-industry"></i> Sectors
-      </a>
-      <a href="{% url 'trade-list' %}" class="nav-link {% if request.resolver_match.url_name|slice:':5' == 'trade' %}active{% endif %}">
-        <i class="fa-solid fa-toolbox"></i> Trades
-      </a>
-      <a href="{% url 'level-list' %}" class="nav-link {% if request.resolver_match.url_name|slice:':5' == 'level' %}active{% endif %}">
-        <i class="fa-solid fa-layer-group"></i> Levels
-      </a>
-      <a href="{% url 'tradelevel-list' %}" class="nav-link {% if 'tradelevel' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-diagram-project"></i> Trade Levels
-      </a>
-      <a href="{% url 'module-list' %}" class="nav-link {% if 'module' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-book-open"></i> Modules
-      </a>
-      <a href="{% url 'trainer-list' %}" class="nav-link {% if 'trainer' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-chalkboard-user"></i> Trainers
-      </a>
-      <a href="{% url 'outcome-list' %}" class="nav-link {% if 'outcome' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-list-check"></i> Learning Outcomes
-      </a>
-      <a href="{% url 'content-list' %}" class="nav-link {% if 'content' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-file-lines"></i> Indicative Contents
-      </a>
-      <a href="{% url 'lessonplan-list' %}" class="nav-link {% if 'lessonplan' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-chalkboard"></i> Lesson Plans
-      </a>
-      <a href="{% url 'logo-list' %}" class="nav-link {% if 'logo' in request.resolver_match.url_name %}active{% endif %}">
-        <i class="fa-solid fa-image"></i> Logos
-      </a>
+
+      <details class="nav-group" {% if request.resolver_match.url_name in 'sector-list,sector-create,sector-edit,sector-delete,trade-list,trade-create,trade-edit,trade-delete,level-list,level-create,level-edit,level-delete,tradelevel-list,tradelevel-create,tradelevel-edit,tradelevel-delete,module-list,module-create,module-edit,module-delete,outcome-list,outcome-create,outcome-edit,outcome-delete,content-list,content-create,content-edit,content-delete' %}open{% endif %}>
+        <summary class="nav-group-summary">
+          <span class="nav-group-summary-label"><i class="fa-solid fa-diagram-project"></i> Curriculum Data</span>
+          <i class="fa-solid fa-chevron-right nav-group-chevron"></i>
+        </summary>
+        <div class="nav-group-links">
+          <a href="{% url 'sector-list' %}" class="nav-link {% if 'sector' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-industry"></i> Sectors
+          </a>
+          <a href="{% url 'trade-list' %}" class="nav-link {% if request.resolver_match.url_name|slice:':5' == 'trade' %}active{% endif %}">
+            <i class="fa-solid fa-toolbox"></i> Trades
+          </a>
+          <a href="{% url 'level-list' %}" class="nav-link {% if request.resolver_match.url_name|slice:':5' == 'level' %}active{% endif %}">
+            <i class="fa-solid fa-layer-group"></i> Levels
+          </a>
+          <a href="{% url 'tradelevel-list' %}" class="nav-link {% if 'tradelevel' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-diagram-project"></i> Trade Levels
+          </a>
+          <a href="{% url 'module-list' %}" class="nav-link {% if 'module' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-book-open"></i> Modules
+          </a>
+          <a href="{% url 'outcome-list' %}" class="nav-link {% if 'outcome' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-list-check"></i> Learning Outcomes
+          </a>
+          <a href="{% url 'content-list' %}" class="nav-link {% if 'content' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-file-lines"></i> Indicative Contents
+          </a>
+        </div>
+      </details>
+
+      <details class="nav-group" {% if 'trainer' in request.resolver_match.url_name %}open{% endif %}>
+        <summary class="nav-group-summary">
+          <span class="nav-group-summary-label"><i class="fa-solid fa-users"></i> People</span>
+          <i class="fa-solid fa-chevron-right nav-group-chevron"></i>
+        </summary>
+        <div class="nav-group-links">
+          <a href="{% url 'trainer-list' %}" class="nav-link {% if 'trainer' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-chalkboard-user"></i> Trainers
+          </a>
+        </div>
+      </details>
+
+      <details class="nav-group" {% if 'lessonplan' in request.resolver_match.url_name or 'logo' in request.resolver_match.url_name %}open{% endif %}>
+        <summary class="nav-group-summary">
+          <span class="nav-group-summary-label"><i class="fa-solid fa-folder-open"></i> Documents &amp; Media</span>
+          <i class="fa-solid fa-chevron-right nav-group-chevron"></i>
+        </summary>
+        <div class="nav-group-links">
+          <a href="{% url 'lessonplan-list' %}" class="nav-link {% if 'lessonplan' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-chalkboard"></i> Lesson Plans
+          </a>
+          <a href="{% url 'logo-list' %}" class="nav-link {% if 'logo' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-image"></i> Logos
+          </a>
+        </div>
+      </details>
     </nav>
 
     <div class="sidebar-footer">
