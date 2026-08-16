@@ -70,6 +70,16 @@
             </select>
           </div>
 
+          <div class="gen-field-span-all" id="indicativeContentField" style="display:none;">
+            <label class="form-label" id="indicativeContentLabel">Indicative content <span class="req">*</span></label>
+            <p class="gen-hint" style="margin:0 0 0.5rem;">
+              Ticked items are the content this session actually covers — the Range,
+              Indicative content row and objectives below are built from your selection.
+              Untick anything you're not teaching in this session.
+            </p>
+            <div class="gen-indic-list" id="indicativeContentList"></div>
+          </div>
+
           <div>
             <label class="form-label" for="topicInput">Topic of the session</label>
             <input type="text" class="form-control" id="topicInput" placeholder="Auto-filled from the outcome — edit if you like">
@@ -298,6 +308,8 @@
 
       var moduleSelect = document.getElementById('moduleSelect');
       var outcomeSelect = document.getElementById('outcomeSelect');
+      var indicativeContentField = document.getElementById('indicativeContentField');
+      var indicativeContentList = document.getElementById('indicativeContentList');
       var trainerSelect = document.getElementById('trainerSelect');
       var topicInput = document.getElementById('topicInput');
       var rangeInput = document.getElementById('rangeInput');
@@ -331,6 +343,11 @@
       // ever fills a field the trainer hasn't touched yet.
       var classTouchedByUser = false;
       var rangeTouchedByUser = false;
+
+      // Rwandan TVET calendars run on a school year, not a calendar year —
+      // default the field to the current one so trainers don't have to
+      // type it every time; they can still edit it for any other year.
+      var DEFAULT_SCHOOL_YEAR = '2025 - 2026';
 
       var DEFAULT_CROSS_CUTTING = [
         'Gender equality', 'Environment and sustainability',
@@ -398,12 +415,23 @@
         });
         trainerSelect.disabled = false;
 
+        // Auto-fill today's date and the current Rwandan school year so
+        // the trainer only has to touch these fields if they need a
+        // different value.
+        lessonDateInput.value = TMSGen.todayISO();
+        schoolYearInput.value = DEFAULT_SCHOOL_YEAR;
+
         updateTotalDurationDisplay();
 
         moduleSelect.addEventListener('change', onModuleChange);
         outcomeSelect.addEventListener('change', onOutcomeChange);
         classInput.addEventListener('input', function () { classTouchedByUser = true; });
         rangeInput.addEventListener('input', function () { rangeTouchedByUser = true; });
+        indicativeContentList.addEventListener('change', function (e) {
+          if (e.target && e.target.matches('input[type="checkbox"]')) {
+            onIndicativeContentSelectionChange();
+          }
+        });
         periodsInput.addEventListener('input', updateTotalDurationDisplay);
         periodLengthSelect.addEventListener('change', updateTotalDurationDisplay);
         generateBtn.addEventListener('click', onGenerate);
@@ -477,10 +505,76 @@
         return out;
       }
 
+      // -------------------------------------------------------------
+      // Indicative content selection — populated fresh for whichever
+      // learning outcome is selected, all ticked by default so behaviour
+      // matches the old "include everything" default, but trainers can
+      // untick anything this particular session isn't covering.
+      // -------------------------------------------------------------
+      function renderIndicativeContentCheckboxes(contents) {
+        indicativeContentList.innerHTML = '';
+
+        if (!contents || !contents.length) {
+          indicativeContentField.style.display = 'none';
+          return;
+        }
+
+        contents.forEach(function (c, idx) {
+          var itemId = 'indicContent_' + c.id;
+
+          var wrap = document.createElement('div');
+          wrap.className = 'gen-indic-item';
+
+          var checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = itemId;
+          checkbox.checked = true;
+          checkbox.dataset.contentId = String(c.id);
+
+          var label = document.createElement('label');
+          label.setAttribute('for', itemId);
+          label.textContent = c.indic_name;
+
+          wrap.appendChild(checkbox);
+          wrap.appendChild(label);
+          indicativeContentList.appendChild(wrap);
+        });
+
+        indicativeContentField.style.display = '';
+      }
+
+      // Returns the indicative-content objects the trainer has left
+      // ticked, in their original order. Falls back to the full list if
+      // the checklist hasn't been rendered yet (shouldn't normally
+      // happen, since generation requires an outcome to be selected).
+      function getSelectedIndicativeContents(outcomeId) {
+        var outcomeContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+        var checkboxes = indicativeContentList.querySelectorAll('input[type="checkbox"]');
+        if (!checkboxes.length) return outcomeContents;
+
+        var checkedIds = {};
+        checkboxes.forEach(function (cb) {
+          if (cb.checked) checkedIds[cb.dataset.contentId] = true;
+        });
+
+        return outcomeContents.filter(function (c) { return checkedIds[String(c.id)]; });
+      }
+
+      // When the trainer ticks/unticks indicative content, refresh the
+      // auto-filled Range field to match — but only while they haven't
+      // typed their own Range text.
+      function onIndicativeContentSelectionChange() {
+        if (rangeTouchedByUser) return;
+        var outcomeId = outcomeSelect.value ? Number(outcomeSelect.value) : null;
+        if (!outcomeId) return;
+        rangeInput.value = buildRangeText(getSelectedIndicativeContents(outcomeId));
+      }
+
       function onModuleChange() {
         var moduleId = moduleSelect.value ? Number(moduleSelect.value) : null;
         outcomeSelect.innerHTML = '<option value="">Select module first</option>';
         outcomeSelect.disabled = true;
+        renderIndicativeContentCheckboxes([]);
 
         if (!moduleId) return;
 
@@ -517,8 +611,10 @@
           topicInput.value = mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text);
         }
 
+        var outcomeContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+        renderIndicativeContentCheckboxes(outcomeContents);
+
         if (!rangeTouchedByUser) {
-          var outcomeContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
           rangeInput.value = buildRangeText(outcomeContents);
         }
       }
@@ -531,8 +627,10 @@
         topicInput.value = '';
         rangeInput.value = '';
         weekInput.value = '';
-        lessonDateInput.value = '';
-        schoolYearInput.value = '';
+        // Date and school year are conveniences, not blank slates — put
+        // today's date and the current school year straight back in.
+        lessonDateInput.value = TMSGen.todayISO();
+        schoolYearInput.value = DEFAULT_SCHOOL_YEAR;
         classInput.value = '';
         traineesInput.value = '';
         periodsInput.value = '1';
@@ -559,7 +657,12 @@
           ? (data.trainers.find(function (t) { return t.id === Number(trainerSelect.value); }) || {}).name
           : (mod.trainer_name || '');
 
-        var contents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+        var allContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+        var contents = getSelectedIndicativeContents(outcomeId);
+        if (allContents.length && !contents.length) {
+          TMS.toast('Please tick at least one indicative content item for this session.', 'danger');
+          return;
+        }
         var topic = topicInput.value.trim() || (mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text));
 
         var total = getTotalMinutes();
