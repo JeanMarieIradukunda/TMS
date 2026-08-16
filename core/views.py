@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
@@ -284,6 +285,55 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 
 # ---------------------------------------------------------------------------
+# Curriculum tree — Modules -> Learning Outcomes -> Indicative Contents,
+# grouped by Trade, rendered as a collapsible hierarchy so the admin can
+# see (and drill into) the whole curriculum structure at a glance instead
+# of hunting across three separate flat lists.
+# ---------------------------------------------------------------------------
+class CurriculumTreeView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/curriculum_tree.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Nested prefetch: every Module already carries its Learning
+        # Outcomes, and every Learning Outcome already carries its own
+        # Indicative Contents - one query per level, not one per row.
+        outcomes_qs = LearningOutcome.objects.order_by('id').prefetch_related(
+            Prefetch('indicative_contents', queryset=IndicativeContent.objects.order_by('id'))
+        )
+        modules = (
+            Module.objects
+            .select_related('trade', 'trade__sector', 'level', 'trainer')
+            .prefetch_related(Prefetch('learning_outcomes', queryset=outcomes_qs))
+            .order_by('trade__trade_name', 'mod_code')
+        )
+
+        # Group the already-sorted modules by Trade in Python (they're
+        # sorted by trade name, so consecutive modules with the same
+        # trade id always land in the same bucket) - this is what turns
+        # the flat module list into its own "section/class" per Trade.
+        trade_groups = []
+        current_trade_id = None
+        current_bucket = None
+        for module in modules:
+            trade = module.trade
+            if current_trade_id != trade.pk:
+                current_trade_id = trade.pk
+                current_bucket = {'trade': trade, 'modules': []}
+                trade_groups.append(current_bucket)
+            current_bucket['modules'].append(module)
+
+        context.update({
+            'trade_groups': trade_groups,
+            'module_count': Module.objects.count(),
+            'outcome_count': LearningOutcome.objects.count(),
+            'content_count': IndicativeContent.objects.count(),
+        })
+        return context
+
+
+# ---------------------------------------------------------------------------
 # Generic CRUD scaffolding
 # ---------------------------------------------------------------------------
 class BaseListView(LoginRequiredMixin, ListView):
@@ -350,6 +400,24 @@ class BaseCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse_lazy(self.list_url_name)
+
+
+# Lets a "+ Add X" link (e.g. from the Curriculum tree) pre-select the
+# parent record via a query string - ?module=3 pre-fills the module
+# dropdown on the Learning Outcome form, ?outcome=7 pre-fills the outcome
+# dropdown on the Indicative Content form, and so on. The field is still
+# shown and editable; it's just already pointed at the record the admin
+# clicked "Add" from, reinforcing "pick the parent first".
+class InitialFromQueryMixin:
+    initial_query_fields = []
+
+    def get_initial(self):
+        initial = super().get_initial()
+        for field_name in self.initial_query_fields:
+            value = self.request.GET.get(field_name)
+            if value:
+                initial[field_name] = value
+        return initial
 
 
 class BaseUpdateView(LoginRequiredMixin, UpdateView):
@@ -579,11 +647,12 @@ class ModuleListView(BaseListView):
         return super().get_queryset().select_related('trade', 'level', 'trainer')
 
 
-class ModuleCreateView(BaseCreateView):
+class ModuleCreateView(InitialFromQueryMixin, BaseCreateView):
     model = Module
     form_class = ModuleForm
     title = 'Module'
     list_url_name = 'module-list'
+    initial_query_fields = ['trainer', 'trade']
 
 
 class ModuleUpdateView(BaseUpdateView):
@@ -616,11 +685,12 @@ class LearningOutcomeListView(BaseListView):
         return super().get_queryset().select_related('module')
 
 
-class LearningOutcomeCreateView(BaseCreateView):
+class LearningOutcomeCreateView(InitialFromQueryMixin, BaseCreateView):
     model = LearningOutcome
     form_class = LearningOutcomeForm
     title = 'Learning Outcome'
     list_url_name = 'outcome-list'
+    initial_query_fields = ['module']
 
 
 class LearningOutcomeUpdateView(BaseUpdateView):
@@ -653,11 +723,12 @@ class IndicativeContentListView(BaseListView):
         return super().get_queryset().select_related('outcome')
 
 
-class IndicativeContentCreateView(BaseCreateView):
+class IndicativeContentCreateView(InitialFromQueryMixin, BaseCreateView):
     model = IndicativeContent
     form_class = IndicativeContentForm
     title = 'Indicative Content'
     list_url_name = 'content-list'
+    initial_query_fields = ['outcome']
 
 
 class IndicativeContentUpdateView(BaseUpdateView):
