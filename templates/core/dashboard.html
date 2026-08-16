@@ -54,8 +54,11 @@
   <section class="dash-section">
     <h2 class="dash-section-title">Quick navigation</h2>
 
-    <div class="dash-nav-group">
-      <div class="dash-nav-group-title">Curriculum data</div>
+    <details class="dash-nav-group" open>
+      <summary class="dash-nav-group-title">
+        <span>Curriculum data</span>
+        <i class="fa-solid fa-chevron-right dash-nav-group-chevron"></i>
+      </summary>
       <div class="dash-nav-grid">
         <a href="{% url 'sector-list' %}" class="dash-nav-card dash-accent-teal">
           <div class="dash-nav-icon"><i class="fa-solid fa-industry"></i></div>
@@ -107,10 +110,13 @@
           </div>
         </a>
       </div>
-    </div>
+    </details>
 
-    <div class="dash-nav-group">
-      <div class="dash-nav-group-title">People</div>
+    <details class="dash-nav-group">
+      <summary class="dash-nav-group-title">
+        <span>People</span>
+        <i class="fa-solid fa-chevron-right dash-nav-group-chevron"></i>
+      </summary>
       <div class="dash-nav-grid">
         <a href="{% url 'trainer-list' %}" class="dash-nav-card dash-accent-gold">
           <div class="dash-nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
@@ -120,10 +126,13 @@
           </div>
         </a>
       </div>
-    </div>
+    </details>
 
-    <div class="dash-nav-group">
-      <div class="dash-nav-group-title">Documents &amp; media</div>
+    <details class="dash-nav-group">
+      <summary class="dash-nav-group-title">
+        <span>Documents &amp; media</span>
+        <i class="fa-solid fa-chevron-right dash-nav-group-chevron"></i>
+      </summary>
       <div class="dash-nav-grid">
         <a href="{% url 'lessonplan-list' %}" class="dash-nav-card dash-accent-purple">
           <div class="dash-nav-icon"><i class="fa-solid fa-chalkboard"></i></div>
@@ -144,7 +153,7 @@
           </div>
         </a>
       </div>
-    </div>
+    </details>
 
   </section>
 
