@@ -678,170 +678,6 @@ body.sidebar-open .sidebar-overlay { display: block; }
   flex-direction: column;
   gap: 0.6rem;
 }
-/* ---------- Landing page ---------- */
-.landing-wrap {
-  min-height: 100vh;
-  background: radial-gradient(circle at 15% 10%, #16223d, #0b1220 60%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3.5rem 1.25rem 3rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.landing-glow-a {
-  position: absolute;
-  top: -140px;
-  right: -120px;
-  width: 380px;
-  height: 380px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.20), transparent 70%);
-  pointer-events: none;
-}
-
-.landing-glow-b {
-  position: absolute;
-  bottom: -160px;
-  left: -100px;
-  width: 380px;
-  height: 380px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(45, 212, 191, 0.16), transparent 70%);
-  pointer-events: none;
-}
-
-.landing-header {
-  text-align: center;
-  max-width: 640px;
-  margin-bottom: 3rem;
-  position: relative;
-  z-index: 1;
-}
-
-.landing-badge {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--gold), var(--teal));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--navy);
-  font-size: 1.5rem;
-  margin: 0 auto 1.25rem;
-  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.25);
-}
-
-.landing-header h1 {
-  color: var(--text-main);
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 0.6rem;
-}
-
-.landing-header p {
-  color: var(--text-soft);
-  font-size: 0.98rem;
-  margin: 0;
-}
-
-.landing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1080px;
-  position: relative;
-  z-index: 1;
-}
-
-@media (max-width: 900px) {
-  .landing-grid { grid-template-columns: 1fr; max-width: 420px; }
-}
-
-.landing-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  padding: 2.25rem 1.75rem;
-  backdrop-filter: blur(6px);
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.landing-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(212, 175, 55, 0.4);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.landing-card .lc-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  color: var(--navy);
-}
-
-.landing-card.lc-login .lc-icon { background: linear-gradient(135deg, var(--gold), var(--gold-soft)); }
-.landing-card.lc-scheme .lc-icon { background: linear-gradient(135deg, var(--teal), #7fe9db); }
-.landing-card.lc-lesson .lc-icon { background: linear-gradient(135deg, #8f9dff, #c3cbff); }
-
-.landing-card h3 {
-  color: var(--text-main);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.landing-card p {
-  color: var(--text-soft);
-  font-size: 0.88rem;
-  line-height: 1.5;
-  margin: 0;
-  flex-grow: 1;
-}
-
-.landing-card .lc-cta {
-  color: var(--gold-soft);
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.landing-card .lc-meta {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  font-size: 0.72rem;
-  color: var(--text-soft);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-}
-
-.landing-footer {
-  margin-top: 3rem;
-  color: var(--text-soft);
-  font-size: 0.8rem;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
 /* ---------- Generator pages (Scheme of Work / Lesson Plan) ---------- */
 .gen-body {
   background: #f4f6fb;
@@ -1542,14 +1378,9 @@ body.sidebar-open .sidebar-overlay { display: block; }
   a[href]::after { content: ''; }
 }
 
-/* =========================================================
-   LANDING PAGE
-   Replace BOTH existing "---------- Landing page ----------"
-   blocks in style.css (the original one and the later
-   override block lower in the file) with everything below.
-   ========================================================= */
+/* ---------- Landing page ---------- */
 
-.landing-page { background: #f4f6fb; }
+.landing-page { background: var(--bg-app); }
 
 .landing-shell {
   min-height: 100vh;
@@ -1934,16 +1765,11 @@ body.sidebar-open .sidebar-overlay { display: block; }
   .btn-hero, .landing-quick-item, .lq-arrow { transition: none !important; }
 }
 
-/* =========================================================
-   DASHBOARD (Admin too dashboard)
-   Append this block to style.css. Purely additive — existing
-   .stat-grid / .card-stat / .quick-nav / .qn-card rules are
-   left untouched in case other templates still use them.
-   ========================================================= */
+/* ---------- Dashboard (admin) ----------
+   .stat-grid / .card-stat / .quick-nav / .qn-card above are kept
+   in the "Cards" section in case another template still uses
+   them — the dashboard itself now uses the .dash-* classes below. */
 
-/* Tinted content background — replaces the flat #f4f6fb feel
-   for this page specifically, without touching .main-content
-   globally. */
 .dash-page {
   background: radial-gradient(circle at 100% 0%, rgba(212, 175, 55, 0.07), transparent 45%),
               radial-gradient(circle at 0% 20%, rgba(45, 212, 191, 0.07), transparent 40%),
