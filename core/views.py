@@ -1132,8 +1132,11 @@ Produce a JSON object with exactly three top-level fields:
     "Identify", "Describe", "Demonstrate", "Install", "Configure",
     "Troubleshoot", "Assemble", "Calculate", "Differentiate", "Apply") -
     never vague verbs like "understand", "know", or "learn".
-  - Be phrased from the learner's point of view, in the form "By the end
-    of the session, trainees will be able to <verb> ...".
+  - Be phrased as a direct action statement starting with the verb - do
+    NOT prefix it with "By the end of the session, trainees will be able
+    to" or any similar lead-in (e.g. write "Configure a basic network
+    switch", not "By the end of the session, trainees will be able to
+    configure a basic network switch").
   - Be scoped to what THIS session actually covers - i.e. grounded in,
     but synthesised from, the learning outcome, the Range, and the
     indicative content above, not a line-by-line restatement of any one
@@ -1299,10 +1302,9 @@ Rules:
         min_items=2,
         max_items=5,
         fallback=[
-            f"By the end of the session, trainees will be able to apply "
-            f"{short_outcome[:120]}." if short_outcome else
-            "By the end of the session, trainees will be able to perform the key steps covered.",
-            "By the end of the session, trainees will be able to explain the key steps covered in their own words.",
+            f"Apply {short_outcome[:120]}." if short_outcome
+            else "Perform the key steps covered in this session.",
+            "Explain the key steps covered in this session in their own words.",
         ],
     )
 
