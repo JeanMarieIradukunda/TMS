@@ -689,7 +689,7 @@
         setText('spRange', rangeInput.value.trim() || '\u2014');
         setText('spDuration', durationLabel);
 
-        renderObjectives(outcome, contents);
+        renderObjectivesLoading();
         renderTechniquesLoading();
         renderIntroduction(blocks.intro, topic);
         renderStepsLoading();
@@ -703,11 +703,14 @@
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // Facilitation Technique(s), the Development/Body steps, and the
-        // Reflection draft answers are all drafted server-side by Groq
-        // (see core/views.py: generate_lesson_plan_ai_content) — the
-        // backend guarantees at least 3 steps even if the model returns
-        // fewer, and always returns a usable reflection draft.
+        // Objectives, Facilitation Technique(s), the Development/Body
+        // steps, and the Reflection draft answers are all drafted
+        // server-side by Groq (see core/views.py:
+        // generate_lesson_plan_ai_content) — the backend guarantees at
+        // least 3 steps even if the model returns fewer, always returns
+        // usable objectives grounded in the outcome/Range/indicative
+        // content (never a copy of the indicative content itself), and
+        // always returns a usable reflection draft.
         fetchAiSessionContent({
           outcome_text: outcome.outcome_text,
           indicative_content: contents.map(function (c) { return c.indic_name; }),
@@ -738,12 +741,35 @@
         });
       }
 
-      function renderObjectives(outcome, contents) {
+      // Objectives are drafted server-side by Groq (see core/views.py:
+      // generate_lesson_plan_ai_content) from the outcome, Range and
+      // indicative content — never a direct copy of the indicative
+      // content bullets. If the AI is unreachable, we fall back to a
+      // single generic, editable objective rather than re-listing the
+      // indicative content.
+      function renderObjectivesLoading() {
+        document.getElementById('spObjectives').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderObjectivesFromAi(objectives) {
         var el = document.getElementById('spObjectives');
-        var items = contents.length
-          ? contents.map(function (c) { return '<li>' + TMSGen.escapeHtml(c.indic_name) + '</li>'; }).join('')
-          : '<li>' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '</li>';
-        el.innerHTML = '<ul class="gen-bullets">' + items + '</ul>';
+        var clean = (objectives || [])
+          .map(function (o) { return (o || '').toString().trim(); })
+          .filter(Boolean);
+
+        if (!clean.length) {
+          renderObjectivesFailed();
+          return;
+        }
+
+        var items = clean.map(function (o) { return '<li>' + TMSGen.escapeHtml(o) + '</li>'; }).join('');
+        el.innerHTML = '<ul class="gen-bullets">' + items + '</ul> <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderObjectivesFailed() {
+        document.getElementById('spObjectives').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
       }
 
       function renderTechniquesLoading() {
@@ -858,11 +884,11 @@
         return match ? decodeURIComponent(match.pop()) : '';
       }
 
-      // Calls the Groq-backed endpoint for Facilitation Technique(s) and the
-      // Development/Body steps, then fills in whichever loading state each
-      // field is currently showing. Falls back to editable blank fields
-      // (never leaves the page stuck loading) if the request fails or the
-      // AI response comes back empty.
+      // Calls the Groq-backed endpoint for Objectives, Facilitation
+      // Technique(s) and the Development/Body steps, then fills in
+      // whichever loading state each field is currently showing. Falls
+      // back to editable blank fields (never leaves the page stuck
+      // loading) if the request fails or the AI response comes back empty.
       function fetchAiSessionContent(payload, developmentMinutes) {
         fetch(AI_ENDPOINT, {
           method: 'POST',
@@ -880,6 +906,7 @@
             return response.json();
           })
           .then(function (data) {
+            renderObjectivesFromAi(data && data.objectives);
             renderTechniques(data && data.facilitation_techniques);
 
             var steps = (data && Array.isArray(data.steps) && data.steps.length) ? data.steps : null;
@@ -893,6 +920,7 @@
           })
           .catch(function (err) {
             console.error(err);
+            renderObjectivesFailed();
             renderTechniquesFailed();
             renderStepsFailed(developmentMinutes);
             renderReflectionFailed();
