@@ -33,6 +33,44 @@
         <span class="trainer-group-count">{{ group.rows|length }} record{{ group.rows|length|pluralize }}</span>
       </summary>
       <div class="trainer-group-body">
+        {% if group_by_module %}
+        <div class="module-accordion">
+          {% for mgroup in group.modules %}
+          <details class="module-group">
+            <summary class="module-group-summary">
+              <span class="module-group-toggle"><i class="fa-solid fa-chevron-right"></i></span>
+              <span class="module-group-icon"><i class="fa-solid fa-book-open"></i></span>
+              <span class="module-group-name">{{ mgroup.module_label }}</span>
+              <span class="module-group-count">{{ mgroup.rows|length }} record{{ mgroup.rows|length|pluralize }}</span>
+            </summary>
+            <div class="module-group-body">
+              <div class="record-card-list">
+                {% for row in mgroup.rows %}
+                <div class="record-card" data-searchable>
+                  <div class="record-card-fields">
+                    {% for label, value in row.fields %}
+                    <div class="record-card-field">
+                      <span class="record-card-label">{{ label }}</span>
+                      <span class="record-card-value">{{ value }}</span>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <div class="record-card-actions">
+                    <a href="{% url edit_url_name pk=row.pk %}" class="action-icon edit" title="Edit">
+                      <i class="fa-solid fa-pen"></i>
+                    </a>
+                    <a href="{% url delete_url_name pk=row.pk %}" class="action-icon delete" title="Delete">
+                      <i class="fa-solid fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+        {% else %}
         <div class="table-responsive">
           <table class="table align-middle">
             <thead>
@@ -58,6 +96,7 @@
             </tbody>
           </table>
         </div>
+        {% endif %}
       </div>
     </details>
     {% endfor %}
