@@ -11,74 +11,105 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body>
-  <div class="landing-wrap">
-    <span class="landing-glow-a" aria-hidden="true"></span>
-    <span class="landing-glow-b" aria-hidden="true"></span>
+<body class="landing-page">
+  <div class="landing-shell">
 
-    <header class="landing-header">
-      <div class="landing-ruled-lines" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
+    <!-- Top bar -->
+    <header class="landing-topbar">
+      <div class="landing-topbar-brand">
+        <span class="dot" aria-hidden="true"></span>
+        Padri Vjeko Centre
       </div>
-
-      <div class="landing-badge" aria-hidden="true">
-        <i class="fa-solid fa-graduation-cap"></i>
-      </div>
-
-      <p class="landing-eyebrow">Padri Vjeko Centre</p>
-      <h1>Training Management <span class="accent">System</span></h1>
-      <p>Plan, manage and deliver your training programme &mdash; from scheme of work to session plan &mdash; in one place.</p>
-
-      <div class="landing-stat-strip">
-        <span class="stat-pill">
-          <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>{{ module_count }} module{{ module_count|pluralize }}
-        </span>
-        <span class="stat-divider" aria-hidden="true">&middot;</span>
-        <span class="stat-pill">
-          <i class="fa-solid fa-chalkboard" aria-hidden="true"></i>{{ lesson_plan_count }} lesson plan{{ lesson_plan_count|pluralize }}
-        </span>
+      <div class="landing-topbar-stats">
+        <span><i class="fa-solid fa-diagram-project" aria-hidden="true"></i>{{ module_count }} module{{ module_count|pluralize }}</span>
+        <span><i class="fa-solid fa-chalkboard" aria-hidden="true"></i>{{ lesson_plan_count }} lesson plan{{ lesson_plan_count|pluralize }}</span>
       </div>
     </header>
 
-    <main>
-      <section class="landing-grid" aria-label="Main navigation options">
+    <!-- Hero -->
+    <main class="landing-hero">
+      <span class="landing-hero-glow-a" aria-hidden="true"></span>
+      <span class="landing-hero-glow-b" aria-hidden="true"></span>
 
-        <!-- LOGIN ONLY -->
-        <a href="{% url 'login' %}" class="landing-card lc-login">
-          <span class="lc-meta lc-meta-restricted">
-            <i class="fa-solid fa-lock" aria-hidden="true"></i>Restricted
-          </span>
-          <div class="lc-icon" aria-hidden="true"><i class="fa-solid fa-right-to-bracket"></i></div>
-          <h3>Login</h3>
-          <p>Sign in with your administrator or trainer account to access the full management system.</p>
-          <div class="lc-cta">Sign in <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></div>
+      <div class="landing-hero-content">
+        <p class="landing-hero-eyebrow">Training Management System</p>
+        <h1>Plan and deliver training <span class="accent">with confidence</span></h1>
+        <p class="landing-hero-sub">Plan, manage and deliver your training programme &mdash; from scheme of work to session plan &mdash; in one place.</p>
+
+        <div class="landing-hero-actions">
+          <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary">
+            Generate Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+          </a>
+          <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary">
+            Generate Lesson Plan
+          </a>
+        </div>
+
+        <a href="{% url 'login' %}" class="landing-hero-login-link">
+          <i class="fa-solid fa-lock" aria-hidden="true"></i> Administrator / trainer sign in
         </a>
+      </div>
 
-        <!-- SCHEME OF WORK (DIRECT ACCESS) -->
-        <a href="{% url 'schemeofwork-user' %}" class="landing-card lc-scheme">
-          <span class="lc-meta">{{ module_count }} module{{ module_count|pluralize }}</span>
-          <div class="lc-icon" aria-hidden="true"><i class="fa-solid fa-diagram-project"></i></div>
-          <h3>Scheme of Work</h3>
-          <p>View and generate structured schemes of work for your selected trade and level.</p>
-          <div class="lc-cta">Generate Scheme <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></div>
-        </a>
+      <div class="landing-hero-visual" aria-hidden="true">
+        <div class="landing-doc-mock">
+          <div class="landing-doc-mock-header">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="landing-doc-mock-title"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row short"></div>
+          <div class="landing-doc-mock-row"></div>
+        </div>
 
-        <!-- LESSON PLANS (DIRECT ACCESS) -->
-        <a href="{% url 'lessonplan-user' %}" class="landing-card lc-lesson">
-          <span class="lc-meta">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span>
-          <div class="lc-icon" aria-hidden="true"><i class="fa-solid fa-chalkboard"></i></div>
-          <h3>Lesson Plans</h3>
-          <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
-          <div class="lc-cta">Generate Lesson Plan <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></div>
-        </a>
-
-      </section>
+        <div class="landing-hero-stat-card">
+          <i class="fa-solid fa-diagram-project"></i>
+          <div><strong>{{ module_count }}</strong><span>modules</span></div>
+        </div>
+        <div class="landing-hero-stat-card landing-hero-stat-card-alt">
+          <i class="fa-solid fa-chalkboard"></i>
+          <div><strong>{{ lesson_plan_count }}</strong><span>lesson plans</span></div>
+        </div>
+      </div>
     </main>
+
+    <!-- Quick access -->
+    <section class="landing-quick-access" aria-label="Quick access">
+
+      <a href="{% url 'login' %}" class="landing-quick-item">
+        <div class="lq-icon lq-icon-login"><i class="fa-solid fa-right-to-bracket"></i></div>
+        <div class="lq-text">
+          <h3>Login <span class="lq-badge lq-badge-restricted"><i class="fa-solid fa-lock"></i>Restricted</span></h3>
+          <p>Sign in with your administrator or trainer account to access the full management system.</p>
+        </div>
+        <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+      </a>
+
+      <a href="{% url 'schemeofwork-user' %}" class="landing-quick-item">
+        <div class="lq-icon lq-icon-scheme"><i class="fa-solid fa-diagram-project"></i></div>
+        <div class="lq-text">
+          <h3>Scheme of Work <span class="lq-badge">{{ module_count }} module{{ module_count|pluralize }}</span></h3>
+          <p>View and generate structured schemes of work for your selected trade and level.</p>
+        </div>
+        <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+      </a>
+
+      <a href="{% url 'lessonplan-user' %}" class="landing-quick-item">
+        <div class="lq-icon lq-icon-lesson"><i class="fa-solid fa-chalkboard"></i></div>
+        <div class="lq-text">
+          <h3>Lesson Plans <span class="lq-badge">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span></h3>
+          <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
+        </div>
+        <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+      </a>
+
+    </section>
 
     <footer class="landing-footer">
       <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>
       &copy; {% now "Y" %} Padri Vjeko Centre &middot; Training Management System
     </footer>
+
   </div>
 </body>
 </html>
