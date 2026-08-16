@@ -269,11 +269,6 @@
         <p class="gen-hint no-print mt-2">
           <i class="fa-solid fa-circle-info"></i> Click <button type="button" class="gen-add-row-btn d-inline" id="addStepRowBtn"><i class="fa-solid fa-plus"></i> Add step</button> to insert another Development/Body step — every duration field, including the total above, stays editable.
         </p>
-
-        <div class="gen-doc-footer">
-          <span>Training Management System</span>
-          <span>Session Plan · <span id="docFooterModule"></span></span>
-        </div>
       </article>
 
       <div class="gen-save-note no-print">
@@ -697,8 +692,13 @@
         renderEvaluationSections();
         renderReflectionLoading();
 
-        document.getElementById('docTitle').textContent = 'Session Plan — ' + topic;
-        document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
+        // Title is built from the selected Indicative content — not the
+        // Learning outcome / topic — per the fixed "SESSION PLAN - ..."
+        // document heading format.
+        var contentLabel = contents.length
+          ? contents.map(function (c) { return c.indic_name; }).join('; ')
+          : '\u2014';
+        document.getElementById('docTitle').textContent = 'SESSION PLAN - ' + contentLabel;
 
         docSection.classList.remove('d-none');
         docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
