@@ -18,6 +18,62 @@
   </div>
 </div>
 
+{% if group_by_trainer %}
+<div class="card-panel table-panel">
+  {% if trainer_groups %}
+  <div class="trainer-accordion">
+    {% for group in trainer_groups %}
+    <details class="trainer-group">
+      <summary class="trainer-group-summary">
+        <span class="trainer-group-toggle"><i class="fa-solid fa-chevron-right"></i></span>
+        <span class="trainer-group-icon {% if not group.trainer_id %}trainer-group-icon-muted{% endif %}">
+          <i class="fa-solid fa-chalkboard-user"></i>
+        </span>
+        <span class="trainer-group-name">{{ group.trainer_name }}</span>
+        <span class="trainer-group-count">{{ group.rows|length }} record{{ group.rows|length|pluralize }}</span>
+      </summary>
+      <div class="trainer-group-body">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in group.rows %}
+              <tr data-searchable>
+                {% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}
+                <td class="text-end">
+                  <a href="{% url edit_url_name pk=row.pk %}" class="action-icon edit" title="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                  <a href="{% url delete_url_name pk=row.pk %}" class="action-icon delete" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  <div id="tableSearchEmpty" class="empty-state d-none">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <div>No records match your search.</div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fa-solid fa-inbox"></i>
+    <div>{{ empty_message }}</div>
+  </div>
+  {% endif %}
+</div>
+{% else %}
 <div class="card-panel table-panel">
   {% if rows %}
   <div class="table-responsive">
@@ -66,6 +122,7 @@
   </div>
   {% endif %}
 </div>
+{% endif %}
 
 {% if is_paginated %}
 <nav class="mt-3">
