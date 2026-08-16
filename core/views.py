@@ -1044,6 +1044,10 @@ def generate_lesson_plan_ai_content(request):
     Receives the module/trade/level context plus the single learning
     outcome (with its indicative content) selected in the browser, and
     asks Groq to draft:
+      - objectives: a JSON array of 2-5 clear, measurable, learner-focused
+        session objectives, synthesised from the learning outcome, the
+        Range and the indicative content - NOT a copy of the indicative
+        content bullets.
       - facilitation_techniques: a SINGLE comma-separated line naming at
         most 3 facilitation methodologies/techniques (same shape/rules as
         the Scheme of Work's "learning_activities" field) - not a
@@ -1118,7 +1122,23 @@ LEARNING OUTCOME:
 INDICATIVE CONTENT:
 {json.dumps(indicative_content, indent=2)}
 
-Produce a JSON object with exactly two top-level fields:
+Produce a JSON object with exactly three top-level fields:
+
+- "objectives": a JSON array of 2-5 clear, measurable, learner-focused
+  session objectives - NOT a copy or rewording of the indicative content
+  bullets, and NOT a restatement of the learning outcome itself. Each
+  objective must:
+  - Start with a single observable, measurable action verb (e.g.
+    "Identify", "Describe", "Demonstrate", "Install", "Configure",
+    "Troubleshoot", "Assemble", "Calculate", "Differentiate", "Apply") -
+    never vague verbs like "understand", "know", or "learn".
+  - Be phrased from the learner's point of view, in the form "By the end
+    of the session, trainees will be able to <verb> ...".
+  - Be scoped to what THIS session actually covers - i.e. grounded in,
+    but synthesised from, the learning outcome, the Range, and the
+    indicative content above, not a line-by-line restatement of any one
+    of them.
+  - Be short (one sentence each) and independently achievable/assessable.
 
 - "facilitation_techniques": AT MOST 3 facilitation methodologies/teaching
   techniques the trainer would use across this session (e.g.
@@ -1163,11 +1183,14 @@ Produce a JSON object with exactly two top-level fields:
     that may be in short supply).
 
 Rules:
-- Ground every step in the outcome's own text and its indicative content -
-  do not invent unrelated topics.
+- Ground every objective and every step in the outcome's own text, the
+  Range, and the indicative content - do not invent unrelated topics, and
+  do not simply copy or lightly reword any indicative content line as an
+  objective.
 - Use concise, real workshop/training language, not vague filler.
 - Respond with STRICT JSON ONLY, matching exactly this shape:
 {{
+  "objectives": ["<objective 1>", "<objective 2>"],
   "facilitation_techniques": "<comma-separated string, max 3 items>",
   "steps": [
     {{
@@ -1265,6 +1288,24 @@ Rules:
     # --------------------------------------------------
     # 5. Validate & defensively coerce structure
     # --------------------------------------------------
+    # Objectives must never fall back to a copy of the indicative content -
+    # if the model returns nothing usable, fall back to a single generic
+    # objective built from the outcome text only.
+    short_outcome = outcome_text.strip()
+    if ":" in short_outcome:
+        short_outcome = short_outcome.split(":", 1)[1].strip()
+    objectives = _coerce_to_list(
+        data.get("objectives"),
+        min_items=2,
+        max_items=5,
+        fallback=[
+            f"By the end of the session, trainees will be able to apply "
+            f"{short_outcome[:120]}." if short_outcome else
+            "By the end of the session, trainees will be able to perform the key steps covered.",
+            "By the end of the session, trainees will be able to explain the key steps covered in their own words.",
+        ],
+    )
+
     facilitation_techniques = _coerce_to_csv_line(
         data.get("facilitation_techniques"), max_items=3
     )
@@ -1316,6 +1357,7 @@ Rules:
     # 6. Return success
     # --------------------------------------------------
     return JsonResponse({
+        "objectives": objectives,
         "facilitation_techniques": facilitation_techniques,
         "steps": steps,
         "reflection": reflection,
