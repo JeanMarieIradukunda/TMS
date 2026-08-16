@@ -2136,3 +2136,139 @@ body.sidebar-open .sidebar-overlay { display: block; }
 }
 
 .trainer-group-body .table-responsive { margin-top: 0.5rem; }
+
+/* ---------- Nested module-level accordion (inside a trainer group) ----------
+   Used by Learning Outcomes and Indicative Contents: Trainer -> Module ->
+   records, with records rendered as cards once a module is expanded. */
+.module-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.module-group {
+  border: 1px solid #e9ecf4;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.module-group[open] { border-color: #dfe4f2; }
+
+.module-group-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.9rem;
+  background: #f7f8fc;
+  transition: background 0.15s ease;
+}
+
+.module-group-summary::-webkit-details-marker { display: none; }
+.module-group-summary::marker { content: ''; }
+
+.module-group-summary:hover { background: #eef0f7; }
+
+.module-group-toggle {
+  color: #8a93aa;
+  font-size: 0.7rem;
+  width: 14px;
+  display: inline-flex;
+  justify-content: center;
+  transition: transform 0.18s ease;
+}
+
+.module-group[open] > .module-group-summary .module-group-toggle { transform: rotate(90deg); }
+
+.module-group-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.75rem;
+  background: var(--teal);
+}
+
+.module-group-name {
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 0.88rem;
+  flex: 1;
+}
+
+.module-group-count {
+  font-size: 0.72rem;
+  color: #8a93aa;
+  font-weight: 600;
+  background: #fff;
+  border: 1px solid #e9ecf4;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.module-group-body {
+  padding: 0.85rem 0.9rem 0.9rem;
+}
+
+/* ---------- Record cards (leaf items inside a module group) ---------- */
+.record-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.record-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  background: #fbfcff;
+  border: 1px solid #eef0f7;
+  border-radius: 10px;
+}
+
+.record-card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.record-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 140px;
+}
+
+.record-card-field:first-child { min-width: 220px; flex: 1 1 260px; }
+
+.record-card-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9aa2b7;
+  font-weight: 700;
+}
+
+.record-card-value {
+  font-size: 0.88rem;
+  color: var(--navy);
+  word-break: break-word;
+}
+
+.record-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
