@@ -300,6 +300,14 @@ class BaseListView(LoginRequiredMixin, ListView):
       - group_by_trainer = True
       - trainer_accessor = dotted path from the row object to its Trainer
         (e.g. 'trainer', 'module.trainer', 'outcome.module.trainer')
+
+    A second, nested grouping level can be layered on top of trainer
+    grouping so each trainer's records are further collapsed by Module
+    (Trainer -> Module -> records), rendered as cards rather than a table
+    once the module is expanded:
+      - group_by_module = True (requires group_by_trainer = True)
+      - module_accessor = dotted path from the row object to its Module
+        (e.g. 'module', 'outcome.module')
     """
     template_name = 'core/crud_list.html'
     paginate_by = 25
@@ -316,6 +324,10 @@ class BaseListView(LoginRequiredMixin, ListView):
     trainer_accessor = 'trainer'
     unassigned_group_label = 'Unassigned'
 
+    group_by_module = False
+    module_accessor = 'module'
+    unassigned_module_label = 'Unassigned module'
+
     def get_column_value(self, obj, col):
         value = obj
         for part in col.split('.'):
@@ -326,18 +338,26 @@ class BaseListView(LoginRequiredMixin, ListView):
                 value = value()
         return value
 
-    def get_trainer_for_obj(self, obj):
+    def get_related_for_obj(self, obj, accessor):
         value = obj
-        for part in self.trainer_accessor.split('.'):
+        for part in accessor.split('.'):
             if value is None:
                 return None
             value = getattr(value, part, None)
         return value
 
+    def get_trainer_for_obj(self, obj):
+        return self.get_related_for_obj(obj, self.trainer_accessor)
+
+    def get_module_for_obj(self, obj):
+        return self.get_related_for_obj(obj, self.module_accessor)
+
     def build_trainer_groups(self, rows):
         """Buckets already-built rows by trainer, preserving each row's
         original order within its group, and sorts groups alphabetically
-        by trainer name with the "Unassigned" bucket always last."""
+        by trainer name with the "Unassigned" bucket always last. When
+        group_by_module is enabled, each trainer group is further split
+        into nested module groups instead of a flat 'rows' list."""
         groups_by_id = {}
         order = []
         for row in rows:
@@ -353,6 +373,31 @@ class BaseListView(LoginRequiredMixin, ListView):
 
         group_list = [groups_by_id[key] for key in order]
         group_list.sort(key=lambda g: (g['trainer_id'] is None, g['trainer_name'].lower()))
+
+        if self.group_by_module:
+            for group in group_list:
+                group['modules'] = self.build_module_groups(group.pop('rows'))
+
+        return group_list
+
+    def build_module_groups(self, rows):
+        """Buckets a trainer's rows by module, preserving order, and sorts
+        alphabetically by module label with any unassigned bucket last."""
+        groups_by_id = {}
+        order = []
+        for row in rows:
+            key = row['module_id'] or 0
+            if key not in groups_by_id:
+                groups_by_id[key] = {
+                    'module_id': row['module_id'],
+                    'module_label': row['module_label'],
+                    'rows': [],
+                }
+                order.append(key)
+            groups_by_id[key]['rows'].append(row)
+
+        group_list = [groups_by_id[key] for key in order]
+        group_list.sort(key=lambda g: (g['module_id'] is None, g['module_label'].lower()))
         return group_list
 
     def get_context_data(self, **kwargs):
@@ -360,13 +405,17 @@ class BaseListView(LoginRequiredMixin, ListView):
         rows = []
         for obj in context['object_list']:
             cells = [self.get_column_value(obj, col) for col in self.columns]
-            row = {'pk': obj.pk, 'cells': cells}
+            row = {'pk': obj.pk, 'cells': cells, 'fields': list(zip(self.headers, cells))}
             if self.thumbnail_field:
                 row['thumbnail'] = self.get_column_value(obj, self.thumbnail_field)
             if self.group_by_trainer:
                 trainer = self.get_trainer_for_obj(obj)
                 row['trainer_id'] = trainer.pk if trainer else None
                 row['trainer_name'] = trainer.full_name if trainer else self.unassigned_group_label
+            if self.group_by_module:
+                module = self.get_module_for_obj(obj)
+                row['module_id'] = module.pk if module else None
+                row['module_label'] = str(module) if module else self.unassigned_module_label
             rows.append(row)
 
         context.update({
@@ -379,6 +428,7 @@ class BaseListView(LoginRequiredMixin, ListView):
             'empty_message': self.empty_message,
             'has_thumbnail': bool(self.thumbnail_field),
             'group_by_trainer': self.group_by_trainer,
+            'group_by_module': self.group_by_module,
         })
 
         if self.group_by_trainer:
@@ -661,8 +711,10 @@ class ModuleDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 class LearningOutcomeListView(BaseListView):
     model = LearningOutcome
-    headers = ['Module', 'Outcome', 'Hours']
-    columns = ['module.mod_code', 'outcome_text', 'learning_hours']
+    # "Module" is dropped from the columns here because the list is grouped
+    # Trainer -> Module below - the module group header already carries it.
+    headers = ['Outcome', 'Hours']
+    columns = ['outcome_text', 'learning_hours']
     title = 'Learning Outcomes'
     create_url_name = 'outcome-create'
     edit_url_name = 'outcome-edit'
@@ -671,6 +723,8 @@ class LearningOutcomeListView(BaseListView):
 
     group_by_trainer = True
     trainer_accessor = 'module.trainer'
+    group_by_module = True
+    module_accessor = 'module'
 
     def get_queryset(self):
         return super().get_queryset().select_related('module__trainer')
@@ -711,6 +765,8 @@ class IndicativeContentListView(BaseListView):
 
     group_by_trainer = True
     trainer_accessor = 'outcome.module.trainer'
+    group_by_module = True
+    module_accessor = 'outcome.module'
 
     def get_queryset(self):
         return super().get_queryset().select_related('outcome__module__trainer')
