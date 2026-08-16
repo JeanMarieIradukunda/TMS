@@ -104,6 +104,20 @@
     window.print();
   }
 
+  // Browsers use document.title as the default filename when the person
+  // chooses "Save as PDF" from the print dialog, so we sanitise arbitrary
+  // curriculum text into something safe to use as a file name: strip
+  // characters that are illegal (or awkward) in file names on Windows/
+  // macOS/Linux, collapse whitespace, and cap the length.
+  function filenameSafe(text, fallback) {
+    var clean = String(text || '')
+      .replace(/[\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (clean.length > 120) clean = clean.slice(0, 120).trim();
+    return clean || fallback || 'Document';
+  }
+
   window.TMSGen = {
     readData: readData,
     escapeHtml: escapeHtml,
@@ -112,6 +126,7 @@
     todayLong: todayLong,
     todayISO: todayISO,
     formatDateLong: formatDateLong,
+    filenameSafe: filenameSafe,
     print: printDocument,
   };
 })();
