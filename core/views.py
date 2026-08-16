@@ -6,7 +6,6 @@ from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
@@ -285,55 +284,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 
 # ---------------------------------------------------------------------------
-# Curriculum tree — Modules -> Learning Outcomes -> Indicative Contents,
-# grouped by Trade, rendered as a collapsible hierarchy so the admin can
-# see (and drill into) the whole curriculum structure at a glance instead
-# of hunting across three separate flat lists.
-# ---------------------------------------------------------------------------
-class CurriculumTreeView(LoginRequiredMixin, TemplateView):
-    template_name = 'core/curriculum_tree.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Nested prefetch: every Module already carries its Learning
-        # Outcomes, and every Learning Outcome already carries its own
-        # Indicative Contents - one query per level, not one per row.
-        outcomes_qs = LearningOutcome.objects.order_by('id').prefetch_related(
-            Prefetch('indicative_contents', queryset=IndicativeContent.objects.order_by('id'))
-        )
-        modules = (
-            Module.objects
-            .select_related('trade', 'trade__sector', 'level', 'trainer')
-            .prefetch_related(Prefetch('learning_outcomes', queryset=outcomes_qs))
-            .order_by('trade__trade_name', 'mod_code')
-        )
-
-        # Group the already-sorted modules by Trade in Python (they're
-        # sorted by trade name, so consecutive modules with the same
-        # trade id always land in the same bucket) - this is what turns
-        # the flat module list into its own "section/class" per Trade.
-        trade_groups = []
-        current_trade_id = None
-        current_bucket = None
-        for module in modules:
-            trade = module.trade
-            if current_trade_id != trade.pk:
-                current_trade_id = trade.pk
-                current_bucket = {'trade': trade, 'modules': []}
-                trade_groups.append(current_bucket)
-            current_bucket['modules'].append(module)
-
-        context.update({
-            'trade_groups': trade_groups,
-            'module_count': Module.objects.count(),
-            'outcome_count': LearningOutcome.objects.count(),
-            'content_count': IndicativeContent.objects.count(),
-        })
-        return context
-
-
-# ---------------------------------------------------------------------------
 # Generic CRUD scaffolding
 # ---------------------------------------------------------------------------
 class BaseListView(LoginRequiredMixin, ListView):
@@ -341,6 +291,15 @@ class BaseListView(LoginRequiredMixin, ListView):
     Generic list view. Subclasses set:
       - model, headers (list[str]), columns (list[str] dotted attribute paths)
       - title, create_url_name, edit_url_name, delete_url_name
+
+    Optionally, subclasses can turn on trainer grouping so the list renders
+    as a collapsed-by-default accordion of "Trainer -> their records" instead
+    of one flat table. This keeps Modules / Learning Outcomes / Indicative
+    Contents organised under the trainer they belong to, and the CRUD table
+    for a given trainer only appears once that trainer's group is expanded:
+      - group_by_trainer = True
+      - trainer_accessor = dotted path from the row object to its Trainer
+        (e.g. 'trainer', 'module.trainer', 'outcome.module.trainer')
     """
     template_name = 'core/crud_list.html'
     paginate_by = 25
@@ -353,6 +312,10 @@ class BaseListView(LoginRequiredMixin, ListView):
     empty_message = 'No records found.'
     thumbnail_field = None  # e.g. 'image' -> renders a preview thumbnail column
 
+    group_by_trainer = False
+    trainer_accessor = 'trainer'
+    unassigned_group_label = 'Unassigned'
+
     def get_column_value(self, obj, col):
         value = obj
         for part in col.split('.'):
@@ -363,6 +326,35 @@ class BaseListView(LoginRequiredMixin, ListView):
                 value = value()
         return value
 
+    def get_trainer_for_obj(self, obj):
+        value = obj
+        for part in self.trainer_accessor.split('.'):
+            if value is None:
+                return None
+            value = getattr(value, part, None)
+        return value
+
+    def build_trainer_groups(self, rows):
+        """Buckets already-built rows by trainer, preserving each row's
+        original order within its group, and sorts groups alphabetically
+        by trainer name with the "Unassigned" bucket always last."""
+        groups_by_id = {}
+        order = []
+        for row in rows:
+            key = row['trainer_id'] or 0
+            if key not in groups_by_id:
+                groups_by_id[key] = {
+                    'trainer_id': row['trainer_id'],
+                    'trainer_name': row['trainer_name'],
+                    'rows': [],
+                }
+                order.append(key)
+            groups_by_id[key]['rows'].append(row)
+
+        group_list = [groups_by_id[key] for key in order]
+        group_list.sort(key=lambda g: (g['trainer_id'] is None, g['trainer_name'].lower()))
+        return group_list
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         rows = []
@@ -371,7 +363,12 @@ class BaseListView(LoginRequiredMixin, ListView):
             row = {'pk': obj.pk, 'cells': cells}
             if self.thumbnail_field:
                 row['thumbnail'] = self.get_column_value(obj, self.thumbnail_field)
+            if self.group_by_trainer:
+                trainer = self.get_trainer_for_obj(obj)
+                row['trainer_id'] = trainer.pk if trainer else None
+                row['trainer_name'] = trainer.full_name if trainer else self.unassigned_group_label
             rows.append(row)
+
         context.update({
             'headers': self.headers,
             'rows': rows,
@@ -381,7 +378,12 @@ class BaseListView(LoginRequiredMixin, ListView):
             'delete_url_name': self.delete_url_name,
             'empty_message': self.empty_message,
             'has_thumbnail': bool(self.thumbnail_field),
+            'group_by_trainer': self.group_by_trainer,
         })
+
+        if self.group_by_trainer:
+            context['trainer_groups'] = self.build_trainer_groups(rows)
+
         return context
 
 
@@ -400,24 +402,6 @@ class BaseCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse_lazy(self.list_url_name)
-
-
-# Lets a "+ Add X" link (e.g. from the Curriculum tree) pre-select the
-# parent record via a query string - ?module=3 pre-fills the module
-# dropdown on the Learning Outcome form, ?outcome=7 pre-fills the outcome
-# dropdown on the Indicative Content form, and so on. The field is still
-# shown and editable; it's just already pointed at the record the admin
-# clicked "Add" from, reinforcing "pick the parent first".
-class InitialFromQueryMixin:
-    initial_query_fields = []
-
-    def get_initial(self):
-        initial = super().get_initial()
-        for field_name in self.initial_query_fields:
-            value = self.request.GET.get(field_name)
-            if value:
-                initial[field_name] = value
-        return initial
 
 
 class BaseUpdateView(LoginRequiredMixin, UpdateView):
@@ -635,24 +619,28 @@ class TrainerDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 class ModuleListView(BaseListView):
     model = Module
-    headers = ['Code', 'Name', 'Trade', 'Level', 'Trainer', 'Hours', 'Term']
-    columns = ['mod_code', 'mod_name', 'trade.trade_name', 'level.class_level', 'trainer.full_name', 'learning_hours', 'term']
+    # "Trainer" is dropped from the columns here because the list is grouped
+    # by trainer below - the group header already carries that information.
+    headers = ['Code', 'Name', 'Trade', 'Level', 'Hours', 'Term']
+    columns = ['mod_code', 'mod_name', 'trade.trade_name', 'level.class_level', 'learning_hours', 'term']
     title = 'Modules'
     create_url_name = 'module-create'
     edit_url_name = 'module-edit'
     delete_url_name = 'module-delete'
     empty_message = 'No modules yet. Click "Add Module" to create one.'
 
+    group_by_trainer = True
+    trainer_accessor = 'trainer'
+
     def get_queryset(self):
         return super().get_queryset().select_related('trade', 'level', 'trainer')
 
 
-class ModuleCreateView(InitialFromQueryMixin, BaseCreateView):
+class ModuleCreateView(BaseCreateView):
     model = Module
     form_class = ModuleForm
     title = 'Module'
     list_url_name = 'module-list'
-    initial_query_fields = ['trainer', 'trade']
 
 
 class ModuleUpdateView(BaseUpdateView):
@@ -681,16 +669,18 @@ class LearningOutcomeListView(BaseListView):
     delete_url_name = 'outcome-delete'
     empty_message = 'No learning outcomes yet. Click "Add Learning Outcome" to create one.'
 
+    group_by_trainer = True
+    trainer_accessor = 'module.trainer'
+
     def get_queryset(self):
-        return super().get_queryset().select_related('module')
+        return super().get_queryset().select_related('module__trainer')
 
 
-class LearningOutcomeCreateView(InitialFromQueryMixin, BaseCreateView):
+class LearningOutcomeCreateView(BaseCreateView):
     model = LearningOutcome
     form_class = LearningOutcomeForm
     title = 'Learning Outcome'
     list_url_name = 'outcome-list'
-    initial_query_fields = ['module']
 
 
 class LearningOutcomeUpdateView(BaseUpdateView):
@@ -719,16 +709,18 @@ class IndicativeContentListView(BaseListView):
     delete_url_name = 'content-delete'
     empty_message = 'No indicative contents yet. Click "Add Indicative Content" to create one.'
 
+    group_by_trainer = True
+    trainer_accessor = 'outcome.module.trainer'
+
     def get_queryset(self):
-        return super().get_queryset().select_related('outcome')
+        return super().get_queryset().select_related('outcome__module__trainer')
 
 
-class IndicativeContentCreateView(InitialFromQueryMixin, BaseCreateView):
+class IndicativeContentCreateView(BaseCreateView):
     model = IndicativeContent
     form_class = IndicativeContentForm
     title = 'Indicative Content'
     list_url_name = 'content-list'
-    initial_query_fields = ['outcome']
 
 
 class IndicativeContentUpdateView(BaseUpdateView):
