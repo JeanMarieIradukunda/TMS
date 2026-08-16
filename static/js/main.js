@@ -119,15 +119,24 @@
   // ------------------------------------------------------------------
   function initTableSearch() {
     var input = document.getElementById('tableSearch');
-    var table = document.querySelector('.table-panel table');
-    if (!input || !table) return;
+    var panel = document.querySelector('.table-panel');
+    if (!input || !panel) return;
+
+    var emptyState = document.getElementById('tableSearchEmpty');
+    var groups = Array.prototype.slice.call(panel.querySelectorAll('.trainer-group'));
+
+    if (groups.length) {
+      initGroupedTableSearch(input, groups, emptyState);
+      return;
+    }
+
+    var table = panel.querySelector('table');
+    if (!table) return;
 
     var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr[data-searchable]'));
     if (!rows.length) {
       rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
     }
-
-    var emptyState = document.getElementById('tableSearchEmpty');
 
     input.addEventListener('input', debounce(function () {
       var term = input.value.trim().toLowerCase();
@@ -142,6 +151,43 @@
 
       if (emptyState) {
         emptyState.classList.toggle('d-none', visibleCount !== 0);
+      }
+    }, 150));
+  }
+
+  // ------------------------------------------------------------------
+  // 4b. Quick-search for trainer-grouped ("accordion") CRUD list tables
+  //    (Modules / Learning Outcomes / Indicative Contents). Each trainer's
+  //    <details class="trainer-group"> is collapsed by default; searching
+  //    auto-expands only the groups that contain a match and restores each
+  //    group's original open/closed state once the search is cleared.
+  // ------------------------------------------------------------------
+  function initGroupedTableSearch(input, groups, emptyState) {
+    var groupWasOpen = groups.map(function (group) { return group.hasAttribute('open'); });
+
+    input.addEventListener('input', debounce(function () {
+      var term = input.value.trim().toLowerCase();
+      var totalVisible = 0;
+
+      groups.forEach(function (group, idx) {
+        var rows = Array.prototype.slice.call(group.querySelectorAll('tbody tr[data-searchable]'));
+        var visibleInGroup = 0;
+
+        rows.forEach(function (row) {
+          var text = row.textContent.toLowerCase();
+          var matches = term === '' || text.indexOf(term) !== -1;
+          row.classList.toggle('table-row-hidden', !matches);
+          if (matches) visibleInGroup += 1;
+        });
+
+        group.classList.toggle('d-none', rows.length > 0 && visibleInGroup === 0);
+        group.open = term === '' ? groupWasOpen[idx] : visibleInGroup > 0;
+
+        totalVisible += visibleInGroup;
+      });
+
+      if (emptyState) {
+        emptyState.classList.toggle('d-none', totalVisible !== 0);
       }
     }, 150));
   }
