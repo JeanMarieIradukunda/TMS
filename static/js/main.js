@@ -161,29 +161,52 @@
   //    <details class="trainer-group"> is collapsed by default; searching
   //    auto-expands only the groups that contain a match and restores each
   //    group's original open/closed state once the search is cleared.
+  //
+  //    Learning Outcomes and Indicative Contents nest a second level of
+  //    <details class="module-group"> accordions inside each trainer group,
+  //    with the actual records rendered as [data-searchable] cards instead
+  //    of table rows. The search logic below is written generically so it
+  //    filters whatever leaf items exist (table rows or cards) and then
+  //    resolves visibility bottom-up: module groups first, then trainers.
   // ------------------------------------------------------------------
-  function initGroupedTableSearch(input, groups, emptyState) {
-    var groupWasOpen = groups.map(function (group) { return group.hasAttribute('open'); });
+  function initGroupedTableSearch(input, trainerGroups, emptyState) {
+    var panel = trainerGroups[0].closest('.table-panel') || document;
+    var moduleGroups = Array.prototype.slice.call(panel.querySelectorAll('.module-group'));
+
+    var trainerWasOpen = trainerGroups.map(function (g) { return g.hasAttribute('open'); });
+    var moduleWasOpen = moduleGroups.map(function (g) { return g.hasAttribute('open'); });
 
     input.addEventListener('input', debounce(function () {
       var term = input.value.trim().toLowerCase();
+
+      // 1. Filter every leaf item (table row or record card) directly.
+      var items = Array.prototype.slice.call(panel.querySelectorAll('[data-searchable]'));
+      items.forEach(function (item) {
+        var text = item.textContent.toLowerCase();
+        var matches = term === '' || text.indexOf(term) !== -1;
+        item.classList.toggle('table-row-hidden', !matches);
+      });
+
+      // 2. Resolve module-level groups (nested inside a trainer group).
+      moduleGroups.forEach(function (group, idx) {
+        var total = group.querySelectorAll('[data-searchable]').length;
+        var visible = group.querySelectorAll('[data-searchable]:not(.table-row-hidden)').length;
+        group.classList.toggle('d-none', total > 0 && visible === 0);
+        if (total) {
+          group.open = term === '' ? moduleWasOpen[idx] : visible > 0;
+        }
+      });
+
+      // 3. Resolve trainer-level groups.
       var totalVisible = 0;
-
-      groups.forEach(function (group, idx) {
-        var rows = Array.prototype.slice.call(group.querySelectorAll('tbody tr[data-searchable]'));
-        var visibleInGroup = 0;
-
-        rows.forEach(function (row) {
-          var text = row.textContent.toLowerCase();
-          var matches = term === '' || text.indexOf(term) !== -1;
-          row.classList.toggle('table-row-hidden', !matches);
-          if (matches) visibleInGroup += 1;
-        });
-
-        group.classList.toggle('d-none', rows.length > 0 && visibleInGroup === 0);
-        group.open = term === '' ? groupWasOpen[idx] : visibleInGroup > 0;
-
-        totalVisible += visibleInGroup;
+      trainerGroups.forEach(function (group, idx) {
+        var total = group.querySelectorAll('[data-searchable]').length;
+        var visible = group.querySelectorAll('[data-searchable]:not(.table-row-hidden)').length;
+        group.classList.toggle('d-none', total > 0 && visible === 0);
+        if (total) {
+          group.open = term === '' ? trainerWasOpen[idx] : visible > 0;
+        }
+        totalVisible += visible;
       });
 
       if (emptyState) {
