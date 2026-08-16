@@ -110,6 +110,48 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
 
 .sidebar .nav-link.active i { color: var(--gold); }
 
+/* ---------- Sidebar grouped/collapsible nav sections ---------- */
+.nav-group { margin-bottom: 0.15rem; }
+
+.nav-group-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-group-summary::-webkit-details-marker { display: none; }
+.nav-group-summary::marker { content: ''; }
+
+.nav-group-summary:hover { background: rgba(255, 255, 255, 0.06); color: var(--text-main); }
+
+.nav-group-summary-label { display: flex; align-items: center; gap: 0.7rem; }
+.nav-group-summary-label i { width: 18px; text-align: center; color: var(--teal); }
+
+.nav-group-chevron { font-size: 0.7rem; transition: transform 0.18s ease; color: var(--text-soft); }
+.nav-group[open] > .nav-group-summary .nav-group-chevron { transform: rotate(90deg); }
+
+.nav-group-links {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.4rem;
+  margin-top: 0.1rem;
+  margin-bottom: 0.35rem;
+  border-left: 1px solid var(--border-soft);
+}
+
+.nav-group-links .nav-link { margin-left: 0.4rem; }
+
 .sidebar .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid var(--border-soft);
@@ -1937,7 +1979,20 @@ body.sidebar-open .sidebar-overlay { display: block; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.65rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
 }
+
+.dash-nav-group-title::-webkit-details-marker { display: none; }
+.dash-nav-group-title::marker { content: ''; }
+
+.dash-nav-group-chevron { font-size: 0.7rem; color: #a8b0c4; transition: transform 0.18s ease; }
+.dash-nav-group[open] > .dash-nav-group-title .dash-nav-group-chevron { transform: rotate(90deg); }
 
 .dash-nav-grid {
   display: grid;
@@ -1994,3 +2049,90 @@ body.sidebar-open .sidebar-overlay { display: block; }
   .dash-hero { padding: 1.4rem 1.25rem; }
   .dash-hero h1 { font-size: 1.25rem; }
 }
+
+/* ---------- Trainer-grouped CRUD lists ----------
+   Used on Modules / Learning Outcomes / Indicative Contents: each trainer's
+   records stay collapsed behind a summary row until expanded, so the page
+   opens as a clean, scannable roster instead of one long flat table. */
+.trainer-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.trainer-group {
+  border: 1px solid #e9ecf4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fbfcff;
+}
+
+.trainer-group[open] {
+  border-color: #dfe4f2;
+  box-shadow: 0 4px 18px rgba(16, 26, 48, 0.05);
+}
+
+.trainer-group-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  background: #fff;
+  transition: background 0.15s ease;
+}
+
+.trainer-group-summary::-webkit-details-marker { display: none; }
+.trainer-group-summary::marker { content: ''; }
+
+.trainer-group-summary:hover { background: #f7f8fc; }
+
+.trainer-group-toggle {
+  color: #8a93aa;
+  font-size: 0.75rem;
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+  transition: transform 0.18s ease;
+}
+
+.trainer-group[open] > .trainer-group-summary .trainer-group-toggle { transform: rotate(90deg); }
+
+.trainer-group-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.85rem;
+  background: linear-gradient(135deg, var(--gold), #c69a2b);
+}
+
+.trainer-group-icon-muted { background: #b7bdcd; }
+
+.trainer-group-name {
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.trainer-group-count {
+  font-size: 0.76rem;
+  color: #8a93aa;
+  font-weight: 600;
+  background: #eef0f7;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.trainer-group-body {
+  padding: 0 1.1rem 1rem;
+  border-top: 1px solid #eef0f7;
+}
+
+.trainer-group-body .table-responsive { margin-top: 0.5rem; }
