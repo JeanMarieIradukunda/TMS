@@ -83,6 +83,16 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
+  // Today's date as "YYYY-MM-DD", suitable for pre-filling an
+  // <input type="date">. Built from local date parts (not toISOString)
+  // so the value matches the user's own calendar day, not UTC's.
+  function todayISO() {
+    var d = new Date();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + mm + '-' + dd;
+  }
+
   function formatDateLong(isoString) {
     if (!isoString) return '\u2014';
     var d = new Date(isoString + 'T00:00:00');
@@ -100,6 +110,7 @@
     shortOutcomeText: shortOutcomeText,
     populateSelect: populateSelect,
     todayLong: todayLong,
+    todayISO: todayISO,
     formatDateLong: formatDateLong,
     print: printDocument,
   };
