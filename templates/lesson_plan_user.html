@@ -700,6 +700,7 @@
         renderObjectivesLoading();
         renderTechniquesLoading();
         renderIntroduction(blocks.intro, topic);
+        renderIntroductionLoading();
         renderStepsLoading();
         renderConclusion(blocks.conclusion, outcome);
         renderEvaluationSections();
@@ -743,7 +744,7 @@
           topic: topic,
           range: rangeInput.value.trim(),
           total_minutes: total,
-        }, blocks.development);
+        }, blocks.development, topic);
       }
 
       function setText(id, value) {
@@ -838,8 +839,43 @@
         if (el) el.innerHTML = buildActivityListHtml(items, variant);
       }
 
+      // Introduction content (trainer/learner activity + resources) is now
+      // AI-drafted (see renderIntroductionFromAi below) so it references
+      // the actual topic/range instead of generic filler — only the
+      // duration (a pure time calculation) is set synchronously here.
       function renderIntroduction(minutes, topic) {
-        var topicHtml = TMSGen.escapeHtml(topic);
+        document.getElementById('spIntroDuration').textContent = minutes + ' mins';
+      }
+
+      function renderIntroductionLoading() {
+        document.getElementById('spIntroTrainer').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+        document.getElementById('spIntroLearner').innerHTML = '';
+        document.getElementById('spIntroResources').textContent = '';
+      }
+
+      function renderIntroductionFromAi(introduction, topic) {
+        var trainerItems = (introduction && introduction.trainer_activity && introduction.trainer_activity.length)
+          ? introduction.trainer_activity.map(TMSGen.escapeHtml)
+          : null;
+        var learnerItems = (introduction && introduction.learner_activity && introduction.learner_activity.length)
+          ? introduction.learner_activity.map(TMSGen.escapeHtml)
+          : null;
+
+        if (!trainerItems || !learnerItems) {
+          renderIntroductionFailed(topic);
+          return;
+        }
+
+        renderActivityList('spIntroTrainer', trainerItems, 'trainer');
+        renderActivityList('spIntroLearner', learnerItems, 'learner');
+        document.getElementById('spIntroResources').textContent =
+          (introduction && introduction.resources) ? introduction.resources : 'Attendance list, whiteboard, projector';
+        document.getElementById('spIntroTrainer').insertAdjacentHTML('beforeend', ' <span class="gen-ai-badge">AI</span>');
+      }
+
+      function renderIntroductionFailed(topic) {
+        var topicHtml = TMSGen.escapeHtml(topic || '');
         renderActivityList('spIntroTrainer', [
           'Welcomes trainees and checks attendance',
           'Reviews prior learning relevant to &ldquo;' + topicHtml + '&rdquo;',
@@ -852,7 +888,6 @@
           'Listen and ask clarifying questions',
         ], 'learner');
         document.getElementById('spIntroResources').textContent = 'Attendance list, whiteboard, projector';
-        document.getElementById('spIntroDuration').textContent = minutes + ' mins';
       }
 
       // Minimum steps kept client-side too, so the manual fallback (AI
@@ -914,7 +949,7 @@
       // whichever loading state each field is currently showing. Falls
       // back to editable blank fields (never leaves the page stuck
       // loading) if the request fails or the AI response comes back empty.
-      function fetchAiSessionContent(payload, developmentMinutes) {
+      function fetchAiSessionContent(payload, developmentMinutes, topic) {
         fetch(AI_ENDPOINT, {
           method: 'POST',
           headers: {
@@ -933,6 +968,7 @@
           .then(function (data) {
             renderObjectivesFromAi(data && data.objectives);
             renderTechniques(data && data.facilitation_techniques);
+            renderIntroductionFromAi(data && data.introduction, topic);
 
             var steps = (data && Array.isArray(data.steps) && data.steps.length) ? data.steps : null;
             if (steps) {
@@ -959,6 +995,7 @@
             console.error(err);
             renderObjectivesFailed();
             renderTechniquesFailed();
+            renderIntroductionFailed(topic);
             renderStepsFailed(developmentMinutes);
             renderReflectionFailed();
             renderAssessmentFailed();
