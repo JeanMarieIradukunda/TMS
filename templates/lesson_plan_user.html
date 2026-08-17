@@ -247,6 +247,9 @@
               <td contenteditable="true" id="spConclusionResources"></td>
               <td contenteditable="true" id="spConclusionDuration" class="gen-sp-duration"></td>
             </tr>
+            <tr><td colspan="4"><strong>Questions:</strong>
+              <div contenteditable="true" id="spQuestions" class="gen-sp-editable-block"></div>
+            </td></tr>
 
             <tr><td colspan="4"><strong>Evaluation of the session:</strong>
               <div contenteditable="true" id="spEvaluation" class="gen-sp-editable-block"></div>
@@ -701,6 +704,10 @@
         renderConclusion(blocks.conclusion, outcome);
         renderEvaluationSections();
         renderReflectionLoading();
+        renderAssessmentLoading();
+        renderEvaluationLoading();
+        renderAppendicesLoading();
+        renderQuestionsLoading();
 
         // Title is built from the selected Indicative content — not the
         // Learning outcome / topic — per the fixed "SESSION PLAN - ..."
@@ -743,15 +750,19 @@
         if (el) el.textContent = value;
       }
 
+      // Only the school logo and the RTB logo belong on the session plan —
+      // any NESA logo present in the shared logo list is left out here.
       function renderLogos(logos) {
         var wrap = document.getElementById('docLogos');
         wrap.innerHTML = '';
-        (logos || []).forEach(function (logo) {
-          var img = document.createElement('img');
-          img.src = logo.image;
-          img.alt = logo.name;
-          wrap.appendChild(img);
-        });
+        (logos || [])
+          .filter(function (logo) { return !/nesa/i.test(logo.name || ''); })
+          .forEach(function (logo) {
+            var img = document.createElement('img');
+            img.src = logo.image;
+            img.alt = logo.name;
+            wrap.appendChild(img);
+          });
       }
 
       // Objectives are drafted server-side by Groq (see core/views.py:
@@ -930,6 +941,17 @@
             }
 
             renderReflection(data && data.reflection);
+            renderAssessment(data && data.assessment);
+            renderEvaluation(data && data.evaluation);
+            renderAppendices(data && data.appendices);
+            renderQuestions(data && data.questions);
+
+            // Range/sub-topics: only overwrite what the AI drafted if the
+            // trainer hasn't typed their own Range text.
+            if (!rangeTouchedByUser && data && data.range) {
+              rangeInput.value = data.range;
+              setText('spRange', data.range);
+            }
           })
           .catch(function (err) {
             console.error(err);
@@ -937,6 +959,10 @@
             renderTechniquesFailed();
             renderStepsFailed(developmentMinutes);
             renderReflectionFailed();
+            renderAssessmentFailed();
+            renderEvaluationFailed();
+            renderAppendicesFailed();
+            renderQuestionsFailed();
             TMS.toast('Could not reach the AI service — fill in the development steps manually.', 'danger');
           });
       }
@@ -979,18 +1005,16 @@
         document.getElementById('spSummary').innerHTML =
           'Recaps the key points covered against &ldquo;' +
           TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '&rdquo; and checks overall understanding.';
-        document.getElementById('spAssessment').innerHTML =
-          'Formative: oral questioning and observation checklist during the session. ' +
-          'Assignment: a short follow-up practical or written task confirming the objectives were met.';
         document.getElementById('spConclusionResources').textContent = 'Pens, papers, projector and whiteboard';
         document.getElementById('spConclusionDuration').textContent = minutes + ' mins';
       }
 
+      // Assessment/Assignment, Evaluation of the session, Appendices and
+      // Questions are all drafted server-side by Groq (see core/views.py:
+      // generate_lesson_plan_ai_content) so the trainer never has to pick
+      // between Assessment/Assignment or write these sections by hand -
+      // Cross-cutting issues and References stay as fixed standard lists.
       function renderEvaluationSections() {
-        document.getElementById('spEvaluation').innerHTML =
-          '<p>Note here, after delivery, whether the objectives were achieved, how trainees responded, ' +
-          'and any adjustments needed to timing, activities or resources.</p>';
-
         document.getElementById('spCrossCutting').innerHTML =
           '<ul class="gen-bullets">' +
           DEFAULT_CROSS_CUTTING.map(function (c) { return '<li>' + TMSGen.escapeHtml(c) + '</li>'; }).join('') +
@@ -999,9 +1023,93 @@
         document.getElementById('spReferences').innerHTML =
           '<ul class="gen-bullets"><li>Module curriculum / competence-based training programme</li>' +
           '<li>Trainer manual and relevant technical references</li></ul>';
+      }
 
+      function renderAssessmentLoading() {
+        document.getElementById('spAssessment').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderAssessment(assessment) {
+        var el = document.getElementById('spAssessment');
+        var type = assessment && assessment.type ? assessment.type.toString().trim() : '';
+        var content = assessment && assessment.content ? assessment.content.toString().trim() : '';
+        if (!type || !content) {
+          renderAssessmentFailed();
+          return;
+        }
+        el.innerHTML = '<strong>' + TMSGen.escapeHtml(type) + ':</strong> ' +
+          TMSGen.escapeHtml(content) + ' <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderAssessmentFailed() {
+        document.getElementById('spAssessment').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
+      }
+
+      function renderEvaluationLoading() {
+        document.getElementById('spEvaluation').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderEvaluation(text) {
+        var el = document.getElementById('spEvaluation');
+        var clean = (text || '').toString().trim();
+        if (!clean) {
+          renderEvaluationFailed();
+          return;
+        }
+        el.innerHTML = '<p>' + TMSGen.escapeHtml(clean) + '</p><span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderEvaluationFailed() {
+        document.getElementById('spEvaluation').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
+      }
+
+      function renderAppendicesLoading() {
         document.getElementById('spAppendices').innerHTML =
-          '<p class="text-muted">Attach handouts, checklists, worksheets or diagrams used in this session, where applicable.</p>';
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderAppendices(text) {
+        var el = document.getElementById('spAppendices');
+        var lines = (text || '').toString().split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!lines.length) {
+          el.innerHTML = '<p class="text-muted">None for this session.</p>';
+          return;
+        }
+        var items = lines.map(function (l) { return '<li>' + TMSGen.escapeHtml(l) + '</li>'; }).join('');
+        el.innerHTML = '<ul class="gen-bullets">' + items + '</ul> <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderAppendicesFailed() {
+        document.getElementById('spAppendices').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
+      }
+
+      function renderQuestionsLoading() {
+        document.getElementById('spQuestions').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderQuestions(questions) {
+        var el = document.getElementById('spQuestions');
+        var clean = (questions || [])
+          .map(function (q) { return (q || '').toString().trim(); })
+          .filter(Boolean)
+          .slice(0, 3);
+        if (!clean.length) {
+          renderQuestionsFailed();
+          return;
+        }
+        var items = clean.map(function (q) { return '<li>' + TMSGen.escapeHtml(q) + '</li>'; }).join('');
+        el.innerHTML = '<ol class="gen-bullets">' + items + '</ol> <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderQuestionsFailed() {
+        document.getElementById('spQuestions').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
       }
 
       // Reflection is drafted server-side by Groq — the two standard
