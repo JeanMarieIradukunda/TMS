@@ -173,6 +173,48 @@ def _coerce_to_list(value, min_items=None, max_items=None, fallback=None):
     return items
 
 
+def _keywords(text):
+    """Lower-cased, stopword-free significant words from a short phrase -
+    used for a lightweight, best-effort overlap check between fields
+    (never a full semantic check, just enough to catch a field that
+    drifted completely away from another)."""
+    words = re.findall(r"[a-zA-Z]+", (text or "").lower())
+    stopwords = {
+        "a", "an", "the", "of", "for", "and", "or", "to", "in", "on",
+        "with", "this", "that", "is", "are", "by", "as", "at", "from",
+        "into", "their", "its", "be", "will", "can",
+    }
+    return {w for w in words if len(w) > 2 and w not in stopwords}
+
+
+def _ensure_objectives_cover_steps(objectives, step_titles, max_items=5):
+    """
+    Best-effort guard so Objectives never silently drift away from what
+    the Development/Body steps (i.e. the Range) actually cover: if a step
+    title shares no keyword with ANY objective, append one plain,
+    grounded fallback objective for that sub-topic. Never removes or
+    rewrites what the model returned - only pads gaps, up to max_items.
+    """
+    result = list(objectives)
+    covered_words = set()
+    for o in result:
+        covered_words |= _keywords(o)
+
+    for title in step_titles:
+        if len(result) >= max_items:
+            break
+        title_words = _keywords(title)
+        if not title_words or (title_words & covered_words):
+            continue
+        clean_title = title.strip().rstrip(".")
+        if not clean_title:
+            continue
+        result.append(f"Perform {clean_title}.")
+        covered_words |= title_words
+
+    return result
+
+
 def _ensure_min_steps(steps, outcome_text, min_count=3):
     """
     Guarantees the Lesson Plan generator always has at least `min_count`
@@ -1166,11 +1208,16 @@ def generate_lesson_plan_ai_content(request):
       - objectives: a JSON array of 2-5 clear, measurable, learner-focused
         session objectives, synthesised from the learning outcome, the
         Range and the indicative content - NOT a copy of the indicative
-        content bullets.
+        content bullets. Server-side, padded (best-effort keyword check)
+        so every step/Range sub-topic is covered by at least one
+        objective.
       - facilitation_techniques: a SINGLE comma-separated line naming at
         most 3 facilitation methodologies/techniques (same shape/rules as
         the Scheme of Work's "learning_activities" field) - not a
         restatement of the outcome or its indicative content.
+      - introduction: the session's opening, as trainer/learner activity
+        bullet lists plus resources, specific to this topic - not generic
+        "welcomes trainees" filler.
       - steps: the Development/Body of the session, as a JSON array of
         AT LEAST 3 steps (padded server-side if the model returns fewer),
         each with a short sub-topic "title" plus separate "trainer_activity"
@@ -1194,7 +1241,8 @@ def generate_lesson_plan_ai_content(request):
         and the trainer's own evaluation of it - for the trainer to revise
         once the session has actually been taught.
       - assessment: a JSON object choosing ONE of "Assessment" or
-        "Assignment" (never both) with matching drafted content.
+        "Assignment" (never both) with matching drafted content that
+        directly tests the actual objectives above.
       - appendices: a short list of the specific handouts, checklists or
         materials attached to this session (plain text, one per line).
       - questions: a JSON array of EXACTLY 3 short assessment questions
@@ -1283,12 +1331,31 @@ Produce a JSON object with exactly three top-level fields:
     indicative content above, not a line-by-line restatement of any one
     of them.
   - Be short (one sentence each) and independently achievable/assessable.
+  Taken together, the objectives must cover every sub-topic you plan to
+  put in "steps" below (i.e. every Range item) - do not draft an
+  objective for a sub-topic you never teach in a step, and do not teach a
+  step whose sub-topic no objective covers. Plan the steps/Range and the
+  objectives together so the two line up.
 
 - "facilitation_techniques": AT MOST 3 facilitation methodologies/teaching
   techniques the trainer would use across this session (e.g.
   "Demonstration, Group discussion, Practical exercise"). A SINGLE plain
   string on one line, items separated by ", " - NOT a JSON array, NOT
   bullet points. Name ONLY the methodology/technique, not a description.
+
+- "introduction": a JSON object for the session's Introduction (before the
+  Development/Body), with exactly three fields, specific to THIS topic and
+  outcome - NOT generic filler like "welcomes trainees":
+  - "trainer_activity": a JSON array of 3-4 SHORT, concrete, plain-text
+    bullet phrases (imperative mood) for what the trainer does to open
+    the session and introduce THIS topic - e.g. review prior learning
+    that actually leads into this outcome, and name the real sub-topics
+    trainees are about to cover.
+  - "learner_activity": a JSON array of 2-3 SHORT, concrete, plain-text
+    bullet phrases for what trainees do during the introduction, in the
+    same style.
+  - "resources": the specific items needed for the introduction - a
+    SINGLE comma-separated plain string, not an array.
 
 - "steps": a JSON array covering the Development/Body of the session,
   broken into logical, progressive sub-topics grounded in the indicative
@@ -1363,7 +1430,12 @@ Produce a JSON object with exactly three top-level fields:
   - "type": either the exact string "Assessment" or the exact string
     "Assignment".
   - "content": 1-2 plain sentences describing that single chosen
-    assessment or assignment, specific to this outcome/content.
+    assessment or assignment, specific to this outcome/content. It must
+    directly test whether trainees can now do what the "objectives"
+    above say they can do - name or clearly reflect the actual action(s)
+    from the objectives (e.g. if an objective is "Configure a basic
+    network switch", the assessment must check that trainees can
+    configure a switch, not something unrelated).
 
 - "appendices": a short list (1-3 items) of the specific handouts,
   checklists, worksheets or diagrams that would be attached to THIS
@@ -1387,6 +1459,10 @@ Rules:
   Range is exactly the ordered list of step titles, and the Conclusion
   summary must name those same sub-topics - never introduce a sub-topic
   in one field that doesn't also appear in the others.
+- Keep Objectives, steps/Range, and the Assessment/Assignment consistent
+  with each other too: every step's sub-topic must be covered by at least
+  one objective, and the Assessment/Assignment content must test the
+  actual objectives - do not draft any of these three in isolation.
 - Use concise, real workshop/training language, not vague filler, and keep
   every field in simple, everyday English - short words and short
   sentences over technical or academic phrasing.
@@ -1394,6 +1470,11 @@ Rules:
 {{
   "objectives": ["<objective 1>", "<objective 2>"],
   "facilitation_techniques": "<comma-separated string, max 3 items>",
+  "introduction": {{
+    "trainer_activity": ["<bullet 1>", "<bullet 2>"],
+    "learner_activity": ["<bullet 1>", "<bullet 2>"],
+    "resources": "<comma-separated string>"
+  }},
   "steps": [
     {{
       "title": "<short sub-topic label>",
@@ -1411,7 +1492,7 @@ Rules:
   "evaluation": "<2-3 sentence post-session evaluation, written as if just delivered>",
   "assessment": {{
     "type": "Assessment or Assignment - pick one",
-    "content": "<1-2 sentence description>"
+    "content": "<1-2 sentence description testing the actual objectives>"
   }},
   "appendices": "<one item per line, or empty string>",
   "questions": ["<question 1>", "<question 2>", "<question 3>"]
@@ -1520,6 +1601,37 @@ Rules:
         data.get("facilitation_techniques"), max_items=3
     )
 
+    # Introduction - AI-drafted so it references the actual topic instead
+    # of generic "welcomes trainees" filler; falls back to a plain,
+    # topic-grounded version if the model omits it.
+    raw_introduction = data.get("introduction")
+    raw_introduction = raw_introduction if isinstance(raw_introduction, dict) else {}
+    introduction = {
+        "trainer_activity": _coerce_to_list(
+            raw_introduction.get("trainer_activity"),
+            min_items=3,
+            max_items=4,
+            fallback=[
+                "Welcomes trainees and checks attendance",
+                f"Reviews prior learning relevant to \"{short_outcome[:80]}\"",
+                "Introduces the topic and session objectives",
+                "Motivates learners for the session",
+            ],
+        ),
+        "learner_activity": _coerce_to_list(
+            raw_introduction.get("learner_activity"),
+            min_items=2,
+            max_items=3,
+            fallback=[
+                "Settle in and respond to attendance",
+                "Recall and share prior knowledge",
+                "Listen and ask clarifying questions",
+            ],
+        ),
+        "resources": _coerce_to_csv_line(raw_introduction.get("resources")) or
+        "Attendance list, whiteboard, projector",
+    }
+
     raw_steps = data.get("steps")
     steps = []
     if isinstance(raw_steps, list):
@@ -1573,6 +1685,11 @@ Rules:
     if not range_text:
         range_text = ", ".join(indicative_content[:5])
 
+    # Best-effort check: pad Objectives with any step/Range sub-topic that
+    # no objective touches, so Objectives never silently drift away from
+    # what the Development/Body steps actually cover.
+    objectives = _ensure_objectives_cover_steps(objectives, step_titles, max_items=5)
+
     # Conclusion summary - recaps the SAME sub-topics as Range/steps above,
     # so the Conclusion clearly ties back to what was actually taught.
     conclusion_summary = str(data.get("conclusion_summary", "")).strip()[:400]
@@ -1611,18 +1728,34 @@ Rules:
     if assessment_type not in ("assessment", "assignment"):
         assessment_type = "assessment"
     assessment_type = assessment_type.capitalize()
+    primary_objective = objectives[0].strip().rstrip(".") if objectives else short_outcome[:100]
     assessment_content = str(raw_assessment.get("content", "")).strip()[:400]
     if not assessment_content:
         if assessment_type == "Assignment":
             assessment_content = (
-                f"Give trainees a short follow-up task on \"{short_outcome[:100]}\" "
-                "to complete and hand in after the session."
+                f"Give trainees a short follow-up task to {primary_objective[:1].lower()}"
+                f"{primary_objective[1:]}, to complete and hand in after the session."
             )
         else:
             assessment_content = (
-                f"Ask trainees a few quick questions and watch their work on "
-                f"\"{short_outcome[:100]}\" during the session."
+                f"Ask trainees a few quick questions and watch their work to check they can "
+                f"{primary_objective[:1].lower()}{primary_objective[1:]}."
             )
+
+    # Best-effort check: if the assessment content shares no keyword with
+    # ANY objective, it likely drifted away from what the objectives
+    # actually promise - append a short clause tying it back to the
+    # primary objective rather than leaving it unrelated.
+    if objectives:
+        objective_words = set()
+        for o in objectives:
+            objective_words |= _keywords(o)
+        if not (_keywords(assessment_content) & objective_words):
+            assessment_content = (
+                assessment_content.rstrip(".") +
+                f", to check trainees can {primary_objective[:1].lower()}{primary_objective[1:]}."
+            )[:400]
+
     assessment = {"type": assessment_type, "content": assessment_content}
 
     # Appendices - short plain list, empty string is a valid "nothing
@@ -1648,6 +1781,7 @@ Rules:
     return JsonResponse({
         "objectives": objectives,
         "facilitation_techniques": facilitation_techniques,
+        "introduction": introduction,
         "steps": steps,
         "reflection": reflection,
         "range": range_text,
