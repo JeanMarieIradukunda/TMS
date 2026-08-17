@@ -626,6 +626,23 @@
         }
       }
 
+      // A "new module" session is Learning Outcome 1 + Indicative Content
+      // 1.1 — i.e. the module's very first outcome, generating the
+      // session that covers its very first indicative content point.
+      // LearningOutcome/IndicativeContent are always fetched in id order
+      // (see core/views.py), so the first entry for a module/outcome in
+      // data.outcomes/data.contents is always "#1" of that module/outcome.
+      function isNewModuleSession(moduleId, outcomeId, selectedContents) {
+        var moduleOutcomes = data.outcomes.filter(function (o) { return o.module_id === moduleId; });
+        if (!moduleOutcomes.length || moduleOutcomes[0].id !== outcomeId) return false;
+
+        var outcomeContents = data.contents.filter(function (c) { return c.outcome_id === outcomeId; });
+        if (!outcomeContents.length) return true;
+
+        var firstContentId = outcomeContents[0].id;
+        return selectedContents.some(function (c) { return c.id === firstContentId; });
+      }
+
       function onReset() {
         classTouchedByUser = false;
         rangeTouchedByUser = false;
@@ -672,6 +689,7 @@
           return;
         }
         var topic = topicInput.value.trim() || (mod.mod_code + ' — ' + TMSGen.shortOutcomeText(outcome.outcome_text));
+        var isNewModule = isNewModuleSession(moduleId, outcomeId, contents);
 
         var total = getTotalMinutes();
         var blocks = splitSessionTime(total);
@@ -744,7 +762,8 @@
           topic: topic,
           range: rangeInput.value.trim(),
           total_minutes: total,
-        }, blocks.development, topic);
+          is_new_module: isNewModule,
+        }, blocks.development, topic, isNewModule);
       }
 
       function setText(id, value) {
@@ -854,7 +873,7 @@
         document.getElementById('spIntroResources').textContent = '';
       }
 
-      function renderIntroductionFromAi(introduction, topic) {
+      function renderIntroductionFromAi(introduction, topic, isNewModule) {
         var trainerItems = (introduction && introduction.trainer_activity && introduction.trainer_activity.length)
           ? introduction.trainer_activity.map(TMSGen.escapeHtml)
           : null;
@@ -863,31 +882,48 @@
           : null;
 
         if (!trainerItems || !learnerItems) {
-          renderIntroductionFailed(topic);
+          renderIntroductionFailed(topic, isNewModule);
           return;
         }
 
         renderActivityList('spIntroTrainer', trainerItems, 'trainer');
         renderActivityList('spIntroLearner', learnerItems, 'learner');
         document.getElementById('spIntroResources').textContent =
-          (introduction && introduction.resources) ? introduction.resources : 'Attendance list, whiteboard, projector';
+          (introduction && introduction.resources) ? introduction.resources : 'Attendance register, whiteboard, projector';
         document.getElementById('spIntroTrainer').insertAdjacentHTML('beforeend', ' <span class="gen-ai-badge">AI</span>');
       }
 
-      function renderIntroductionFailed(topic) {
+      // Fixed opening sequence, used whenever the AI is unavailable/fails:
+      // 1) trainer and learners greet each other, 2) trainer takes/confirms
+      // attendance (roll call), 3) unless this is a new module (Learning
+      // Outcome 1 + Indicative Content 1.1), learners briefly recall the
+      // previous class — mirrors the same structure enforced server-side
+      // in core/views.py: generate_lesson_plan_ai_content.
+      function renderIntroductionFailed(topic, isNewModule) {
         var topicHtml = TMSGen.escapeHtml(topic || '');
-        renderActivityList('spIntroTrainer', [
-          'Welcomes trainees and checks attendance',
+        var trainerItems = [
+          'Greets the learners as they arrive',
+          'Takes attendance and confirms the roll call',
+        ];
+        var learnerItems = [
+          'Greet the trainer and each other',
+          'Respond to the roll call',
+        ];
+        if (!isNewModule) {
+          trainerItems.push('Invites learners to briefly recall what was covered in the previous class');
+          learnerItems.push('Briefly recall and share what was covered in the previous class');
+        }
+        trainerItems.push(
           'Reviews prior learning relevant to &ldquo;' + topicHtml + '&rdquo;',
           'Introduces the topic and session objectives',
-          'Motivates learners for the session',
-        ], 'trainer');
-        renderActivityList('spIntroLearner', [
-          'Settle in and respond to attendance',
-          'Recall and share prior knowledge',
-          'Listen and ask clarifying questions',
-        ], 'learner');
-        document.getElementById('spIntroResources').textContent = 'Attendance list, whiteboard, projector';
+          'Motivates learners for the session'
+        );
+        learnerItems.push(
+          'Listen and ask clarifying questions'
+        );
+        renderActivityList('spIntroTrainer', trainerItems, 'trainer');
+        renderActivityList('spIntroLearner', learnerItems, 'learner');
+        document.getElementById('spIntroResources').textContent = 'Attendance register, whiteboard, projector';
       }
 
       // Minimum steps kept client-side too, so the manual fallback (AI
@@ -949,7 +985,7 @@
       // whichever loading state each field is currently showing. Falls
       // back to editable blank fields (never leaves the page stuck
       // loading) if the request fails or the AI response comes back empty.
-      function fetchAiSessionContent(payload, developmentMinutes, topic) {
+      function fetchAiSessionContent(payload, developmentMinutes, topic, isNewModule) {
         fetch(AI_ENDPOINT, {
           method: 'POST',
           headers: {
@@ -968,7 +1004,7 @@
           .then(function (data) {
             renderObjectivesFromAi(data && data.objectives);
             renderTechniques(data && data.facilitation_techniques);
-            renderIntroductionFromAi(data && data.introduction, topic);
+            renderIntroductionFromAi(data && data.introduction, topic, isNewModule);
 
             var steps = (data && Array.isArray(data.steps) && data.steps.length) ? data.steps : null;
             if (steps) {
@@ -995,7 +1031,7 @@
             console.error(err);
             renderObjectivesFailed();
             renderTechniquesFailed();
-            renderIntroductionFailed(topic);
+            renderIntroductionFailed(topic, isNewModule);
             renderStepsFailed(developmentMinutes);
             renderReflectionFailed();
             renderAssessmentFailed();
