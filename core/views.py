@@ -1216,8 +1216,12 @@ def generate_lesson_plan_ai_content(request):
         the Scheme of Work's "learning_activities" field) - not a
         restatement of the outcome or its indicative content.
       - introduction: the session's opening, as trainer/learner activity
-        bullet lists plus resources, specific to this topic - not generic
-        "welcomes trainees" filler.
+        bullet lists plus resources. The app always fixes the opening
+        sequence itself - greet each other, then trainer takes/confirms
+        attendance, then (unless this is a new module: Learning Outcome 1
+        + Indicative Content 1.1) learners briefly recall the previous
+        class - the AI only drafts the topic-specific activities after
+        that, not generic "welcomes trainees" filler.
       - steps: the Development/Body of the session, as a JSON array of
         AT LEAST 3 steps (padded server-side if the model returns fewer),
         each with a short sub-topic "title" plus separate "trainer_activity"
@@ -1267,6 +1271,13 @@ def generate_lesson_plan_ai_content(request):
     indicative_content = [
         str(c)[:300] for c in (payload.get("indicative_content") or [])
     ][:20]
+
+    # A "new module" session is Learning Outcome 1 + Indicative Content 1.1
+    # (i.e. the very first outcome of the module, generating the session
+    # that covers its first indicative content point). The browser works
+    # this out from ordering/id and tells us, since that context lives in
+    # the frontend's already-loaded outcomes/contents data.
+    is_new_module = bool(payload.get("is_new_module"))
 
     context_bits = []
     if payload.get("sector"):
@@ -1346,14 +1357,20 @@ Produce a JSON object with exactly three top-level fields:
 - "introduction": a JSON object for the session's Introduction (before the
   Development/Body), with exactly three fields, specific to THIS topic and
   outcome - NOT generic filler like "welcomes trainees":
-  - "trainer_activity": a JSON array of 3-4 SHORT, concrete, plain-text
-    bullet phrases (imperative mood) for what the trainer does to open
-    the session and introduce THIS topic - e.g. review prior learning
-    that actually leads into this outcome, and name the real sub-topics
-    trainees are about to cover.
-  - "learner_activity": a JSON array of 2-3 SHORT, concrete, plain-text
-    bullet phrases for what trainees do during the introduction, in the
-    same style.
+  - IMPORTANT: the app ALWAYS opens every session with the trainer and
+    learners greeting each other, then the trainer taking/confirming
+    attendance (roll call) - these two activities are added automatically,
+    so do NOT draft greeting/welcoming or attendance/roll-call activities
+    yourself, they would just be duplicated and discarded.
+  - {"This session opens a brand-new module (Learning Outcome 1, Indicative Content 1.1), so do NOT draft any activity about recalling or discussing a previous class either - there isn't one yet." if is_new_module else "After attendance, the app also automatically adds an activity where learners briefly recall/discuss the previous class - so do NOT draft that yourself either, it would be duplicated."}
+  - "trainer_activity": a JSON array of 2-3 SHORT, concrete, plain-text
+    bullet phrases (imperative mood) for what the trainer does AFTER
+    greeting/attendance{"" if is_new_module else "/recall"} to open THIS topic - e.g. review prior
+    learning that actually leads into this outcome, and name the real
+    sub-topics trainees are about to cover.
+  - "learner_activity": a JSON array of 1-2 SHORT, concrete, plain-text
+    bullet phrases for what trainees do during that same part of the
+    introduction, in the same style.
   - "resources": the specific items needed for the introduction - a
     SINGLE comma-separated plain string, not an array.
 
@@ -1601,35 +1618,79 @@ Rules:
         data.get("facilitation_techniques"), max_items=3
     )
 
-    # Introduction - AI-drafted so it references the actual topic instead
-    # of generic "welcomes trainees" filler; falls back to a plain,
-    # topic-grounded version if the model omits it.
+    # Introduction - structurally fixed so every session opens the same,
+    # reliable way regardless of what the model returns:
+    #   1. trainer and learners greet each other
+    #   2. trainer takes/confirms attendance (roll call)
+    #   3. UNLESS this is a new module (Learning Outcome 1 + Indicative
+    #      Content 1.1), learners briefly recall/discuss the previous class
+    # Everything after that is AI-drafted so it references the actual
+    # topic instead of generic "welcomes trainees" filler. Greeting/
+    # attendance/recall duplicates the model may still draft on its own
+    # are stripped out below, since those slots are already covered.
+    INTRO_FIXED_TRAINER = [
+        "Greets the learners as they arrive",
+        "Takes attendance and confirms the roll call",
+    ]
+    INTRO_FIXED_LEARNER = [
+        "Greet the trainer and each other",
+        "Respond to the roll call",
+    ]
+    INTRO_RECALL_TRAINER = "Invites learners to briefly recall what was covered in the previous class"
+    INTRO_RECALL_LEARNER = "Briefly recall and share what was covered in the previous class"
+
+    fixed_trainer = list(INTRO_FIXED_TRAINER)
+    fixed_learner = list(INTRO_FIXED_LEARNER)
+    if not is_new_module:
+        fixed_trainer.append(INTRO_RECALL_TRAINER)
+        fixed_learner.append(INTRO_RECALL_LEARNER)
+
+    _STRUCTURAL_TRIGGERS = [
+        "greet", "welcome",
+        "attendance", "roll call", "roll-call",
+        "previous class", "previous lesson", "prior class", "prior lesson",
+        "last class", "last lesson", "recall",
+    ]
+
+    def _drop_structural(items):
+        """Remove any AI-drafted bullet that duplicates the fixed
+        greeting/attendance/recall activities enforced above."""
+        kept = []
+        for item in items:
+            lowered = item.lower()
+            if any(trigger in lowered for trigger in _STRUCTURAL_TRIGGERS):
+                continue
+            kept.append(item)
+        return kept
+
     raw_introduction = data.get("introduction")
     raw_introduction = raw_introduction if isinstance(raw_introduction, dict) else {}
+
+    topic_trainer = _coerce_to_list(
+        _drop_structural(_split_items(raw_introduction.get("trainer_activity"))),
+        min_items=1,
+        max_items=3,
+        fallback=[
+            f"Reviews prior learning relevant to \"{short_outcome[:80]}\"",
+            "Introduces the topic and session objectives",
+            "Motivates learners for the session",
+        ],
+    )
+    topic_learner = _coerce_to_list(
+        _drop_structural(_split_items(raw_introduction.get("learner_activity"))),
+        min_items=1,
+        max_items=2,
+        fallback=[
+            "Listen and ask clarifying questions",
+            "Share what they already know about the topic",
+        ],
+    )
+
     introduction = {
-        "trainer_activity": _coerce_to_list(
-            raw_introduction.get("trainer_activity"),
-            min_items=3,
-            max_items=4,
-            fallback=[
-                "Welcomes trainees and checks attendance",
-                f"Reviews prior learning relevant to \"{short_outcome[:80]}\"",
-                "Introduces the topic and session objectives",
-                "Motivates learners for the session",
-            ],
-        ),
-        "learner_activity": _coerce_to_list(
-            raw_introduction.get("learner_activity"),
-            min_items=2,
-            max_items=3,
-            fallback=[
-                "Settle in and respond to attendance",
-                "Recall and share prior knowledge",
-                "Listen and ask clarifying questions",
-            ],
-        ),
+        "trainer_activity": fixed_trainer + topic_trainer,
+        "learner_activity": fixed_learner + topic_learner,
         "resources": _coerce_to_csv_line(raw_introduction.get("resources")) or
-        "Attendance list, whiteboard, projector",
+        "Attendance register, whiteboard, projector",
     }
 
     raw_steps = data.get("steps")
