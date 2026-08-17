@@ -1182,8 +1182,12 @@ def generate_lesson_plan_ai_content(request):
         "change_next_time" - grounded in this specific outcome/content, for
         the trainer to revise once the session has actually been taught.
       - range: a SHORT, comma/semicolon-separated line of sub-topics
-        (very short phrases, not sentences) scoping this session, drafted
-        from the learning outcome and the indicative content.
+        (very short phrases, not sentences) scoping this session. Derived
+        server-side from the final "steps" titles (in order), so the
+        Range and the Development/Body steps always match exactly.
+      - conclusion_summary: a short recap for the Conclusion's Summary
+        line that names the same sub-topics as the Range/steps, tying
+        them back to the learning outcome.
       - evaluation: a short draft paragraph, written from the trainer's
         point of view AS IF the session has just been delivered, covering
         how the session went overall, how the class/trainees responded,
@@ -1288,7 +1292,11 @@ Produce a JSON object with exactly three top-level fields:
 
 - "steps": a JSON array covering the Development/Body of the session,
   broken into logical, progressive sub-topics grounded in the indicative
-  content above. Requirements:
+  content above. The step titles, IN ORDER, must double as the session's
+  Range/sub-topic list, so keep them tightly matched to the Range you
+  would draft for this same outcome and indicative content - no step
+  should introduce a sub-topic that isn't part of the Range, and no Range
+  sub-topic should be left without a matching step. Requirements:
   - MINIMUM {MIN_LESSON_PLAN_STEPS} steps, MAXIMUM {MAX_LESSON_PLAN_STEPS} steps, ALWAYS.
   - If fewer than {MIN_LESSON_PLAN_STEPS} indicative content items are given, split
     the content into progressive stages instead (e.g. explanation and
@@ -1298,7 +1306,8 @@ Produce a JSON object with exactly three top-level fields:
     closely related items together into a single step.
   - Each step is an object with FOUR fields:
     - "title": a short sub-topic label (a few words, NOT a full sentence,
-      NOT prefixed with "Step" or a number - the app numbers steps itself).
+      NOT prefixed with "Step" or a number - the app numbers steps itself,
+      and this exact label is reused verbatim as one Range/sub-topic entry).
     - "trainer_activity": a JSON array of 2-4 SHORT, concrete, plain-text
       bullet phrases describing what the trainer does for this step
       (imperative mood, e.g. "Demonstrates the wiring sequence"). Each
@@ -1323,10 +1332,19 @@ Produce a JSON object with exactly three top-level fields:
     that may be in short supply).
 
 - "range": a SINGLE comma/semicolon-separated line of very short sub-topic
-  phrases (a few words each, NOT full sentences) that scope this session,
-  drawn from the learning outcome and the indicative content above -
-  matching the shape/rules of "facilitation_techniques" (one plain string,
-  not an array, not bullet points).
+  phrases (a few words each, NOT full sentences) that scope this session.
+  This MUST be the exact same sub-topics as the "steps" titles above, in
+  the same order (the app will use your step titles as the authoritative
+  Range if this differs) - matching the shape/rules of
+  "facilitation_techniques" (one plain string, not an array, not bullet
+  points).
+
+- "conclusion_summary": a short draft paragraph (1-2 plain sentences) for
+  the Conclusion's Summary line, written from the trainer's point of view
+  AS IF the session has just been delivered. It must explicitly recap the
+  SAME sub-topics covered in the "steps"/Range above and tie them back to
+  the learning outcome - e.g. name the actual sub-topics taught, not a
+  generic "recaps the key points" line.
 
 - "evaluation": a short draft paragraph (2-3 plain sentences), written from
   the trainer's point of view AS IF the session has just been delivered -
@@ -1364,6 +1382,11 @@ Rules:
   Range, and the indicative content - do not invent unrelated topics, and
   do not simply copy or lightly reword any indicative content line as an
   objective.
+- Keep Range, steps, and the Conclusion summary tightly consistent with
+  each other and with the Learning Outcome and Indicative Content: the
+  Range is exactly the ordered list of step titles, and the Conclusion
+  summary must name those same sub-topics - never introduce a sub-topic
+  in one field that doesn't also appear in the others.
 - Use concise, real workshop/training language, not vague filler, and keep
   every field in simple, everyday English - short words and short
   sentences over technical or academic phrasing.
@@ -1383,7 +1406,8 @@ Rules:
     "went_well": "<1-2 sentence draft answer>",
     "change_next_time": "<1-2 sentence draft answer>"
   }},
-  "range": "<comma-separated short sub-topics>",
+  "range": "<comma-separated short sub-topics - same as step titles>",
+  "conclusion_summary": "<1-2 sentence recap naming the same sub-topics>",
   "evaluation": "<2-3 sentence post-session evaluation, written as if just delivered>",
   "assessment": {{
     "type": "Assessment or Assignment - pick one",
@@ -1539,12 +1563,33 @@ Rules:
         ),
     }
 
-    # Range/sub-topics - short comma-separated line, falls back to the
-    # indicative content itself (already short phrases) if the model
-    # returns nothing usable.
-    range_text = _coerce_to_csv_line(data.get("range"), max_items=6)
+    # Range/sub-topics - derived directly from the FINAL step titles (in
+    # order) rather than trusting a separately-drafted "range" string, so
+    # the Range field and the Development/Body steps always match exactly.
+    step_titles = [s["title"] for s in steps if s.get("title")]
+    range_text = "; ".join(step_titles)
+    if not range_text:
+        range_text = _coerce_to_csv_line(data.get("range"), max_items=6)
     if not range_text:
         range_text = ", ".join(indicative_content[:5])
+
+    # Conclusion summary - recaps the SAME sub-topics as Range/steps above,
+    # so the Conclusion clearly ties back to what was actually taught.
+    conclusion_summary = str(data.get("conclusion_summary", "")).strip()[:400]
+    if not conclusion_summary:
+        if step_titles:
+            topics_list = ", ".join(step_titles[:-1]) + (
+                " and " + step_titles[-1] if len(step_titles) > 1 else step_titles[0]
+            )
+            conclusion_summary = (
+                f"Recaps {topics_list}, checking these are understood against "
+                f"\"{short_outcome[:100]}\"."
+            )
+        else:
+            conclusion_summary = (
+                f"Recaps the key points covered against \"{short_outcome[:100]}\" and "
+                "checks overall understanding."
+            )
 
     # Evaluation of the session - a post-session style note (how the
     # session went, how the class was, how the trainer rates it), never
@@ -1606,6 +1651,7 @@ Rules:
         "steps": steps,
         "reflection": reflection,
         "range": range_text,
+        "conclusion_summary": conclusion_summary,
         "evaluation": evaluation,
         "assessment": assessment,
         "appendices": appendices,
