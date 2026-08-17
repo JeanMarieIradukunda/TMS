@@ -1181,6 +1181,18 @@ def generate_lesson_plan_ai_content(request):
         two standard post-session reflection prompts - "went_well" and
         "change_next_time" - grounded in this specific outcome/content, for
         the trainer to revise once the session has actually been taught.
+      - range: a SHORT, comma/semicolon-separated line of sub-topics
+        (very short phrases, not sentences) scoping this session, drafted
+        from the learning outcome and the indicative content.
+      - evaluation: a short draft paragraph anticipating how this session's
+        objectives will be evaluated and whether they're likely to be met.
+      - assessment: a JSON object choosing ONE of "Assessment" or
+        "Assignment" (never both) with matching drafted content.
+      - appendices: a short list of the specific handouts, checklists or
+        materials attached to this session (plain text, one per line).
+      - questions: a JSON array of EXACTLY 3 short assessment questions
+        drawn from the Range, learning outcome, indicative content and the
+        Development/Body steps of this session.
 
     The Groq API key never leaves the server - the browser only ever talks
     to this endpoint.
@@ -1224,8 +1236,11 @@ def generate_lesson_plan_ai_content(request):
     system_prompt = (
         "You are an expert TVET (Technical and Vocational Education and Training) "
         "curriculum designer who writes practical, workshop-ready session/lesson "
-        "plans. You always respond with a single valid JSON object and nothing "
-        "else - no markdown fences, no commentary, no explanations."
+        "plans. Write every field in simple, clear English with common, everyday "
+        "words - avoid complex, technical or academic vocabulary wherever a "
+        "plainer word says the same thing. You always respond with a single "
+        "valid JSON object and nothing else - no markdown fences, no "
+        "commentary, no explanations."
     )
 
     user_prompt = f"""Using the session context below, draft the facilitation technique(s) and the
@@ -1304,12 +1319,48 @@ Produce a JSON object with exactly three top-level fields:
     (e.g. pacing, a step that may need more practice time, a resource
     that may be in short supply).
 
+- "range": a SINGLE comma/semicolon-separated line of very short sub-topic
+  phrases (a few words each, NOT full sentences) that scope this session,
+  drawn from the learning outcome and the indicative content above -
+  matching the shape/rules of "facilitation_techniques" (one plain string,
+  not an array, not bullet points).
+
+- "evaluation": a short draft paragraph (2-3 plain sentences) anticipating
+  how the trainer will judge whether this session's objectives were met
+  (e.g. what to observe, check or ask), grounded in this outcome/content -
+  written as a forward-looking draft the trainer can revise after actually
+  teaching the session, NOT a generic instruction telling the trainer what
+  to write.
+
+- "assessment": a JSON object with exactly two fields, deciding automatically
+  between a formative check during the session ("Assessment") or a
+  follow-up task after it ("Assignment") for THIS outcome - choose ONLY
+  ONE, never both:
+  - "type": either the exact string "Assessment" or the exact string
+    "Assignment".
+  - "content": 1-2 plain sentences describing that single chosen
+    assessment or assignment, specific to this outcome/content.
+
+- "appendices": a short list (1-3 items) of the specific handouts,
+  checklists, worksheets or diagrams that would be attached to THIS
+  session, grounded in its content - a SINGLE string, one item per line
+  (separate items with "\\n"), NOT a JSON array. If nothing specific
+  applies, return an empty string.
+
+- "questions": a JSON array of EXACTLY 3 short assessment questions for
+  trainees, based on the Range, the learning outcome, the indicative
+  content and the Development/Body steps of this session - plain
+  questions a trainer could ask or set as a short quiz, not multi-part
+  essay prompts.
+
 Rules:
 - Ground every objective and every step in the outcome's own text, the
   Range, and the indicative content - do not invent unrelated topics, and
   do not simply copy or lightly reword any indicative content line as an
   objective.
-- Use concise, real workshop/training language, not vague filler.
+- Use concise, real workshop/training language, not vague filler, and keep
+  every field in simple, everyday English - short words and short
+  sentences over technical or academic phrasing.
 - Respond with STRICT JSON ONLY, matching exactly this shape:
 {{
   "objectives": ["<objective 1>", "<objective 2>"],
@@ -1325,7 +1376,15 @@ Rules:
   "reflection": {{
     "went_well": "<1-2 sentence draft answer>",
     "change_next_time": "<1-2 sentence draft answer>"
-  }}
+  }},
+  "range": "<comma-separated short sub-topics>",
+  "evaluation": "<2-3 sentence draft paragraph>",
+  "assessment": {{
+    "type": "Assessment or Assignment - pick one",
+    "content": "<1-2 sentence description>"
+  }},
+  "appendices": "<one item per line, or empty string>",
+  "questions": ["<question 1>", "<question 2>", "<question 3>"]
 }}
 """.strip()
 
@@ -1474,6 +1533,63 @@ Rules:
         ),
     }
 
+    # Range/sub-topics - short comma-separated line, falls back to the
+    # indicative content itself (already short phrases) if the model
+    # returns nothing usable.
+    range_text = _coerce_to_csv_line(data.get("range"), max_items=6)
+    if not range_text:
+        range_text = ", ".join(indicative_content[:5])
+
+    # Evaluation of the session - forward-looking draft paragraph, never
+    # left blank.
+    evaluation = str(data.get("evaluation", "")).strip()[:600]
+    if not evaluation:
+        evaluation = (
+            f"Trainees should be able to show the skills covered in \"{short_outcome[:100]}\" "
+            "through the guided and independent practice steps. Check this by watching "
+            "their work and asking a few quick questions during the session."
+        )
+
+    # Assessment/Assignment - the model must pick exactly one; if it
+    # doesn't, default to "Assessment" (an in-session formative check)
+    # since that's always safe to run without extra trainee time.
+    raw_assessment = data.get("assessment")
+    raw_assessment = raw_assessment if isinstance(raw_assessment, dict) else {}
+    assessment_type = str(raw_assessment.get("type", "")).strip().lower()
+    if assessment_type not in ("assessment", "assignment"):
+        assessment_type = "assessment"
+    assessment_type = assessment_type.capitalize()
+    assessment_content = str(raw_assessment.get("content", "")).strip()[:400]
+    if not assessment_content:
+        if assessment_type == "Assignment":
+            assessment_content = (
+                f"Give trainees a short follow-up task on \"{short_outcome[:100]}\" "
+                "to complete and hand in after the session."
+            )
+        else:
+            assessment_content = (
+                f"Ask trainees a few quick questions and watch their work on "
+                f"\"{short_outcome[:100]}\" during the session."
+            )
+    assessment = {"type": assessment_type, "content": assessment_content}
+
+    # Appendices - short plain list, empty string is a valid "nothing
+    # applies" answer so we don't force filler text onto every session.
+    appendices = str(data.get("appendices", "")).strip()[:500]
+
+    # Questions - always exactly 3, padded with simple generic-but-usable
+    # questions grounded in the outcome text if the model returns fewer.
+    questions = _coerce_to_list(
+        data.get("questions"),
+        min_items=3,
+        max_items=3,
+        fallback=[
+            f"What is {short_outcome[:80]}?" if short_outcome else "What did you learn in this session?",
+            "List the main steps covered in this session.",
+            "Why is this skill useful in real work?",
+        ],
+    )
+
     # --------------------------------------------------
     # 6. Return success
     # --------------------------------------------------
@@ -1482,4 +1598,9 @@ Rules:
         "facilitation_techniques": facilitation_techniques,
         "steps": steps,
         "reflection": reflection,
+        "range": range_text,
+        "evaluation": evaluation,
+        "assessment": assessment,
+        "appendices": appendices,
+        "questions": questions,
     })
