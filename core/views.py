@@ -1184,8 +1184,11 @@ def generate_lesson_plan_ai_content(request):
       - range: a SHORT, comma/semicolon-separated line of sub-topics
         (very short phrases, not sentences) scoping this session, drafted
         from the learning outcome and the indicative content.
-      - evaluation: a short draft paragraph anticipating how this session's
-        objectives will be evaluated and whether they're likely to be met.
+      - evaluation: a short draft paragraph, written from the trainer's
+        point of view AS IF the session has just been delivered, covering
+        how the session went overall, how the class/trainees responded,
+        and the trainer's own evaluation of it - for the trainer to revise
+        once the session has actually been taught.
       - assessment: a JSON object choosing ONE of "Assessment" or
         "Assignment" (never both) with matching drafted content.
       - appendices: a short list of the specific handouts, checklists or
@@ -1325,12 +1328,15 @@ Produce a JSON object with exactly three top-level fields:
   matching the shape/rules of "facilitation_techniques" (one plain string,
   not an array, not bullet points).
 
-- "evaluation": a short draft paragraph (2-3 plain sentences) anticipating
-  how the trainer will judge whether this session's objectives were met
-  (e.g. what to observe, check or ask), grounded in this outcome/content -
-  written as a forward-looking draft the trainer can revise after actually
-  teaching the session, NOT a generic instruction telling the trainer what
-  to write.
+- "evaluation": a short draft paragraph (2-3 plain sentences), written from
+  the trainer's point of view AS IF the session has just been delivered -
+  covering how the session went overall, how the class/trainees responded
+  or performed, and how the trainer would rate/evaluate the session,
+  grounded in this outcome/content. Write it as a real post-session
+  evaluation note (e.g. "The session went well - most trainees could ...
+  The class was engaged during ... Overall, the session met its
+  objectives."), NOT a generic instruction telling the trainer what to
+  write, and NOT phrased as a prediction about the future.
 
 - "assessment": a JSON object with exactly two fields, deciding automatically
   between a formative check during the session ("Assessment") or a
@@ -1378,7 +1384,7 @@ Rules:
     "change_next_time": "<1-2 sentence draft answer>"
   }},
   "range": "<comma-separated short sub-topics>",
-  "evaluation": "<2-3 sentence draft paragraph>",
+  "evaluation": "<2-3 sentence post-session evaluation, written as if just delivered>",
   "assessment": {{
     "type": "Assessment or Assignment - pick one",
     "content": "<1-2 sentence description>"
@@ -1540,14 +1546,15 @@ Rules:
     if not range_text:
         range_text = ", ".join(indicative_content[:5])
 
-    # Evaluation of the session - forward-looking draft paragraph, never
+    # Evaluation of the session - a post-session style note (how the
+    # session went, how the class was, how the trainer rates it), never
     # left blank.
     evaluation = str(data.get("evaluation", "")).strip()[:600]
     if not evaluation:
         evaluation = (
-            f"Trainees should be able to show the skills covered in \"{short_outcome[:100]}\" "
-            "through the guided and independent practice steps. Check this by watching "
-            "their work and asking a few quick questions during the session."
+            f"The session on \"{short_outcome[:100]}\" went well overall. The class stayed "
+            "engaged through the guided and independent practice steps, and most trainees "
+            "were able to follow along and take part. Overall, the session met its objectives."
         )
 
     # Assessment/Assignment - the model must pick exactly one; if it
