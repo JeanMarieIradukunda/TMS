@@ -1008,6 +1008,8 @@ def generate_scheme_ai_content(request):
         context_bits.append(f"Module: {payload.get('module_code', '')} - {payload.get('module_name', '')}")
     if payload.get("hours_per_week"):
         context_bits.append(f"Hours per week: {payload['hours_per_week']}")
+    if payload.get("weeks_per_term"):
+        context_bits.append(f"Weeks per term: {payload['weeks_per_term']}")
     context_block = "\n".join(context_bits) or "No additional module context supplied."
 
     # --------------------------------------------------
