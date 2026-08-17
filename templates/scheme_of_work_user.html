@@ -728,9 +728,11 @@
             <input type="number" class="form-control" id="hoursPerWeekInput" min="1" max="40" value="5">
           </div>
 
-          <div>
-            <label class="form-label" for="weeksPerTermInput">Weeks per term</label>
-            <input type="number" class="form-control" id="weeksPerTermInput" min="1" max="52" value="12">
+          <div class="gen-field-span-all" id="weeksPerTermField">
+            <label class="form-label">Weeks per term <span class="req">*</span></label>
+            <div id="weeksPerTermContainer" class="gen-weeks-per-term-grid">
+              <p class="gen-hint-inline text-muted mb-0">Select a module above to enter the number of weeks for each of its terms.</p>
+            </div>
           </div>
         </div>
 
@@ -742,7 +744,7 @@
             <i class="fa-solid fa-rotate-left me-1"></i> Reset
           </button>
         </div>
-        <p class="gen-hint">Hours per week and weeks per term control how the module's total learning hours are split into weeks, and how those weeks are grouped into terms — they don't change the module's total learning hours. Learning Outcomes and Indicative Content are then automatically spread across those terms and weeks.</p>
+        <p class="gen-hint">Hours per week and the number of weeks entered for each term control how the module's total learning hours are split into weeks, and how those weeks are grouped into its terms — they don't change the module's total learning hours. Learning Outcomes and Indicative Content are then automatically spread across those terms and weeks.</p>
       </div>
     </section>
 
@@ -867,7 +869,7 @@
       var levelSelect = document.getElementById('levelSelect');
       var moduleSelect = document.getElementById('moduleSelect');
       var hoursPerWeekInput = document.getElementById('hoursPerWeekInput');
-      var weeksPerTermInput = document.getElementById('weeksPerTermInput');
+      var weeksPerTermContainer = document.getElementById('weeksPerTermContainer');
       var generateBtn = document.getElementById('generateBtn');
       var resetBtn = document.getElementById('resetBtn');
       var editSelectionBtn = document.getElementById('editSelectionBtn');
@@ -883,6 +885,10 @@
       // Snapshot of whatever was last generated, so the AI button can build
       // its request without re-reading the DOM.
       var currentContext = null; // { mod, trade, level, sector, outcomes, hoursPerWeek }
+
+      // Term names parsed from the currently selected module's `term`
+      // field, in display order - drives the per-term "weeks" inputs.
+      var currentModuleTerms = [];
 
       function indexBy(list, key) {
         var map = {};
@@ -905,6 +911,7 @@
 
         tradeSelect.addEventListener('change', onTradeChange);
         levelSelect.addEventListener('change', onLevelChange);
+        moduleSelect.addEventListener('change', onModuleChange);
         generateBtn.addEventListener('click', onGenerate);
         resetBtn.addEventListener('click', onReset);
         editSelectionBtn.addEventListener('click', function () {
@@ -918,6 +925,8 @@
         var tradeId = tradeSelect.value ? Number(tradeSelect.value) : null;
         moduleSelect.innerHTML = '<option value="">Select level first</option>';
         moduleSelect.disabled = true;
+
+        renderWeeksPerTermInputs(null);
 
         if (!tradeId) {
           levelSelect.innerHTML = '<option value="">Select trade first</option>';
@@ -942,6 +951,8 @@
         var tradeId = tradeSelect.value ? Number(tradeSelect.value) : null;
         var levelId = levelSelect.value ? Number(levelSelect.value) : null;
 
+        renderWeeksPerTermInputs(null);
+
         if (!tradeId || !levelId) {
           moduleSelect.innerHTML = '<option value="">Select level first</option>';
           moduleSelect.disabled = true;
@@ -957,6 +968,69 @@
           labelFn: function (m) { return m.mod_code + ' — ' + m.mod_name; },
           placeholder: modules.length ? 'Select module' : 'No modules for this trade & level',
         });
+      }
+
+      function onModuleChange() {
+        var moduleId = moduleSelect.value ? Number(moduleSelect.value) : null;
+        var mod = moduleId ? modulesById[moduleId] : null;
+        renderWeeksPerTermInputs(mod);
+      }
+
+      /**
+       * Splits a module's free-text `term` field (e.g. "Term 1, Term 2",
+       * "Term 1 & Term 2", "Term 1 and Term 3") into an ordered list of
+       * distinct term names, so a "weeks" field can be shown for each of
+       * the module's own terms rather than one generic field for all
+       * modules. Falls back to a single term when the value can't be
+       * split, and to "Term 1" when it's empty.
+       */
+      function parseModuleTerms(termStr) {
+        var raw = (termStr || '').trim();
+        if (!raw) return ['Term 1'];
+        var parts = raw
+          .split(/\s*(?:,|;|\/|&|\band\b)\s*/i)
+          .map(function (p) { return p.trim(); })
+          .filter(function (p) { return p; });
+        return parts.length ? parts : [raw];
+      }
+
+      /**
+       * Renders one "weeks" number input per term of `mod` (or clears the
+       * container back to its placeholder when no module is selected).
+       * The user enters how many weeks THAT term runs for; those values
+       * are what buildWeekUnits()/groupIntoTerms() use to distribute the
+       * module's Learning Outcomes and Indicative Content across terms.
+       */
+      function renderWeeksPerTermInputs(mod) {
+        currentModuleTerms = mod ? parseModuleTerms(mod.term) : [];
+
+        if (!mod) {
+          weeksPerTermContainer.innerHTML =
+            '<p class="gen-hint-inline text-muted mb-0">Select a module above to enter the number of weeks for each of its terms.</p>';
+          return;
+        }
+
+        weeksPerTermContainer.innerHTML = currentModuleTerms.map(function (termName, idx) {
+          var inputId = 'weeksPerTermInput_' + idx;
+          return '' +
+            '<div class="gen-term-week-input">' +
+              '<label class="form-label" for="' + inputId + '">' + TMSGen.escapeHtml(termName) + ' \u2014 weeks</label>' +
+              '<input type="number" class="form-control" id="' + inputId + '" data-term-index="' + idx + '" min="1" max="52" value="12">' +
+            '</div>';
+        }).join('');
+      }
+
+      /**
+       * Reads the current value of every per-term weeks input, in term
+       * order. Always returns at least one positive integer.
+       */
+      function getWeeksPerTermValues() {
+        var inputs = weeksPerTermContainer.querySelectorAll('input[data-term-index]');
+        var values = [];
+        inputs.forEach(function (input) {
+          values.push(Math.max(1, parseInt(input.value, 10) || 12));
+        });
+        return values.length ? values : [12];
       }
 
       function onReset() {
@@ -978,22 +1052,29 @@
         var level = data.levels.find(function (l) { return l.id === mod.level_id; });
         var sector = trade ? sectorsById[trade.sector_id] : null;
         var hoursPerWeek = Math.max(1, parseInt(hoursPerWeekInput.value, 10) || 5);
-        var weeksPerTerm = Math.max(1, parseInt(weeksPerTermInput.value, 10) || 12);
+
+        // Term names for this module and how many weeks the user entered
+        // for each of them (kept in sync with the per-term inputs, even
+        // if onModuleChange hasn't fired yet for some reason).
+        var termNames = currentModuleTerms.length ? currentModuleTerms : parseModuleTerms(mod.term);
+        var weeksPerTermValues = getWeeksPerTermValues();
+        while (weeksPerTermValues.length < termNames.length) weeksPerTermValues.push(12);
 
         var outcomes = data.outcomes
           .filter(function (o) { return o.module_id === moduleId; })
           .sort(function (a, b) { return a.id - b.id; });
 
         // Build the week-by-week schedule once, then group those weeks
-        // into terms according to hours/week and weeks/term. Both the
-        // meta panel and the table are rendered from this same schedule
-        // so the numbers always agree.
+        // into the module's own terms according to hours/week and the
+        // weeks entered for each term. Both the meta panel and the table
+        // are rendered from this same schedule so the numbers always agree.
         var weekUnits = buildWeekUnits(outcomes, hoursPerWeek);
-        var terms = groupIntoTerms(weekUnits, weeksPerTerm);
+        var terms = groupIntoTerms(weekUnits, weeksPerTermValues, termNames);
 
         currentContext = {
           mod: mod, trade: trade, level: level, sector: sector,
-          outcomes: outcomes, hoursPerWeek: hoursPerWeek, weeksPerTerm: weeksPerTerm,
+          outcomes: outcomes, hoursPerWeek: hoursPerWeek,
+          termNames: termNames, weeksPerTermValues: weeksPerTermValues,
           weekUnits: weekUnits, terms: terms,
         };
 
@@ -1004,7 +1085,8 @@
           level: level ? level.class_level : '\u2014',
           mod: mod,
           hoursPerWeek: hoursPerWeek,
-          weeksPerTerm: weeksPerTerm,
+          termNames: termNames,
+          weeksPerTermValues: weeksPerTermValues,
           totalWeeks: weekUnits.length,
           totalTerms: terms.length,
         });
@@ -1030,6 +1112,10 @@
 
       function renderMeta(ctx) {
         var mod = ctx.mod;
+        var weeksBreakdown = ctx.termNames.map(function (name, idx) {
+          return name + ': ' + (ctx.weeksPerTermValues[idx] || 0) + ' wks';
+        }).join(' \u00b7 ');
+
         var rows = [
           ['Sector', ctx.sector],
           ['Trade', ctx.trade],
@@ -1037,10 +1123,11 @@
           ['Module code', mod.mod_code],
           ['Module name', mod.mod_name],
           ['Trainer', mod.trainer_name || '\u2014'],
-          ['Term (assigned)', mod.term || '\u2014'],
+          ['Term', mod.term || '\u2014'],
           ['Total learning hours', mod.learning_hours + ' hrs'],
-          ['Hours per week / Weeks per term', ctx.hoursPerWeek + ' hrs \u00d7 ' + ctx.weeksPerTerm + ' wks'],
-          ['Terms generated', ctx.totalTerms + ' term' + (ctx.totalTerms === 1 ? '' : 's') + ' \u00b7 ' + ctx.totalWeeks + ' week' + (ctx.totalWeeks === 1 ? '' : 's') + ' total'],
+          ['Hours per week', ctx.hoursPerWeek + ' hrs'],
+          ['Weeks per term', weeksBreakdown],
+          ['Total terms / weeks', ctx.totalTerms + ' term' + (ctx.totalTerms === 1 ? '' : 's') + ' \u00b7 ' + ctx.totalWeeks + ' week' + (ctx.totalWeeks === 1 ? '' : 's') + ' total'],
         ];
         var el = document.getElementById('docMeta');
         el.innerHTML = rows.map(function (r) {
@@ -1113,29 +1200,49 @@
       }
 
       /**
-       * Groups a flat list of week units into terms of `weeksPerTerm`
-       * weeks each. Term boundaries always fall on multiples of
-       * weeksPerTerm, so every term's first unit is local Week 1 — this
-       * is what "creates a term record for each module" and "divides all
-       * Learning Outcomes and Indicative Contents into terms" according
-       * to hours per week / total learning hours.
+       * Groups a flat list of week units into the module's own terms,
+       * using the number of weeks the user entered for EACH term
+       * (`weeksPerTermValues`, one entry per entry in `termNames`) rather
+       * than a single shared "weeks per term" value. Term boundaries fall
+       * at the cumulative sum of those per-term week counts, so every
+       * term's first unit is local Week 1 — this is what divides the
+       * module's Learning Outcomes and Indicative Content into terms
+       * according to hours per week / total learning hours. If the module
+       * needs more weeks than the entered values add up to, the leftover
+       * week units are appended to the final term instead of being lost.
        */
-      function groupIntoTerms(weekUnits, weeksPerTerm) {
+      function groupIntoTerms(weekUnits, weeksPerTermValues, termNames) {
         var terms = [];
-        weekUnits.forEach(function (unit) {
-          var termNumber = Math.floor((unit.weekIndexGlobal - 1) / weeksPerTerm) + 1;
-          var localWeek = ((unit.weekIndexGlobal - 1) % weeksPerTerm) + 1;
-          unit.localWeek = localWeek;
+        var boundaries = []; // cumulative last-week-index covered by each term
+        var running = 0;
+        weeksPerTermValues.forEach(function (n) {
+          running += Math.max(1, n);
+          boundaries.push(running);
+        });
 
-          var term = terms[termNumber - 1];
+        weekUnits.forEach(function (unit) {
+          var termIndex = boundaries.findIndex(function (b) { return unit.weekIndexGlobal <= b; });
+          if (termIndex === -1) termIndex = boundaries.length - 1; // overflow -> last term absorbs it
+
+          var termStart = termIndex === 0 ? 0 : boundaries[termIndex - 1];
+          unit.localWeek = unit.weekIndexGlobal - termStart;
+
+          var term = terms[termIndex];
           if (!term) {
-            term = { termNumber: termNumber, weeks: [], totalHours: 0 };
-            terms[termNumber - 1] = term;
+            term = {
+              termNumber: termIndex + 1,
+              termLabel: (termNames && termNames[termIndex]) || ('Term ' + (termIndex + 1)),
+              weeks: [], totalHours: 0,
+            };
+            terms[termIndex] = term;
           }
           term.weeks.push(unit);
           term.totalHours += unit.hoursThisWeek;
         });
-        return terms;
+
+        // A term with no week units assigned to it leaves a hole in the
+        // sparse array above - drop those holes without losing order.
+        return terms.filter(function (t) { return t; });
       }
 
       /**
