@@ -708,6 +708,7 @@
         renderEvaluationLoading();
         renderAppendicesLoading();
         renderQuestionsLoading();
+        renderConclusionSummaryLoading();
 
         // Title is built from the selected Indicative content — not the
         // Learning outcome / topic — per the fixed "SESSION PLAN - ..."
@@ -945,6 +946,7 @@
             renderEvaluation(data && data.evaluation);
             renderAppendices(data && data.appendices);
             renderQuestions(data && data.questions);
+            renderConclusionSummary(data && data.conclusion_summary);
 
             // Range/sub-topics: only overwrite what the AI drafted if the
             // trainer hasn't typed their own Range text.
@@ -963,6 +965,7 @@
             renderEvaluationFailed();
             renderAppendicesFailed();
             renderQuestionsFailed();
+            renderConclusionSummaryFailed();
             TMS.toast('Could not reach the AI service — fill in the development steps manually.', 'danger');
           });
       }
@@ -1001,12 +1004,33 @@
         });
       }
 
+      // The Summary line is now AI-drafted (see renderConclusionSummary
+      // below) so it names the exact same sub-topics as the Range and the
+      // Development/Body steps — only the fixed resources/duration are
+      // set synchronously here.
       function renderConclusion(minutes, outcome) {
-        document.getElementById('spSummary').innerHTML =
-          'Recaps the key points covered against &ldquo;' +
-          TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '&rdquo; and checks overall understanding.';
         document.getElementById('spConclusionResources').textContent = 'Pens, papers, projector and whiteboard';
         document.getElementById('spConclusionDuration').textContent = minutes + ' mins';
+      }
+
+      function renderConclusionSummaryLoading() {
+        document.getElementById('spSummary').innerHTML =
+          '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
+      }
+
+      function renderConclusionSummary(text) {
+        var el = document.getElementById('spSummary');
+        var clean = (text || '').toString().trim();
+        if (!clean) {
+          renderConclusionSummaryFailed();
+          return;
+        }
+        el.innerHTML = TMSGen.escapeHtml(clean) + ' <span class="gen-ai-badge">AI</span>';
+      }
+
+      function renderConclusionSummaryFailed() {
+        document.getElementById('spSummary').innerHTML =
+          '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
       }
 
       // Assessment/Assignment, Evaluation of the session, Appendices and
