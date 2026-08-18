@@ -38,9 +38,16 @@ class TrainerAdmin(admin.ModelAdmin):
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'mod_code', 'mod_name', 'trade', 'level', 'trainer', 'learning_hours', 'term')
+    list_display = (
+        'id', 'mod_code', 'mod_name', 'trade', 'level', 'trainer',
+        'learning_hours', 'term', 'num_terms', 'term_weeks',
+    )
     list_filter = ('trade', 'level', 'term')
     search_fields = ('mod_code', 'mod_name')
+    fields = (
+        'trade', 'level', 'trainer', 'mod_code', 'mod_name',
+        'learning_hours', 'term', 'num_terms', 'term_weeks',
+    )
 
 
 @admin.register(LearningOutcome)
