@@ -260,9 +260,15 @@
       text-align: center;
     }
 
-    /* Alternating row shading for readability */
-    .gen-table-v2 tbody tr:nth-child(even) td { background: var(--sow-row-alt); }
-    .gen-table-v2 tbody tr:nth-child(odd) td  { background: #ffffff; }
+    /* Alternating row shading for readability. Term-separator and
+       week-pager rows are explicitly excluded from the nth-child
+       selector (rather than relying on those rows' own rules simply
+       having higher specificity) so a term separator's colour can
+       never depend on whether it happens to land on an odd or even
+       row of the table — see the print media query below for why that
+       distinction matters. */
+    .gen-table-v2 tbody tr:nth-child(even):not(.gen-term-separator):not(.gen-week-pager-row) td { background: var(--sow-row-alt); }
+    .gen-table-v2 tbody tr:nth-child(odd):not(.gen-term-separator):not(.gen-week-pager-row) td  { background: #ffffff; }
 
     /* Keep rows intact when printed / exported */
     .gen-table-v2 tbody tr { break-inside: avoid; page-break-inside: avoid; }
@@ -644,7 +650,17 @@
     color: #fff !important;
   }
 
-  .gen-table-v2 tbody tr:nth-child(even) td {
+  /* BUGFIX: this previously matched .gen-term-separator/.gen-week-pager-row
+     rows too whenever they happened to land on an even tbody position
+     (e.g. after an odd-length Term 1), and — because `:nth-child(even)`
+     adds specificity that `.gen-term-separator td` below did not have —
+     it won the !important-vs-!important tie-break and painted that
+     term's separator with this pale row colour instead of navy. That's
+     exactly what made some term separators (typically Term 2 onward)
+     look inconsistent with Term 1's. Excluding those rows here, and
+     keeping the dedicated dark separator rule further down, makes every
+     term separator render identically regardless of row position. */
+  .gen-table-v2 tbody tr:nth-child(even):not(.gen-term-separator):not(.gen-week-pager-row) td {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background: #f6f8fb !important;
@@ -1342,7 +1358,7 @@
                 '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="-1" data-term="' + term.termNumber + '" disabled>' +
                   '<i class="fa-solid fa-chevron-left"></i> Prev' +
                 '</button>' +
-                '<span class="gen-week-pager-label" data-term="' + term.termNumber + '">Week 1 of ' + weeksInTerm + '</span>' +
+                '<span class="gen-week-pager-label" data-term="' + term.termNumber + '">Term ' + term.termNumber + ' \u2013 Week 1 of ' + weeksInTerm + '</span>' +
                 '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="1" data-term="' + term.termNumber + '"' + (weeksInTerm <= 1 ? ' disabled' : '') + '>' +
                   'Next <i class="fa-solid fa-chevron-right"></i>' +
                 '</button>' +
@@ -1359,9 +1375,14 @@
 
       function renderWeekRow(unit, termNumber, isVisible) {
         var outcome = unit.outcome;
+        // Term-based week label, e.g. "Term 1 \u2013 Week 1", "Term 2 \u2013
+        // Week 1" ... so each row is unambiguous on its own (when
+        // printed, scrolled to, or read out of context of its term
+        // separator) instead of only a bare, continuously-incrementing
+        // "Week N" that resets meaning across terms.
         var weekLabel = unit.partsTotal > 1
-          ? ('Week ' + unit.localWeek + ' (' + unit.partIndex + '/' + unit.partsTotal + ')')
-          : ('Week ' + unit.localWeek);
+          ? ('Term ' + termNumber + ' \u2013 Week ' + unit.localWeek + ' (' + unit.partIndex + '/' + unit.partsTotal + ')')
+          : ('Term ' + termNumber + ' \u2013 Week ' + unit.localWeek);
 
         var contentItems = unit.contents
           .map(function (text) { return '<li>' + TMSGen.escapeHtml(text) + '</li>'; })
@@ -1430,7 +1451,7 @@
 
       function updateWeekPagerControls(tbody, termNumber, currentIndex, total) {
         var label = tbody.querySelector('.gen-week-pager-label[data-term="' + termNumber + '"]');
-        if (label) label.textContent = 'Week ' + (currentIndex + 1) + ' of ' + total;
+        if (label) label.textContent = 'Term ' + termNumber + ' \u2013 Week ' + (currentIndex + 1) + ' of ' + total;
 
         var navBtns = tbody.querySelectorAll('.gen-week-nav[data-term="' + termNumber + '"]');
         navBtns.forEach(function (btn) {
