@@ -846,6 +846,28 @@ body.sidebar-open .sidebar-overlay { display: block; }
 
 .gen-field-span-all { grid-column: 1 / -1; }
 
+.gen-term-weeks-wrap {
+  margin-top: 1rem;
+}
+
+.gen-term-weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.gen-term-week-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gen-term-week-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #56607a;
+}
+
 .gen-indic-list {
   display: flex;
   flex-direction: column;
