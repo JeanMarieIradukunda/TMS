@@ -82,11 +82,56 @@ class Module(models.Model):
     learning_hours = models.IntegerField()
     term = models.CharField(max_length=50)
 
+    # ------------------------------------------------------------------
+    # Scheme of Work term/week structure for this module. These drive the
+    # Scheme of Work generator's "Number of terms" and "Weeks per term"
+    # fields so they're loaded from the module's own record instead of
+    # defaulting to a hardcoded assumption (e.g. always 3 terms).
+    # ------------------------------------------------------------------
+    num_terms = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="How many terms this module's Scheme of Work is split across.",
+    )
+    term_weeks = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=(
+            "Comma-separated number of weeks for each term, in order, e.g. "
+            "'12,12,10' for a 3-term module where the last term is shorter. "
+            "Leave blank to split evenly (12 weeks per term by default)."
+        ),
+    )
+
     class Meta:
         ordering = ['mod_code']
 
     def __str__(self):
         return f"{self.mod_code} - {self.mod_name}"
+
+    def get_term_weeks_list(self):
+        """
+        Resolves this module's per-term week counts into a clean list of
+        positive integers, one entry per term (length == self.num_terms),
+        regardless of whether `term_weeks` is blank, malformed, or has too
+        few/many values compared to `num_terms`:
+
+        - Blank/invalid            -> defaults every term to 12 weeks.
+        - Fewer entries than terms -> pads using the last given value.
+        - More entries than terms  -> truncates to num_terms.
+        """
+        n = max(1, self.num_terms or 1)
+        weeks = []
+        if self.term_weeks:
+            for part in self.term_weeks.split(','):
+                part = part.strip()
+                if part.isdigit() and int(part) > 0:
+                    weeks.append(int(part))
+
+        if not weeks:
+            return [12] * n
+        if len(weeks) < n:
+            weeks = weeks + [weeks[-1]] * (n - len(weeks))
+        return weeks[:n]
 
 
 class LearningOutcome(models.Model):
