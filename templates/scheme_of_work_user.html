@@ -268,6 +268,64 @@
     .gen-table-v2 tbody tr { break-inside: avoid; page-break-inside: avoid; }
     .gen-table-v2 thead { display: table-header-group; }
 
+    /* ---------- Term divider rows ---------- */
+    .gen-table-v2 tr.gen-term-divider td {
+      background: var(--sow-navy) !important;
+      background-image: linear-gradient(180deg, var(--sow-navy) 0%, var(--sow-navy-deep) 100%) !important;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 10.5pt;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 0.45rem 0.5rem;
+      border-top: 2px solid var(--sow-gold);
+      border-bottom: 2px solid var(--sow-gold);
+    }
+    .gen-table-v2 tr.gen-term-divider td span.gen-term-sub {
+      display: block;
+      font-weight: 500;
+      font-size: 8.5pt;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      color: var(--sow-gold-soft);
+      margin-top: 0.1rem;
+    }
+
+    /* ---------- Week-at-a-time navigation bar ---------- */
+    .gen-week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      background: #ffffff;
+      border: 1px solid var(--sow-line);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.1rem;
+    }
+    .gen-week-nav-label {
+      font-weight: 700;
+      color: var(--sow-navy);
+      font-size: 0.95rem;
+      min-width: 200px;
+      text-align: center;
+    }
+    .gen-week-nav-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: var(--sow-muted);
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .gen-week-nav-toggle input { cursor: pointer; }
+    .gen-week-nav[data-mode="all"] #prevWeekBtn,
+    .gen-week-nav[data-mode="all"] #nextWeekBtn { visibility: hidden; }
+
     .gen-week-pill {
       display: inline-block;
       font-weight: 700;
@@ -280,70 +338,6 @@
       line-height: 1.3;
       letter-spacing: 0.01em;
       white-space: nowrap;
-    }
-
-    /* ---------- Term separator row ----------
-       A visually distinct full-width band inserted between terms so each
-       term's block of Learning Outcomes / Indicative Content reads as a
-       clearly separate section, on screen and when printed. */
-    .gen-table-v2 tbody tr.gen-term-separator td {
-      background: var(--sow-navy) !important;
-      padding: 0.5rem 0.9rem;
-      border: none;
-    }
-    .gen-table-v2 tbody tr.gen-term-separator:first-child td {
-      border-top-left-radius: 6px;
-      border-top-right-radius: 6px;
-    }
-    .gen-term-sep-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .gen-term-sep-label {
-      font-family: 'Inter', sans-serif;
-      font-weight: 800;
-      font-size: 10.5pt;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #ffffff;
-    }
-    .gen-term-sep-label i { color: var(--sow-gold); margin-right: 0.4rem; }
-    .gen-term-sep-meta {
-      font-size: 9pt;
-      font-weight: 600;
-      color: var(--sow-gold-soft);
-      letter-spacing: 0.01em;
-    }
-
-    /* ---------- Week pager (one-week-at-a-time navigation) ----------
-       Screen-only (see .no-print) - lets a trainer step through
-       Week 1 -> Week 2 -> Week 3 ... within a term instead of seeing a
-       merged multi-week range. The printed document still shows every
-       week's row in full (see the @media print override below). */
-    .gen-table-v2 tbody tr.gen-week-pager-row td {
-      background: var(--sow-row-alt) !important;
-      border-bottom: 1px solid var(--sow-line);
-      padding: 0.45rem 0.9rem;
-    }
-    .gen-week-pager {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.9rem;
-    }
-    .gen-week-pager-label {
-      font-weight: 700;
-      font-size: 9.5pt;
-      color: var(--sow-navy);
-      min-width: 90px;
-      text-align: center;
-    }
-    .gen-week-pager .btn {
-      font-size: 8.5pt;
-      padding: 0.15rem 0.6rem;
     }
 
     /* ---------- Bulleted list rendering inside table cells ----------
@@ -552,6 +546,14 @@
     display: none !important;
   }
 
+  /* The on-screen preview shows one week at a time, but a printed/saved
+     scheme of work always needs the complete document — every term and
+     every week — so force every row and term divider to render here
+     regardless of whatever the screen's week navigator currently hides. */
+  .gen-table-v2 tbody tr {
+    display: table-row !important;
+  }
+
   /* 1b. Hide placeholder text in cells the trainer never filled in, plus
      any transient loading/error states — none of these belong on a
      printed/exported document. The cell itself still prints, just empty. */
@@ -642,20 +644,6 @@
     print-color-adjust: exact !important;
   }
 
-  /* The on-screen pager only shows one week's row per term at a time
-     (inline style="display:none" on the rest). For print/PDF export we
-     want the complete scheme, so every week row is forced visible again
-     - the pager controls themselves are already hidden by .no-print. */
-  .gen-week-row {
-    display: table-row !important;
-  }
-
-  .gen-term-separator td {
-    background: var(--sow-navy, #002060) !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
   /* Keep AI list markers in their theme colors when printed */
   .gen-bullets li::marker { color: var(--sow-navy-soft) !important; }
 
@@ -729,15 +717,9 @@
           </div>
 
           <div>
-            <label class="form-label" for="numTermsInput">Number of terms for this module</label>
-            <input type="number" class="form-control" id="numTermsInput" min="1" max="12" value="3">
+            <label class="form-label" for="weeksPerTermInput">Weeks per term</label>
+            <input type="number" class="form-control" id="weeksPerTermInput" min="1" max="30" value="12">
           </div>
-        </div>
-
-        <div class="gen-term-weeks-wrap" id="termWeeksWrap">
-          <label class="form-label">Weeks per term <span class="req">*</span></label>
-          <div class="gen-term-weeks-grid" id="termWeeksGrid"></div>
-          <p class="gen-hint" style="margin-top:0.5rem;">Enter how many weeks each term actually has for this module — every term can be a different length. Learning Outcomes and Indicative Content are then distributed using each term's own week count.</p>
         </div>
 
         <div class="gen-actions-row">
@@ -748,11 +730,11 @@
             <i class="fa-solid fa-rotate-left me-1"></i> Reset
           </button>
         </div>
-        <p class="gen-hint">Hours per week controls how the module's total learning hours are split into weeks; the weeks-per-term values above control how those weeks are grouped into terms — neither changes the module's total learning hours.</p>
+        <p class="gen-hint">Hours per week and weeks per term control how outcomes are spread across weeks and split across terms — they don't change the module's total learning hours.</p>
       </div>
     </section>
 
-    <!-- ==================== GENERATED DOCUMENT ==================== -->
+    <!-- ==================== SCHEME OF WORK DOCUMENT ==================== -->
     <section id="docSection" class="d-none">
 
       <div class="gen-toolbar no-print">
@@ -774,12 +756,24 @@
         </div>
       </div>
 
+      <div class="gen-week-nav no-print" id="weekNav">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="prevWeekBtn">
+          <i class="fa-solid fa-chevron-left"></i> Previous week
+        </button>
+        <div class="gen-week-nav-label" id="weekNavLabel">Term 1 · Week 1</div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="nextWeekBtn">
+          Next week <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <label class="gen-week-nav-toggle">
+          <input type="checkbox" id="showAllWeeksToggle"> Show every term &amp; week at once
+        </label>
+      </div>
+
       <article class="gen-doc" id="genDoc">
         <div class="gen-doc-logos" id="docLogos"></div>
 
         <div class="gen-doc-title">
           <h3>Scheme of Work</h3>
-          <p id="docGeneratedOn"></p>
         </div>
 
         <dl class="gen-meta-grid" id="docMeta"></dl>
@@ -873,8 +867,7 @@
       var levelSelect = document.getElementById('levelSelect');
       var moduleSelect = document.getElementById('moduleSelect');
       var hoursPerWeekInput = document.getElementById('hoursPerWeekInput');
-      var numTermsInput = document.getElementById('numTermsInput');
-      var termWeeksGrid = document.getElementById('termWeeksGrid');
+      var weeksPerTermInput = document.getElementById('weeksPerTermInput');
       var generateBtn = document.getElementById('generateBtn');
       var resetBtn = document.getElementById('resetBtn');
       var editSelectionBtn = document.getElementById('editSelectionBtn');
@@ -883,49 +876,26 @@
       var docSection = document.getElementById('docSection');
       var noDataAlert = document.getElementById('noDataAlert');
       var selectorFields = document.getElementById('selectorFields');
+      var weekNav = document.getElementById('weekNav');
+      var weekNavLabel = document.getElementById('weekNavLabel');
+      var prevWeekBtn = document.getElementById('prevWeekBtn');
+      var nextWeekBtn = document.getElementById('nextWeekBtn');
+      var showAllWeeksToggle = document.getElementById('showAllWeeksToggle');
 
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
 
       // Snapshot of whatever was last generated, so the AI button can build
       // its request without re-reading the DOM.
-      var currentContext = null; // { mod, trade, level, sector, outcomes, hoursPerWeek }
+      var currentContext = null; // { mod, trade, level, sector, outcomes, hoursPerWeek, weeksPerTerm, schedule }
+
+      // Index into schedule.flatWeeks of the week currently shown on screen.
+      var currentWeekIndex = 0;
 
       function indexBy(list, key) {
         var map = {};
         (list || []).forEach(function (item) { map[item[key]] = item; });
         return map;
-      }
-
-      /**
-       * (Re)builds one "Term N weeks" number input per term, based on
-       * numTermsInput's current value. Existing values are preserved
-       * when the count changes (e.g. going from 3 to 4 terms keeps the
-       * first 3 values and just adds a 4th, defaulted to 12 weeks).
-       */
-      function renderTermWeeksInputs() {
-        var numTerms = Math.max(1, Math.min(12, parseInt(numTermsInput.value, 10) || 1));
-        var existing = Array.prototype.slice.call(termWeeksGrid.querySelectorAll('.gen-term-week-input'))
-          .map(function (el) { return parseInt(el.value, 10) || 12; });
-
-        var html = '';
-        for (var i = 0; i < numTerms; i++) {
-          var value = existing[i] || 12;
-          html += '' +
-            '<div class="gen-term-week-field">' +
-              '<label for="termWeek_' + (i + 1) + '">Term ' + (i + 1) + ' weeks</label>' +
-              '<input type="number" class="form-control form-control-sm gen-term-week-input" ' +
-                'id="termWeek_' + (i + 1) + '" data-term-index="' + i + '" min="1" max="52" value="' + value + '">' +
-            '</div>';
-        }
-        termWeeksGrid.innerHTML = html;
-      }
-
-      // Reads the current per-term week values, in term order, e.g.
-      // [12, 12, 8] for a 3-term module where Term 3 is only 8 weeks.
-      function getTermWeeksArray() {
-        return Array.prototype.slice.call(termWeeksGrid.querySelectorAll('.gen-term-week-input'))
-          .map(function (el) { return Math.max(1, parseInt(el.value, 10) || 12); });
       }
 
       function init() {
@@ -943,15 +913,18 @@
 
         tradeSelect.addEventListener('change', onTradeChange);
         levelSelect.addEventListener('change', onLevelChange);
-        numTermsInput.addEventListener('input', function () { renderTermWeeksInputs(); });
-        renderTermWeeksInputs();
         generateBtn.addEventListener('click', onGenerate);
         resetBtn.addEventListener('click', onReset);
         editSelectionBtn.addEventListener('click', function () {
           selectorFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
-        printBtn.addEventListener('click', TMSGen.print);
+        printBtn.addEventListener('click', onPrint);
         aiGenerateBtn.addEventListener('click', onAiGenerate);
+        prevWeekBtn.addEventListener('click', function () { stepWeek(-1); });
+        nextWeekBtn.addEventListener('click', function () { stepWeek(1); });
+        showAllWeeksToggle.addEventListener('change', function () {
+          applyWeekView(showAllWeeksToggle.checked ? 'all' : 'single');
+        });
       }
 
       function onTradeChange() {
@@ -1018,24 +991,18 @@
         var level = data.levels.find(function (l) { return l.id === mod.level_id; });
         var sector = trade ? sectorsById[trade.sector_id] : null;
         var hoursPerWeek = Math.max(1, parseInt(hoursPerWeekInput.value, 10) || 5);
-        var termWeeksArray = getTermWeeksArray();
-        if (!termWeeksArray.length) termWeeksArray = [12];
+        var weeksPerTerm = Math.max(1, parseInt(weeksPerTermInput.value, 10) || 12);
 
         var outcomes = data.outcomes
           .filter(function (o) { return o.module_id === moduleId; })
           .sort(function (a, b) { return a.id - b.id; });
 
-        // Build the week-by-week schedule once, then group those weeks
-        // into terms using each term's own week count. Both the meta
-        // panel and the table are rendered from this same schedule so
-        // the numbers always agree.
-        var weekUnits = buildWeekUnits(outcomes, hoursPerWeek);
-        var terms = groupIntoTerms(weekUnits, termWeeksArray);
+        var schedule = buildSchedule(outcomes, hoursPerWeek, weeksPerTerm);
 
         currentContext = {
           mod: mod, trade: trade, level: level, sector: sector,
-          outcomes: outcomes, hoursPerWeek: hoursPerWeek, termWeeksArray: termWeeksArray,
-          weekUnits: weekUnits, terms: terms,
+          outcomes: outcomes, hoursPerWeek: hoursPerWeek,
+          weeksPerTerm: weeksPerTerm, schedule: schedule,
         };
 
         renderLogos(data.logos);
@@ -1044,12 +1011,14 @@
           trade: trade ? trade.trade_name : '\u2014',
           level: level ? level.class_level : '\u2014',
           mod: mod,
-          hoursPerWeek: hoursPerWeek,
-          termWeeksArray: termWeeksArray,
-          totalWeeks: weekUnits.length,
-          totalTerms: terms.length,
+          schedule: schedule,
+          weeksPerTerm: weeksPerTerm,
         });
-        renderTable(terms);
+        renderTable(schedule);
+
+        currentWeekIndex = 0;
+        showAllWeeksToggle.checked = false;
+        applyWeekView('single');
 
         document.getElementById('docPreparedBy').textContent = mod.trainer_name || '';
         document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
@@ -1071,6 +1040,11 @@
 
       function renderMeta(ctx) {
         var mod = ctx.mod;
+        var terms = ctx.schedule.terms;
+        var termLabel = terms.length > 1
+          ? ('Term ' + terms[0].number + ' \u2013 Term ' + terms[terms.length - 1].number)
+          : ('Term ' + (terms[0] ? terms[0].number : 1));
+
         var rows = [
           ['Sector', ctx.sector],
           ['Trade', ctx.trade],
@@ -1078,11 +1052,9 @@
           ['Module code', mod.mod_code],
           ['Module name', mod.mod_name],
           ['Trainer', mod.trainer_name || '\u2014'],
-          ['Term', mod.term || '\u2014'],
+          ['Term(s) covered', termLabel],
+          ['Weeks per term', ctx.weeksPerTerm],
           ['Total learning hours', mod.learning_hours + ' hrs'],
-          ['Hours per week', ctx.hoursPerWeek + ' hrs'],
-          ['Weeks per term', ctx.termWeeksArray.join(', ')],
-          ['Terms \u00b7 Weeks', ctx.totalTerms + ' term' + (ctx.totalTerms === 1 ? '' : 's') + ' \u00b7 ' + ctx.totalWeeks + ' week' + (ctx.totalWeeks === 1 ? '' : 's') + ' total'],
         ];
         var el = document.getElementById('docMeta');
         el.innerHTML = rows.map(function (r) {
@@ -1097,221 +1069,90 @@
       }
 
       /**
-       * Splits `items` into `n` chunks as evenly as possible, preserving
-       * order (e.g. 5 indicative-content items over 3 weeks -> 2/2/1).
-       * Always returns exactly `n` arrays (some may be empty).
+       * Splits one module's learning outcomes (with their indicative
+       * content) across terms and weeks, using:
+       *   - each outcome's own learning_hours (from the curriculum data),
+       *   - the trainer-set training hours per week, and
+       *   - the trainer-set weeks per term (term capacity = hoursPerWeek * weeksPerTerm).
+       *
+       * Outcomes are placed one at a time, in order. An outcome starts a
+       * new term whenever the current term already has hours booked and
+       * adding this outcome would push it past that term's capacity —
+       * so a module's content is divided into its own set of term
+       * records instead of being force-fit into a single term.
+       *
+       * Returns:
+       *   {
+       *     terms: [{ number, weekCount, totalHours, rows: [...] }],
+       *     flatWeeks: [{ term, week }, ...]   // every (term, week) pair in order
+       *   }
+       * Each row also carries weekStart/weekEnd (term-relative week numbers)
+       * so a row spanning several weeks shows up in every week it covers.
        */
-      function splitIntoChunks(items, n) {
-        var chunks = [];
-        var list = items || [];
-        var base = Math.floor(list.length / n);
-        var remainder = list.length % n;
-        var cursor = 0;
-        for (var i = 0; i < n; i++) {
-          var size = base + (i < remainder ? 1 : 0);
-          chunks.push(list.slice(cursor, cursor + size));
-          cursor += size;
-        }
-        return chunks;
-      }
-
-      /**
-       * Walks every Learning Outcome (in order) and breaks it down into
-       * one "week unit" per week of training it needs, based on hours
-       * per week. Each unit carries only the hours and the slice of
-       * Indicative Content that belong to that specific week, so a long
-       * outcome's IC is spread across its weeks instead of being repeated.
-       * Units are numbered on a single running week counter across the
-       * whole module — groupIntoTerms() below is what later folds that
-       * running counter into terms according to termWeeksArray below.
-       */
-      function buildWeekUnits(outcomes, hoursPerWeek) {
-        var units = [];
-        var globalWeek = 1;
+      function buildSchedule(outcomes, hoursPerWeek, weeksPerTerm) {
+        var termCapacity = hoursPerWeek * weeksPerTerm;
+        var terms = [];
+        var termNumber = 1;
+        var weekInTerm = 1;
+        var hoursInTerm = 0;
+        var term = { number: termNumber, weekCount: 0, totalHours: 0, rows: [] };
+        terms.push(term);
 
         outcomes.forEach(function (outcome) {
           var weeksNeeded = Math.max(1, Math.ceil(outcome.learning_hours / hoursPerWeek));
-          var contents = contentsForOutcome(outcome.id);
-          var contentChunks = splitIntoChunks(contents, weeksNeeded);
-          var hoursLeft = outcome.learning_hours;
 
-          for (var i = 0; i < weeksNeeded; i++) {
-            var hoursThisWeek = Math.min(hoursPerWeek, hoursLeft);
-            hoursLeft -= hoursThisWeek;
+          if (hoursInTerm > 0 && hoursInTerm + outcome.learning_hours > termCapacity) {
+            termNumber += 1;
+            weekInTerm = 1;
+            hoursInTerm = 0;
+            term = { number: termNumber, weekCount: 0, totalHours: 0, rows: [] };
+            terms.push(term);
+          }
 
-            units.push({
-              outcome: outcome,
-              weekIndexGlobal: globalWeek,
-              partIndex: i + 1,
-              partsTotal: weeksNeeded,
-              hoursThisWeek: hoursThisWeek,
-              contents: contentChunks[i] || [],
-            });
-            globalWeek++;
+          var weekStart = weekInTerm;
+          var weekEnd = weekInTerm + weeksNeeded - 1;
+
+          term.rows.push({
+            outcome: outcome,
+            term: termNumber,
+            weekStart: weekStart,
+            weekEnd: weekEnd,
+          });
+          term.weekCount = Math.max(term.weekCount, weekEnd);
+          term.totalHours += outcome.learning_hours;
+
+          weekInTerm = weekEnd + 1;
+          hoursInTerm += outcome.learning_hours;
+        });
+
+        var flatWeeks = [];
+        terms.forEach(function (t) {
+          for (var w = 1; w <= Math.max(1, t.weekCount); w++) {
+            flatWeeks.push({ term: t.number, week: w });
           }
         });
 
-        return units;
+        return { terms: terms, flatWeeks: flatWeeks };
       }
 
-      /**
-       * Groups a flat list of week units into terms whose lengths come
-       * from `termWeeksArray` (one entry per term, in order — e.g.
-       * [12, 12, 8] for a 3-term module where Term 3 is 8 weeks). This
-       * is what "creates a term record for each module" and "divides
-       * all Learning Outcomes and Indicative Contents into terms"
-       * according to each term's own available weeks.
-       *
-       * If the module's total training weeks (from hours per week)
-       * run longer than the terms the user defined, extra terms are
-       * appended automatically using the last defined term's length,
-       * so no Learning Outcome / Indicative Content is ever dropped.
-       */
-      function groupIntoTerms(weekUnits, termWeeksArray) {
-        var boundaries = []; // boundaries[i] = last global week (1-indexed) covered by term i+1
-        var cum = 0;
-        (termWeeksArray || []).forEach(function (w) {
-          cum += Math.max(1, w);
-          boundaries.push(cum);
-        });
+      function buildRowHtml(row) {
+        var outcome = row.outcome;
+        var weekLabel = row.weekEnd > row.weekStart
+          ? ('Week ' + row.weekStart + '\u2013' + row.weekEnd)
+          : ('Week ' + row.weekStart);
 
-        var fallbackWeeks = termWeeksArray && termWeeksArray.length
-          ? Math.max(1, termWeeksArray[termWeeksArray.length - 1])
-          : 12;
-        if (!boundaries.length) boundaries.push(fallbackWeeks);
-
-        var terms = [];
-        weekUnits.forEach(function (unit) {
-          var g = unit.weekIndexGlobal;
-
-          // Extend with fallback-length terms if the schedule runs
-          // longer than the weeks the user entered.
-          while (g > boundaries[boundaries.length - 1]) {
-            boundaries.push(boundaries[boundaries.length - 1] + fallbackWeeks);
-          }
-
-          var termIndex = boundaries.findIndex(function (b) { return g <= b; });
-          var termStart = termIndex === 0 ? 0 : boundaries[termIndex - 1];
-          unit.localWeek = g - termStart;
-
-          var term = terms[termIndex];
-          if (!term) {
-            term = { termNumber: termIndex + 1, weeks: [], totalHours: 0 };
-            terms[termIndex] = term;
-          }
-          term.weeks.push(unit);
-          term.totalHours += unit.hoursThisWeek;
-        });
-
-        return terms;
-      }
-
-      /**
-       * Renders the scheme of work body as one block per term (with a
-       * clear visual separator between terms), and inside each term one
-       * week at a time — a Prev/Next pager lets the user step through
-       * Week 1 -> Week 2 -> Week 3 ... instead of a merged "Week 1-3"
-       * range. Every week's row is still in the DOM (so edits made on
-       * any week are never lost when paging, and the printed document
-       * shows every week in full) — the pager only toggles which single
-       * row is visible on screen.
-       *
-       * Columns per row (9):
-       *   1. Weeks & Dates            (auto week label + editable date)
-       *   2. Learning Unit (LU)       (from the module's learning outcome)
-       *   3. Learning Hours           (hours allocated in THIS week only)
-       *   4. Indicative Content (IC)  (this week's slice, bulleted)
-       *   5. Learning Activities      (editable, AI-fillable)
-       *   6. Resources                (editable, AI-fillable)
-       *   7. Learning Place           (editable, AI-fillable)
-       *   8. Evidences of Formative Assessment (editable, AI-fillable)
-       *   9. Observations             (editable, left to the trainer)
-       */
-      function renderTable(terms) {
-        var tbody = document.getElementById('docTableBody');
-
-        if (!terms.length) {
-          tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">' +
-            'No learning outcomes have been added for this module yet.</td></tr>';
-          return;
-        }
-
-        var html = terms.map(renderTermBlock).join('');
-        tbody.innerHTML = html;
-
-        // Clear a cell's placeholder text the first time the trainer clicks into it.
-        tbody.querySelectorAll('.gen-editable-cell, .gen-editable-inline').forEach(function (cell) {
-          cell.addEventListener('focus', function onFocus() {
-            var placeholder = cell.querySelector ? cell.querySelector('.gen-placeholder-text') : null;
-            if (placeholder) {
-              cell.textContent = '';
-            } else if (cell.classList.contains('gen-editable-inline') && cell.getAttribute('data-placeholder') === 'true') {
-              cell.textContent = '';
-              cell.removeAttribute('data-placeholder');
-            }
-            cell.classList.remove('gen-ai-filled');
-            var badge = cell.querySelector('.gen-ai-badge');
-            if (badge) badge.remove();
-          }, { once: true });
-        });
-
-        attachWeekPagers(tbody);
-      }
-
-      // One term = one separator row + one (screen-only) pager row +
-      // one <tr> per week in that term (only the first is shown on load).
-      function renderTermBlock(term) {
-        var weeksInTerm = term.weeks.length;
-        var firstLocalWeek = term.weeks[0].localWeek;
-        var lastLocalWeek = term.weeks[weeksInTerm - 1].localWeek;
-        var weekRangeLabel = weeksInTerm > 1
-          ? ('Weeks ' + firstLocalWeek + '\u2013' + lastLocalWeek)
-          : ('Week ' + firstLocalWeek);
-
-        var html = '' +
-          '<tr class="gen-term-separator"><td colspan="9">' +
-            '<div class="gen-term-sep-inner">' +
-              '<span class="gen-term-sep-label"><i class="fa-solid fa-layer-group"></i> Term ' + term.termNumber + '</span>' +
-              '<span class="gen-term-sep-meta">' + TMSGen.escapeHtml(weekRangeLabel) + ' \u00b7 ' + weeksInTerm + ' week' + (weeksInTerm === 1 ? '' : 's') + ' \u00b7 ' + term.totalHours + ' hrs</span>' +
-            '</div>' +
-          '</td></tr>' +
-          '<tr class="gen-week-pager-row no-print" data-term="' + term.termNumber + '">' +
-            '<td colspan="9">' +
-              '<div class="gen-week-pager">' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="-1" data-term="' + term.termNumber + '" disabled>' +
-                  '<i class="fa-solid fa-chevron-left"></i> Prev' +
-                '</button>' +
-                '<span class="gen-week-pager-label" data-term="' + term.termNumber + '">Week 1 of ' + weeksInTerm + '</span>' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="1" data-term="' + term.termNumber + '"' + (weeksInTerm <= 1 ? ' disabled' : '') + '>' +
-                  'Next <i class="fa-solid fa-chevron-right"></i>' +
-                '</button>' +
-              '</div>' +
-            '</td>' +
-          '</tr>';
-
-        html += term.weeks.map(function (unit, idx) {
-          return renderWeekRow(unit, term.termNumber, idx === 0);
-        }).join('');
-
-        return html;
-      }
-
-      function renderWeekRow(unit, termNumber, isVisible) {
-        var outcome = unit.outcome;
-        var weekLabel = unit.partsTotal > 1
-          ? ('Week ' + unit.localWeek + ' (' + unit.partIndex + '/' + unit.partsTotal + ')')
-          : ('Week ' + unit.localWeek);
-
-        var contentItems = unit.contents
-          .map(function (text) { return '<li>' + TMSGen.escapeHtml(text) + '</li>'; })
+        var contentItems = data.contents
+          .filter(function (c) { return c.outcome_id === outcome.id; })
+          .map(function (c) { return '<li>' + TMSGen.escapeHtml(c.indic_name) + '</li>'; })
           .join('');
+
         var contentCell = contentItems
           ? ('<ul class="gen-bullets">' + contentItems + '</ul>')
-          : '<span class="text-muted">No indicative content this week.</span>';
+          : '<span class="text-muted">No indicative content added.</span>';
 
         return '' +
-          '<tr class="gen-week-row" data-outcome-id="' + outcome.id + '" data-term="' + termNumber + '" data-local-week="' + unit.localWeek + '"' +
-            (isVisible ? '' : ' style="display:none;"') + '>' +
+          '<tr data-outcome-id="' + outcome.id + '" data-term="' + row.term + '" ' +
+              'data-week-start="' + row.weekStart + '" data-week-end="' + row.weekEnd + '">' +
             '<td class="gen-editable-cell">' +
               '<div class="gen-week-cell">' +
                 '<span class="gen-week-pill" contenteditable="false">' + TMSGen.escapeHtml(weekLabel) + '</span>' +
@@ -1319,7 +1160,7 @@
               '</div>' +
             '</td>' +
             '<td>' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '</td>' +
-            '<td>' + unit.hoursThisWeek + '</td>' +
+            '<td>' + outcome.learning_hours + '</td>' +
             '<td>' + contentCell + '</td>' +
             '<td class="gen-editable-cell" contenteditable="true" data-field="learning_activities">' +
               '<span class="gen-placeholder-text">[Methodologies, comma-separated, max 3]</span>' +
@@ -1339,43 +1180,135 @@
           '</tr>';
       }
 
-      // Wires up each term's Prev/Next buttons so only one week's <tr> is
-      // visible at a time on screen ("Week 1 -> Week 2 -> Week 3 ...").
-      // All weeks stay in the DOM (and are forced visible again for
-      // print — see the @media print rule for .gen-week-row) so no
-      // trainer edits are ever lost by paging or printing.
-      function attachWeekPagers(tbody) {
-        tbody.querySelectorAll('.gen-week-nav').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var termNumber = btn.getAttribute('data-term');
-            var dir = parseInt(btn.getAttribute('data-dir'), 10);
-            var rows = Array.prototype.slice.call(
-              tbody.querySelectorAll('tr.gen-week-row[data-term="' + termNumber + '"]')
-            );
-            if (!rows.length) return;
+      function buildTermDividerHtml(term) {
+        return '' +
+          '<tr class="gen-term-divider" data-term-divider="' + term.number + '">' +
+            '<td colspan="9">Term ' + term.number +
+              '<span class="gen-term-sub">' + term.weekCount + ' week' + (term.weekCount === 1 ? '' : 's') +
+              ' \u00b7 ' + term.totalHours + ' hrs</span>' +
+            '</td>' +
+          '</tr>';
+      }
 
-            var currentIndex = rows.findIndex(function (r) { return r.style.display !== 'none'; });
-            if (currentIndex === -1) currentIndex = 0;
+      /**
+       * Renders the full 9-column REB-style scheme of work body, with every
+       * term and every one of its weeks present in the DOM (each row tagged
+       * with data-term / data-week-start / data-week-end) and a divider row
+       * ahead of each term. applyWeekView() then shows/hides rows so the
+       * screen displays one week at a time while printing always shows the
+       * complete document — see the @media print rule above.
+       *   1. Weeks & Dates            (auto week label + editable date — narrow, shrink-to-fit)
+       *   2. Learning Unit (LU)       (from the module's learning outcome)
+       *   3. Learning Hours           (from the learning outcome — narrow, shrink-to-fit)
+       *   4. Indicative Content (IC)  (bulleted, from indicative content)
+       *   5. Learning Activities      (editable, AI-fillable — comma-separated line, max 3 methodologies)
+       *   6. Resources                (editable, AI-fillable — comma-separated line)
+       *   7. Learning Place           (editable, AI-fillable — plain text)
+       *   8. Evidences of Formative Assessment (editable, AI-fillable — comma-separated line, e.g. assessment type)
+       *   9. Observations             (editable, placeholder text — left to the trainer)
+       */
+      function renderTable(schedule) {
+        var tbody = document.getElementById('docTableBody');
 
-            var newIndex = Math.min(rows.length - 1, Math.max(0, currentIndex + dir));
-            if (newIndex === currentIndex) return;
+        var hasRows = schedule.terms.some(function (t) { return t.rows.length > 0; });
+        if (!hasRows) {
+          tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">' +
+            'No learning outcomes have been added for this module yet.</td></tr>';
+          return;
+        }
 
-            rows[currentIndex].style.display = 'none';
-            rows[newIndex].style.display = '';
-            updateWeekPagerControls(tbody, termNumber, newIndex, rows.length);
-          });
+        var rowsHtml = schedule.terms.map(function (term) {
+          return buildTermDividerHtml(term) + term.rows.map(buildRowHtml).join('');
+        }).join('');
+
+        tbody.innerHTML = rowsHtml;
+
+        // Clear a cell's placeholder text the first time the trainer clicks into it.
+        tbody.querySelectorAll('.gen-editable-cell, .gen-editable-inline').forEach(function (cell) {
+          cell.addEventListener('focus', function onFocus() {
+            var placeholder = cell.querySelector ? cell.querySelector('.gen-placeholder-text') : null;
+            if (placeholder) {
+              cell.textContent = '';
+            } else if (cell.classList.contains('gen-editable-inline') && cell.getAttribute('data-placeholder') === 'true') {
+              cell.textContent = '';
+              cell.removeAttribute('data-placeholder');
+            }
+            cell.classList.remove('gen-ai-filled');
+            var badge = cell.querySelector('.gen-ai-badge');
+            if (badge) badge.remove();
+          }, { once: true });
         });
       }
 
-      function updateWeekPagerControls(tbody, termNumber, currentIndex, total) {
-        var label = tbody.querySelector('.gen-week-pager-label[data-term="' + termNumber + '"]');
-        if (label) label.textContent = 'Week ' + (currentIndex + 1) + ' of ' + total;
+      // ------------------------------------------------------------------
+      // One-week-at-a-time navigation.
+      //
+      // All terms/weeks are always in the DOM (see renderTable); this
+      // just shows/hides <tr> elements based on the currently selected
+      // (term, week) pair, or shows everything at once when the "show
+      // every term & week" toggle is on. Printing always forces every
+      // row visible regardless of this state — see the @media print rule.
+      // ------------------------------------------------------------------
+      function applyWeekView(mode) {
+        var tbody = document.getElementById('docTableBody');
+        if (!tbody || !currentContext) return;
 
-        var navBtns = tbody.querySelectorAll('.gen-week-nav[data-term="' + termNumber + '"]');
-        navBtns.forEach(function (btn) {
-          var dir = parseInt(btn.getAttribute('data-dir'), 10);
-          btn.disabled = dir < 0 ? currentIndex === 0 : currentIndex === total - 1;
+        weekNav.setAttribute('data-mode', mode);
+
+        if (mode === 'all') {
+          tbody.querySelectorAll('tr').forEach(function (tr) { tr.style.display = ''; });
+          weekNavLabel.textContent = 'Showing every term & week';
+          return;
+        }
+
+        var flatWeeks = currentContext.schedule.flatWeeks;
+        if (!flatWeeks.length) return;
+        currentWeekIndex = Math.max(0, Math.min(currentWeekIndex, flatWeeks.length - 1));
+        var current = flatWeeks[currentWeekIndex];
+
+        tbody.querySelectorAll('tr[data-term-divider]').forEach(function (tr) {
+          tr.style.display = 'none';
         });
+        tbody.querySelectorAll('tr[data-outcome-id]').forEach(function (tr) {
+          var term = Number(tr.getAttribute('data-term'));
+          var weekStart = Number(tr.getAttribute('data-week-start'));
+          var weekEnd = Number(tr.getAttribute('data-week-end'));
+          var matches = term === current.term && current.week >= weekStart && current.week <= weekEnd;
+          tr.style.display = matches ? '' : 'none';
+        });
+
+        updateWeekNavLabel(current, flatWeeks.length);
+      }
+
+      function updateWeekNavLabel(current, totalWeeks) {
+        weekNavLabel.textContent =
+          'Term ' + current.term + ' \u00b7 Week ' + current.week +
+          ' (' + (currentWeekIndex + 1) + ' of ' + totalWeeks + ')';
+      }
+
+      function stepWeek(delta) {
+        if (!currentContext) return;
+        var flatWeeks = currentContext.schedule.flatWeeks;
+        if (!flatWeeks.length) return;
+        currentWeekIndex = Math.max(0, Math.min(currentWeekIndex + delta, flatWeeks.length - 1));
+        applyWeekView('single');
+      }
+
+      function onPrint() {
+        // The printed/saved document is always the complete scheme of
+        // work — every term, every week — even if the screen is
+        // currently showing just one week. The @media print rule also
+        // forces every row visible as a safety net, but restoring the
+        // screen's own view afterwards keeps the on-screen state tidy.
+        var wasAllMode = weekNav.getAttribute('data-mode') === 'all';
+        if (!wasAllMode) applyWeekView('all');
+
+        window.addEventListener('afterprint', function restoreView() {
+          window.removeEventListener('afterprint', restoreView);
+          if (!wasAllMode) applyWeekView('single');
+        });
+
+        TMSGen.print();
       }
 
       // ------------------------------------------------------------------
@@ -1409,15 +1342,12 @@
       function markRowsLoading(outcomeIds) {
         var fields = ['learning_activities', 'resources', 'learning_place', 'evidence'];
         outcomeIds.forEach(function (id) {
-          // An outcome can now span several week rows (one per term/week
-          // it's taught in), so every matching row gets the same draft.
-          var rows = document.querySelectorAll('tr[data-outcome-id="' + id + '"]');
-          rows.forEach(function (row) {
-            fields.forEach(function (field) {
-              var cell = row.querySelector('[data-field="' + field + '"]');
-              if (!cell) return;
-              cell.innerHTML = '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
-            });
+          var row = document.querySelector('tr[data-outcome-id="' + id + '"]');
+          if (!row) return;
+          fields.forEach(function (field) {
+            var cell = row.querySelector('[data-field="' + field + '"]');
+            if (!cell) return;
+            cell.innerHTML = '<span class="gen-ai-loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Drafting…</span>';
           });
         });
       }
@@ -1453,10 +1383,8 @@
       }
 
       function fillRowWithAiResult(outcomeId, result) {
-        // Same outcome, every week row it appears in (across terms/weeks)
-        // gets the same AI draft applied.
-        var rows = document.querySelectorAll('tr[data-outcome-id="' + outcomeId + '"]');
-        if (!rows.length) return;
+        var row = document.querySelector('tr[data-outcome-id="' + outcomeId + '"]');
+        if (!row) return;
 
         // Learning Activities (max 3 methodologies), Resources, and
         // Evidence (max 2 assessment types) all render as a single
@@ -1467,44 +1395,40 @@
           evidence: { value: result.evidence, maxItems: 2 },
         };
 
-        rows.forEach(function (row) {
-          Object.keys(csvFieldConfig).forEach(function (field) {
-            var cell = row.querySelector('[data-field="' + field + '"]');
-            if (!cell) return;
-            var cfg = csvFieldConfig[field];
-            var line = toCsvLine(cfg.value, cfg.maxItems);
-            if (!line) {
-              cell.innerHTML = '<span class="gen-ai-error-text">AI did not return content — click to fill in manually.</span>';
-              return;
-            }
-            cell.innerHTML = TMSGen.escapeHtml(line) + '<span class="gen-ai-badge">AI</span>';
-            cell.classList.add('gen-ai-filled');
-          });
-
-          // Learning Place stays a single plain-text value (not a list).
-          var placeCell = row.querySelector('[data-field="learning_place"]');
-          if (placeCell) {
-            var placeText = (result.learning_place || '').toString().trim();
-            if (!placeText) {
-              placeCell.innerHTML = '<span class="gen-ai-error-text">AI did not return content — click to fill in manually.</span>';
-            } else {
-              placeCell.innerHTML = TMSGen.escapeHtml(placeText) + '<span class="gen-ai-badge">AI</span>';
-              placeCell.classList.add('gen-ai-filled');
-            }
+        Object.keys(csvFieldConfig).forEach(function (field) {
+          var cell = row.querySelector('[data-field="' + field + '"]');
+          if (!cell) return;
+          var cfg = csvFieldConfig[field];
+          var line = toCsvLine(cfg.value, cfg.maxItems);
+          if (!line) {
+            cell.innerHTML = '<span class="gen-ai-error-text">AI did not return content — click to fill in manually.</span>';
+            return;
           }
+          cell.innerHTML = TMSGen.escapeHtml(line) + '<span class="gen-ai-badge">AI</span>';
+          cell.classList.add('gen-ai-filled');
         });
+
+        // Learning Place stays a single plain-text value (not a list).
+        var placeCell = row.querySelector('[data-field="learning_place"]');
+        if (placeCell) {
+          var placeText = (result.learning_place || '').toString().trim();
+          if (!placeText) {
+            placeCell.innerHTML = '<span class="gen-ai-error-text">AI did not return content — click to fill in manually.</span>';
+          } else {
+            placeCell.innerHTML = TMSGen.escapeHtml(placeText) + '<span class="gen-ai-badge">AI</span>';
+            placeCell.classList.add('gen-ai-filled');
+          }
+        }
       }
 
       function markRowFailed(outcomeId) {
-        var rows = document.querySelectorAll('tr[data-outcome-id="' + outcomeId + '"]');
-        if (!rows.length) return;
+        var row = document.querySelector('tr[data-outcome-id="' + outcomeId + '"]');
+        if (!row) return;
         var fields = ['learning_activities', 'resources', 'learning_place', 'evidence'];
-        rows.forEach(function (row) {
-          fields.forEach(function (field) {
-            var cell = row.querySelector('[data-field="' + field + '"]');
-            if (!cell) return;
-            cell.innerHTML = '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
-          });
+        fields.forEach(function (field) {
+          var cell = row.querySelector('[data-field="' + field + '"]');
+          if (!cell) return;
+          cell.innerHTML = '<span class="gen-ai-error-text">Couldn\'t generate this — click to fill in manually.</span>';
         });
       }
 
@@ -1524,7 +1448,6 @@
           module_code: ctx.mod.mod_code,
           module_name: ctx.mod.mod_name,
           hours_per_week: ctx.hoursPerWeek,
-          weeks_per_term: ctx.termWeeksArray,
           outcomes: ctx.outcomes.map(function (o) {
             return {
               outcome_id: o.id,
