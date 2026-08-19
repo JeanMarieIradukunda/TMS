@@ -1202,27 +1202,23 @@
         });
       }
 
-      function renderMeta(ctx) {
-        var mod = ctx.mod;
-        var rows = [
-          ['Sector', ctx.sector],
-          ['Trade', ctx.trade],
-          ['Level', ctx.level],
-          ['Module code', mod.mod_code],
-          ['Module name', mod.mod_name],
-          ['Trainer', mod.trainer_name || '\u2014'],
-          ['Term', mod.term || '\u2014'],
-          ['Total learning hours', mod.learning_hours + ' hrs'],
-          ['Hours per week', ctx.hoursPerWeek + ' hrs'],
-          ['Weeks per term', ctx.termWeeksArray.join(', ')],
-          ['Terms \u00b7 Weeks', ctx.totalTerms + ' term' + (ctx.totalTerms === 1 ? '' : 's') + ' \u00b7 ' + ctx.totalWeeks + ' week' + (ctx.totalWeeks === 1 ? '' : 's') + ' total'],
-          ['Teaching \u00b7 Reserved weeks', ctx.totalTeachingWeeks + ' teaching \u00b7 ' + (ctx.totalWeeks - ctx.totalTeachingWeeks) + ' reserved (Revision / Examinations / Marking)'],
-        ];
-        var el = document.getElementById('docMeta');
-        el.innerHTML = rows.map(function (r) {
-          return '<div><dt>' + TMSGen.escapeHtml(r[0]) + '</dt><dd>' + TMSGen.escapeHtml(r[1]) + '</dd></div>';
-        }).join('');
-      }
+function renderMeta(ctx) {
+  var mod = ctx.mod;
+  var rows = [
+    ['Sector', ctx.sector],
+    ['Trade', ctx.trade],
+    ['Level', ctx.level],
+    ['Module code', mod.mod_code],
+    ['Module name', mod.mod_name],
+    ['Trainer', mod.trainer_name || '\u2014'],
+    ['Term', mod.term || '\u2014'],
+    ['Total learning hours', mod.learning_hours + ' hrs'],
+  ];
+  var el = document.getElementById('docMeta');
+  el.innerHTML = rows.map(function (r) {
+    return '<div><dt>' + TMSGen.escapeHtml(r[0]) + '</dt><dd>' + TMSGen.escapeHtml(r[1]) + '</dd></div>';
+  }).join('');
+}
 
       function contentsForOutcome(outcomeId) {
         return data.contents
