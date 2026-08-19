@@ -98,7 +98,7 @@ def _build_generator_payload():
 
     logos = [
 
-        {'id': l.id, 'name': l.name, 'image': l.image.name}
+        {'id': l.id, 'name': l.name, 'image': l.image}
         for l in Logo.objects.all()
     ]
 

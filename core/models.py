@@ -3,7 +3,7 @@ from django.db import models
 
 class Logo(models.Model):
     name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='logos/') 
+    image = models.TextField(help_text='Base64 string or image URL')
 
     class Meta:
         ordering = ['name']
