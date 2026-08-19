@@ -40,13 +40,14 @@ class TrainerAdmin(admin.ModelAdmin):
 class ModuleAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'mod_code', 'mod_name', 'trade', 'level', 'trainer',
-        'learning_hours', 'term', 'num_terms', 'term_weeks',
+        'learning_hours', 'term', 'num_terms', 'term_weeks', 'is_active',
     )
-    list_filter = ('trade', 'level', 'term')
+    list_filter = ('trade', 'level', 'term', 'is_active')
+    list_editable = ('is_active',)
     search_fields = ('mod_code', 'mod_name')
     fields = (
         'trade', 'level', 'trainer', 'mod_code', 'mod_name',
-        'learning_hours', 'term', 'num_terms', 'term_weeks',
+        'learning_hours', 'term', 'num_terms', 'term_weeks', 'is_active',
     )
 
 
