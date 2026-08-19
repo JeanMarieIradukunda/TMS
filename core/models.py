@@ -102,8 +102,24 @@ class Module(models.Model):
         ),
     )
 
+    # ------------------------------------------------------------------
+    # Lock/unlock switch. When unchecked, the module is hidden from the
+    # public Scheme of Work / Lesson Plan generators (it simply won't
+    # appear in their dropdowns), effectively blocking its usage without
+    # deleting any of its data. Admin CRUD screens still show and allow
+    # editing locked modules so an admin can fix and re-enable them.
+    # ------------------------------------------------------------------
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Unlocked (usable) modules appear in the public generators. "
+                   "Lock a module to block it from being used there.",
+    )
+
     class Meta:
         ordering = ['mod_code']
+        permissions = [
+            ("toggle_module_status", "Can lock/unlock module usage"),
+        ]
 
     def __str__(self):
         return f"{self.mod_code} - {self.mod_name}"
