@@ -790,6 +790,12 @@
     <!-- ==================== GENERATED DOCUMENT ==================== -->
     <section id="docSection" class="d-none">
 
+      <div class="gen-stale-banner d-none no-print" id="docStaleBanner">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span>Terms, weeks, training hours or the selected module changed since this schedule was generated.</span>
+        <button type="button" class="btn btn-sm btn-gold" id="docStaleRefreshBtn">Refresh schedule</button>
+      </div>
+
       <div class="gen-toolbar no-print">
         <div class="gen-toolbar-note">
           <i class="fa-solid fa-pen me-1"></i>
@@ -818,6 +824,14 @@
         </div>
 
         <dl class="gen-meta-grid" id="docMeta"></dl>
+
+        <div class="gen-coverage-warning d-none" id="docCoverageWarning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>Please review before printing:</strong>
+            <ul id="docCoverageWarningList"></ul>
+          </div>
+        </div>
 
         <div class="gen-table-wrap">
           <table class="gen-table gen-table-v2">
@@ -993,6 +1007,21 @@
           .map(function (el) { return Math.max(1, parseInt(el.value, 10) || 12); });
       }
 
+      // Once a scheme of work has already been generated, any further
+      // change to terms, weeks, training hours, or the selected module
+      // recalculates the underlying schedule automatically — but the
+      // rendered table itself is only rebuilt when the trainer confirms
+      // via the "Refresh schedule" banner, never silently on every
+      // keystroke, so hand-typed dates/activities/resources/etc. in
+      // already-editable cells are never wiped out without warning.
+      var staleBanner = null, staleRefreshBtn = null;
+      function scheduleAutoRegenerate() {
+        if (!currentContext) return;
+        if (!staleBanner) staleBanner = document.getElementById('docStaleBanner');
+        if (!staleRefreshBtn) staleRefreshBtn = document.getElementById('docStaleRefreshBtn');
+        if (staleBanner) staleBanner.classList.remove('d-none');
+      }
+
       function init() {
         if (!data.trades || data.trades.length === 0) {
           noDataAlert.classList.remove('d-none');
@@ -1008,9 +1037,16 @@
 
         tradeSelect.addEventListener('change', onTradeChange);
         levelSelect.addEventListener('change', onLevelChange);
-        moduleSelect.addEventListener('change', onModuleChange);
-        numTermsInput.addEventListener('input', function () { renderTermWeeksInputs(); });
+        moduleSelect.addEventListener('change', function () { onModuleChange(); scheduleAutoRegenerate(); });
+        numTermsInput.addEventListener('input', function () { renderTermWeeksInputs(); scheduleAutoRegenerate(); });
         renderTermWeeksInputs();
+        hoursPerWeekInput.addEventListener('input', scheduleAutoRegenerate);
+        // Delegated: the term-week inputs are rebuilt every time the
+        // term count changes, so a single listener on their container
+        // covers whichever inputs currently exist.
+        termWeeksGrid.addEventListener('input', function (e) {
+          if (e.target && e.target.classList.contains('gen-term-week-input')) scheduleAutoRegenerate();
+        });
         generateBtn.addEventListener('click', onGenerate);
         resetBtn.addEventListener('click', onReset);
         editSelectionBtn.addEventListener('click', function () {
@@ -1018,6 +1054,8 @@
         });
         printBtn.addEventListener('click', TMSGen.print);
         aiGenerateBtn.addEventListener('click', onAiGenerate);
+        var refreshBtn = document.getElementById('docStaleRefreshBtn');
+        if (refreshBtn) refreshBtn.addEventListener('click', function () { onGenerate({ silent: true }); });
       }
 
       function onTradeChange() {
@@ -1083,9 +1121,11 @@
         currentContext = null;
       }
 
-      function onGenerate() {
+      function onGenerate(opts) {
+        opts = opts || {};
         var moduleId = moduleSelect.value ? Number(moduleSelect.value) : null;
         if (!moduleId) {
+          if (opts.silent) return;
           TMS.toast('Please select a trade, level and module first.', 'danger');
           return;
         }
@@ -1102,17 +1142,24 @@
           .filter(function (o) { return o.module_id === moduleId; })
           .sort(function (a, b) { return a.id - b.id; });
 
-        // Build the week-by-week schedule once, then group those weeks
-        // into terms using each term's own week count. Both the meta
-        // panel and the table are rendered from this same schedule so
-        // the numbers always agree.
+        // Fixed schedule structure first: the user's terms/weeks are
+        // split into teaching weeks + the reserved final-3-weeks block
+        // (Revision / Examinations / Marking) BEFORE any content is
+        // considered, so hours-per-week and module content can only
+        // ever affect how things fit inside that structure - never the
+        // structure itself.
+        var termStructure = buildTermStructure(termWeeksArray);
+
+        // Build the week-by-week content plan (minimum weeks each LO
+        // needs at this pace) and place it only into teaching weeks.
         var weekUnits = buildWeekUnits(outcomes, hoursPerWeek);
-        var terms = groupIntoTerms(weekUnits, termWeeksArray);
+        var placement = placeUnitsIntoTerms(weekUnits, termStructure);
+        var terms = placement.terms;
 
         currentContext = {
           mod: mod, trade: trade, level: level, sector: sector,
           outcomes: outcomes, hoursPerWeek: hoursPerWeek, termWeeksArray: termWeeksArray,
-          weekUnits: weekUnits, terms: terms,
+          weekUnits: weekUnits, terms: terms, termStructure: termStructure,
         };
 
         renderLogos(data.logos);
@@ -1129,14 +1176,19 @@
           // Week must not be able to change what's shown here either.
           totalWeeks: termWeeksArray.reduce(function (a, b) { return a + b; }, 0),
           totalTerms: termWeeksArray.length,
+          totalTeachingWeeks: placement.totalTeachingWeeks,
         });
         renderTable(terms);
+        renderCoverageWarning(buildCoverageMessages(termStructure, placement));
+
+        var staleBannerEl = document.getElementById('docStaleBanner');
+        if (staleBannerEl) staleBannerEl.classList.add('d-none');
 
         document.getElementById('docPreparedBy').textContent = mod.trainer_name || '';
         document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
 
         docSection.classList.remove('d-none');
-        docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!opts.silent) docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
       function renderLogos(logos) {
@@ -1164,6 +1216,7 @@
           ['Hours per week', ctx.hoursPerWeek + ' hrs'],
           ['Weeks per term', ctx.termWeeksArray.join(', ')],
           ['Terms \u00b7 Weeks', ctx.totalTerms + ' term' + (ctx.totalTerms === 1 ? '' : 's') + ' \u00b7 ' + ctx.totalWeeks + ' week' + (ctx.totalWeeks === 1 ? '' : 's') + ' total'],
+          ['Teaching \u00b7 Reserved weeks', ctx.totalTeachingWeeks + ' teaching \u00b7 ' + (ctx.totalWeeks - ctx.totalTeachingWeeks) + ' reserved (Revision / Examinations / Marking)'],
         ];
         var el = document.getElementById('docMeta');
         el.innerHTML = rows.map(function (r) {
@@ -1197,18 +1250,81 @@
       }
 
       /**
+       * The final 3 weeks of every term are always reserved and are
+       * never available for LO/IC delivery, in this chronological
+       * order (closest to the end of term last):
+       *   1. Revision
+       *   2. Examinations
+       *   3. Marking / Assessment Processing
+       */
+      var RESERVED_WEEK_TYPES = [
+        { key: 'revision', label: 'Revision' },
+        { key: 'examinations', label: 'Examinations' },
+        { key: 'marking', label: 'Marking / Assessment Processing' },
+      ];
+
+      /**
+       * Turns the user's raw per-term week counts (termWeeksArray) into
+       * the FIXED schedule structure: each term keeps its own exact
+       * total week count (never changed by content or hours-per-week),
+       * with its final up-to-3 weeks reserved for Revision /
+       * Examinations / Marking and the remainder left as teaching
+       * weeks that LOs/ICs may actually be scheduled into.
+       *
+       * Terms shorter than 3 weeks can't fit all three reserved
+       * activities as separate weeks. Rather than let a reserved week
+       * collide with a teaching week (or invent extra weeks), the
+       * reserved slice is safely capped to the term's own length,
+       * keeping the activities nearest the end of term first
+       * (Marking, then Examinations, then Revision) since assessment
+       * and marking are the least safe to drop. This is surfaced to
+       * the user via buildCoverageMessages() so it's never silent.
+       */
+      function buildTermStructure(termWeeksArray) {
+        return (termWeeksArray || []).map(function (rawTotal, idx) {
+          var totalWeeks = Math.max(1, parseInt(rawTotal, 10) || 1);
+          var reservedCount = Math.min(3, totalWeeks);
+          var teachingWeeksCount = totalWeeks - reservedCount;
+          var reservedTypes = RESERVED_WEEK_TYPES.slice(RESERVED_WEEK_TYPES.length - reservedCount);
+          return {
+            termNumber: idx + 1,
+            totalWeeks: totalWeeks,
+            teachingWeeksCount: teachingWeeksCount,
+            reservedCount: reservedCount,
+            reservedTypes: reservedTypes,
+          };
+        });
+      }
+
+      // Flattens every term's teaching weeks (i.e. excluding the
+      // reserved final-3-weeks block) into one ordered list of
+      // { termIndex, localWeek } slots that LO/IC content can be
+      // placed into, term by term, in order.
+      function buildTeachingSlots(termStructure) {
+        var slots = [];
+        termStructure.forEach(function (t, termIndex) {
+          for (var w = 1; w <= t.teachingWeeksCount; w++) {
+            slots.push({ termIndex: termIndex, localWeek: w });
+          }
+        });
+        return slots;
+      }
+
+      /**
        * Walks every Learning Outcome (in order) and breaks it down into
-       * one "week unit" per week of training it needs, based on hours
-       * per week. Each unit carries only the hours and the slice of
-       * Indicative Content that belong to that specific week, so a long
-       * outcome's IC is spread across its weeks instead of being repeated.
-       * Units are numbered on a single running week counter across the
-       * whole module — groupIntoTerms() below is what later folds that
-       * running counter into terms according to termWeeksArray below.
+       * the MINIMUM number of "week units" it needs at this pace
+       * (hours per week), so an LO is never split into more weeks than
+       * it actually requires. Each unit carries only the hours and the
+       * slice of Indicative Content that belong to that specific week,
+       * so a long outcome's IC is spread across its weeks instead of
+       * being repeated. Units are numbered on a single running index
+       * across the whole module — placeUnitsIntoTerms() below is what
+       * maps that running index onto actual teaching weeks (skipping
+       * the reserved Revision/Examinations/Marking weeks entirely).
        */
       function buildWeekUnits(outcomes, hoursPerWeek) {
         var units = [];
-        var globalWeek = 1;
+        var slotIndex = 0;
 
         outcomes.forEach(function (outcome) {
           var weeksNeeded = Math.max(1, Math.ceil(outcome.learning_hours / hoursPerWeek));
@@ -1222,13 +1338,13 @@
 
             units.push({
               outcome: outcome,
-              weekIndexGlobal: globalWeek,
+              slotIndex: slotIndex,
               partIndex: i + 1,
               partsTotal: weeksNeeded,
               hoursThisWeek: hoursThisWeek,
               contents: contentChunks[i] || [],
             });
-            globalWeek++;
+            slotIndex++;
           }
         });
 
@@ -1236,60 +1352,126 @@
       }
 
       /**
-       * Groups a flat list of week units into terms whose lengths come
-       * from `termWeeksArray` (one entry per term, in order — e.g.
-       * [12, 12, 8] for a 3-term module where Term 3 is 8 weeks). This
-       * is what "creates a term record for each module" and "divides
-       * all Learning Outcomes and Indicative Contents into terms"
-       * according to each term's own available weeks.
+       * Places the flat list of week units into the term structure's
+       * teaching weeks only, term by term, in order — LOs/ICs can never
+       * land on a reserved Revision/Examinations/Marking week.
        *
-       * IMPORTANT — Number of terms / weeks per term come ONLY from the
-       * user's own configuration (`termWeeksArray`, itself derived from
-       * the module's saved num_terms / term_weeks or the on-screen
-       * overrides). Training Hours per Week only ever decides how many
-       * weeks a given Learning Outcome's content needs (see
-       * buildWeekUnits) and therefore how content is *distributed*
-       * across the weeks that already exist — it must never grow the
-       * number of terms or weeks. If a slower pace (a low hours-per-week
-       * value) would need more weeks than the user defined, the
-       * remaining content is folded into the final defined week instead
-       * of inventing extra terms/weeks, so the generated document's
-       * term/week structure always exactly matches what the user set.
+       * IMPORTANT — the number of terms and weeks per term always come
+       * ONLY from termStructure (itself derived from the user's own
+       * termWeeksArray). Training Hours per Week only ever decides how
+       * many teaching weeks a given LO's content needs (buildWeekUnits)
+       * and therefore how content is *distributed* across the teaching
+       * weeks that already exist — it can never grow or shrink the
+       * number of terms or weeks.
+       *
+       * If the content needs more teaching weeks than are actually
+       * available (after reserving the final 3 weeks of every term),
+       * that is a genuine capacity shortfall — not something this
+       * function should hide by silently dropping content or letting
+       * it overlap a reserved week. The excess units are placed on the
+       * last available teaching week (so nothing is lost from the
+       * document) and the shortfall is reported back via
+       * `shortfallUnits` so the caller can flag it clearly to the user.
        */
-      function groupIntoTerms(weekUnits, termWeeksArray) {
-        var boundaries = []; // boundaries[i] = last global week (1-indexed) covered by term i+1
-        var cum = 0;
-        (termWeeksArray || []).forEach(function (w) {
-          cum += Math.max(1, w);
-          boundaries.push(cum);
+      function placeUnitsIntoTerms(weekUnits, termStructure) {
+        var slots = buildTeachingSlots(termStructure);
+        var totalTeachingWeeks = slots.length;
+
+        var terms = termStructure.map(function (t) {
+          return {
+            termNumber: t.termNumber,
+            totalWeeks: t.totalWeeks,
+            teachingWeeksCount: t.teachingWeeksCount,
+            reservedTypes: t.reservedTypes,
+            weeks: [],
+            totalHours: 0,
+          };
         });
-        if (!boundaries.length) boundaries.push(12);
 
-        var totalWeeksAvailable = boundaries[boundaries.length - 1];
-        var lastTermIndex = boundaries.length - 1;
+        // A module with zero teaching weeks anywhere (every term too
+        // short) still needs somewhere safe to place content so
+        // nothing silently vanishes - fall back to a single synthetic
+        // slot in term 1; buildCoverageMessages() explains why.
+        var effectiveSlots = totalTeachingWeeks ? slots : [{ termIndex: 0, localWeek: 1 }];
 
-        var terms = [];
-        weekUnits.forEach(function (unit) {
-          // Clamp to the user-defined schedule: never let hours-per-week
-          // push a unit past the last week of the last term the user
-          // configured. Overflow content lands in that final week.
-          var g = Math.min(unit.weekIndexGlobal, totalWeeksAvailable);
+        var shortfallUnits = Math.max(0, weekUnits.length - effectiveSlots.length);
 
-          var termIndex = boundaries.findIndex(function (b) { return g <= b; });
-          if (termIndex === -1) termIndex = lastTermIndex;
-          var termStart = termIndex === 0 ? 0 : boundaries[termIndex - 1];
-          unit.localWeek = g - termStart;
+        weekUnits.forEach(function (unit, idx) {
+          var slot = effectiveSlots[Math.min(idx, effectiveSlots.length - 1)];
+          unit.localWeek = slot.localWeek;
+          unit.isOverflow = idx >= effectiveSlots.length;
 
-          var term = terms[termIndex];
-          if (!term) {
-            term = { termNumber: termIndex + 1, weeks: [], totalHours: 0 };
-            terms[termIndex] = term;
-          }
+          var term = terms[slot.termIndex];
           term.weeks.push(unit);
           term.totalHours += unit.hoursThisWeek;
         });
 
-        return terms;
+        return {
+          terms: terms,
+          totalTeachingWeeks: totalTeachingWeeks,
+          shortfallUnits: shortfallUnits,
+        };
+      }
+
+      /**
+       * Builds a short list of plain-English messages flagging any
+       * scheduling issue that would otherwise be silent: terms too
+       * short to fit the full Revision/Examinations/Marking block,
+       * terms left with zero teaching weeks, and — most importantly —
+       * content that needs more teaching weeks than are available.
+       * Returns an empty array when the schedule is fully sound.
+       */
+      function buildCoverageMessages(termStructure, placement) {
+        var messages = [];
+
+        var shortTerms = termStructure.filter(function (t) { return t.totalWeeks < 3; });
+        if (shortTerms.length) {
+          var shortNums = shortTerms.map(function (t) { return t.termNumber; }).join(', ');
+          messages.push(
+            'Term' + (shortTerms.length > 1 ? 's ' + shortNums + ' have' : ' ' + shortNums + ' has') +
+            ' fewer than 3 weeks, so the full Revision / Examinations / Marking block could not be reserved there in full — only ' +
+            (shortTerms.length > 1 ? 'the highest-priority activities were kept' : 'the highest-priority activity was kept') + ' (Marking, then Examinations, then Revision).'
+          );
+        }
+
+        var zeroTeaching = termStructure.filter(function (t) { return t.teachingWeeksCount === 0 && t.totalWeeks >= 3; });
+        if (zeroTeaching.length) {
+          var zeroNums = zeroTeaching.map(function (t) { return t.termNumber; }).join(', ');
+          messages.push(
+            'Term' + (zeroTeaching.length > 1 ? 's ' + zeroNums + ' have' : ' ' + zeroNums + ' has') +
+            ' no teaching weeks left once Revision, Examinations and Marking are reserved — add more weeks to ' +
+            (zeroTeaching.length > 1 ? 'those terms' : 'that term') + ' if LO/IC delivery is needed there.'
+          );
+        }
+
+        if (placement.shortfallUnits > 0) {
+          messages.push(
+            'The selected content needs about ' + placement.shortfallUnits + ' more teaching week' +
+            (placement.shortfallUnits === 1 ? '' : 's') + ' than are available (' + placement.totalTeachingWeeks +
+            ' teaching week' + (placement.totalTeachingWeeks === 1 ? '' : 's') + ' once Revision/Examinations/Marking are reserved). ' +
+            'The remaining content has been compressed into the last available teaching week rather than dropped or scheduled into a reserved week — ' +
+            'increase Training Hours per Week, add more weeks, or reduce the selected content to resolve this.'
+          );
+        }
+
+        return messages;
+      }
+
+      function renderCoverageWarning(messages) {
+        var box = document.getElementById('docCoverageWarning');
+        var list = document.getElementById('docCoverageWarningList');
+        if (!box || !list) return;
+
+        if (!messages || !messages.length) {
+          box.classList.add('d-none');
+          list.innerHTML = '';
+          return;
+        }
+
+        list.innerHTML = messages.map(function (m) {
+          return '<li>' + TMSGen.escapeHtml(m) + '</li>';
+        }).join('');
+        box.classList.remove('d-none');
       }
 
       /**
@@ -1349,38 +1531,64 @@
       }
 
       // One term = one separator row + one (screen-only) pager row +
-      // one <tr> per week in that term (only the first is shown on load).
+      // one <tr> per teaching week + one <tr> per reserved week
+      // (Revision / Examinations / Marking), in that order. Only the
+      // first row in the term is shown on load; the pager steps
+      // through the rest, teaching weeks first, reserved weeks last —
+      // matching their actual position at the end of the term.
       function renderTermBlock(term) {
-        var weeksInTerm = term.weeks.length;
-        var firstLocalWeek = term.weeks[0].localWeek;
-        var lastLocalWeek = term.weeks[weeksInTerm - 1].localWeek;
-        var weekRangeLabel = weeksInTerm > 1
-          ? ('Weeks ' + firstLocalWeek + '\u2013' + lastLocalWeek)
-          : ('Week ' + firstLocalWeek);
+        var teachingCount = term.weeks.length;
+        var reservedCount = term.reservedTypes.length;
+        var totalRows = teachingCount + reservedCount;
+
+        var metaParts = [];
+        metaParts.push(term.teachingWeeksCount + ' teaching week' + (term.teachingWeeksCount === 1 ? '' : 's'));
+        if (reservedCount) {
+          metaParts.push(reservedCount + ' reserved (' + term.reservedTypes.map(function (r) { return r.label; }).join(', ') + ')');
+        }
+        metaParts.push(term.totalWeeks + ' week' + (term.totalWeeks === 1 ? '' : 's') + ' total');
+        metaParts.push(term.totalHours + ' hrs');
 
         var html = '' +
           '<tr class="gen-term-separator"><td colspan="9">' +
             '<div class="gen-term-sep-inner">' +
               '<span class="gen-term-sep-label"><i class="fa-solid fa-layer-group"></i> Term ' + term.termNumber + '</span>' +
-              '<span class="gen-term-sep-meta">' + TMSGen.escapeHtml(weekRangeLabel) + ' \u00b7 ' + weeksInTerm + ' week' + (weeksInTerm === 1 ? '' : 's') + ' \u00b7 ' + term.totalHours + ' hrs</span>' +
+              '<span class="gen-term-sep-meta">' + TMSGen.escapeHtml(metaParts.join(' \u00b7 ')) + '</span>' +
             '</div>' +
-          '</td></tr>' +
+          '</td></tr>';
+
+        if (totalRows === 0) {
+          html += '<tr><td colspan="9" class="text-center text-muted py-3">No weeks available in this term.</td></tr>';
+          return html;
+        }
+
+        html += '' +
           '<tr class="gen-week-pager-row no-print" data-term="' + term.termNumber + '">' +
             '<td colspan="9">' +
               '<div class="gen-week-pager">' +
                 '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="-1" data-term="' + term.termNumber + '" disabled>' +
                   '<i class="fa-solid fa-chevron-left"></i> Prev' +
                 '</button>' +
-                '<span class="gen-week-pager-label" data-term="' + term.termNumber + '">Term ' + term.termNumber + ' \u2013 Week 1 of ' + weeksInTerm + '</span>' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="1" data-term="' + term.termNumber + '"' + (weeksInTerm <= 1 ? ' disabled' : '') + '>' +
+                '<span class="gen-week-pager-label" data-term="' + term.termNumber + '">Term ' + term.termNumber + ' \u2013 Week 1 of ' + totalRows + '</span>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary gen-week-nav" data-dir="1" data-term="' + term.termNumber + '"' + (totalRows <= 1 ? ' disabled' : '') + '>' +
                   'Next <i class="fa-solid fa-chevron-right"></i>' +
                 '</button>' +
               '</div>' +
             '</td>' +
           '</tr>';
 
-        html += term.weeks.map(function (unit, idx) {
-          return renderWeekRow(unit, term.termNumber, idx === 0);
+        var rowsSoFar = 0;
+        html += term.weeks.map(function (unit) {
+          var row = renderWeekRow(unit, term.termNumber, rowsSoFar === 0);
+          rowsSoFar++;
+          return row;
+        }).join('');
+
+        html += term.reservedTypes.map(function (reserved, i) {
+          var localWeek = term.teachingWeeksCount + i + 1;
+          var row = renderReservedWeekRow(reserved, localWeek, term.termNumber, rowsSoFar === 0);
+          rowsSoFar++;
+          return row;
         }).join('');
 
         return html;
@@ -1404,13 +1612,22 @@
           ? ('<ul class="gen-bullets">' + contentItems + '</ul>')
           : '<span class="text-muted">No indicative content this week.</span>';
 
+        // Units that overflowed the available teaching weeks (see
+        // placeUnitsIntoTerms's shortfallUnits) all land on this same
+        // final teaching week — flagged visually so it's obvious this
+        // row is carrying compressed, not silently dropped, content.
+        var overflowNote = unit.isOverflow
+          ? '<div class="gen-overflow-note"><i class="fa-solid fa-triangle-exclamation"></i> Compressed here — see the notice above the table.</div>'
+          : '';
+
         return '' +
-          '<tr class="gen-week-row" data-outcome-id="' + outcome.id + '" data-term="' + termNumber + '" data-local-week="' + unit.localWeek + '"' +
+          '<tr class="gen-week-row' + (unit.isOverflow ? ' gen-overflow-row' : '') + '" data-outcome-id="' + outcome.id + '" data-term="' + termNumber + '" data-local-week="' + unit.localWeek + '"' +
             (isVisible ? '' : ' style="display:none;"') + '>' +
             '<td class="gen-editable-cell">' +
               '<div class="gen-week-cell">' +
                 '<span class="gen-week-pill" contenteditable="false">' + TMSGen.escapeHtml(weekLabel) + '</span>' +
                 '<span class="gen-editable-inline" contenteditable="true" data-placeholder="true">[Insert Date]</span>' +
+                overflowNote +
               '</div>' +
             '</td>' +
             '<td>' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '</td>' +
@@ -1430,6 +1647,49 @@
             '</td>' +
             '<td class="gen-editable-cell" contenteditable="true" data-field="observations">' +
               '<span class="gen-placeholder-text">[Add notes / progress tracking]</span>' +
+            '</td>' +
+          '</tr>';
+      }
+
+      /**
+       * Renders one of the 3 reserved end-of-term weeks (Revision,
+       * Examinations, Marking / Assessment Processing). These weeks are
+       * never available for LO/IC delivery, so the Learning Unit,
+       * Learning Hours and Indicative Content columns are replaced with
+       * a single locked label instead of editable curriculum content —
+       * only the trainer-facing logistics columns (activities/
+       * resources/place/evidence/observations) stay editable, for
+       * notes like a revision plan or exam venue.
+       */
+      function renderReservedWeekRow(reserved, localWeek, termNumber, isVisible) {
+        var weekLabel = 'Term ' + termNumber + ' \u2013 Week ' + localWeek;
+
+        return '' +
+          '<tr class="gen-week-row gen-reserved-row" data-term="' + termNumber + '" data-local-week="' + localWeek + '" data-reserved="' + reserved.key + '"' +
+            (isVisible ? '' : ' style="display:none;"') + '>' +
+            '<td>' +
+              '<div class="gen-week-cell">' +
+                '<span class="gen-week-pill gen-week-pill-reserved" contenteditable="false">' + TMSGen.escapeHtml(weekLabel) + '</span>' +
+              '</div>' +
+            '</td>' +
+            '<td colspan="3" class="gen-reserved-label">' +
+              '<i class="fa-solid fa-circle-info"></i> ' + TMSGen.escapeHtml(reserved.label) +
+              '<div class="gen-reserved-sub">Reserved — no Learning Outcome delivery is scheduled this week.</div>' +
+            '</td>' +
+            '<td class="gen-editable-cell" contenteditable="true" data-field="learning_activities">' +
+              '<span class="gen-placeholder-text">[Optional notes, e.g. revision plan / exam logistics]</span>' +
+            '</td>' +
+            '<td class="gen-editable-cell" contenteditable="true" data-field="resources">' +
+              '<span class="gen-placeholder-text">[Optional]</span>' +
+            '</td>' +
+            '<td class="gen-editable-cell" contenteditable="true" data-field="learning_place">' +
+              '<span class="gen-placeholder-text">[Optional]</span>' +
+            '</td>' +
+            '<td class="gen-editable-cell" contenteditable="true" data-field="evidence">' +
+              '<span class="gen-placeholder-text">[Optional]</span>' +
+            '</td>' +
+            '<td class="gen-editable-cell" contenteditable="true" data-field="observations">' +
+              '<span class="gen-placeholder-text">[Add notes]</span>' +
             '</td>' +
           '</tr>';
       }
