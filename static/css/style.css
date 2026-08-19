@@ -1342,6 +1342,138 @@ body.sidebar-open .sidebar-overlay { display: block; }
   color: #7b859d;
 }
 
+/* ---------- Term separators & week pager (Scheme of Work generator) ---------- */
+.gen-term-separator td {
+  padding: 0.6rem 0.5rem 0.4rem;
+  border-bottom: none;
+  background: transparent;
+}
+
+.gen-term-sep-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  border-bottom: 2px solid var(--navy);
+  padding-bottom: 0.35rem;
+}
+
+.gen-term-sep-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 10.5pt;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.gen-term-sep-label i { color: var(--gold); }
+
+.gen-term-sep-meta {
+  color: #6b7690;
+  font-size: 8.8pt;
+  font-weight: 600;
+}
+
+.gen-week-pager-row td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px dashed #e3e6f2;
+  background: #fafbfe;
+}
+
+.gen-week-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+}
+
+.gen-week-pager-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #52597a;
+  min-width: 9rem;
+  text-align: center;
+}
+
+/* Reserved weeks (Revision / Examinations / Marking): visually
+   distinct from normal LO/IC teaching weeks so it's unmistakable
+   that no curriculum content is scheduled there. */
+.gen-reserved-row { background: rgba(212, 175, 55, 0.06) !important; }
+
+.gen-week-pill-reserved {
+  background: rgba(212, 175, 55, 0.18);
+  color: #7a5d15;
+}
+
+.gen-reserved-label {
+  color: #7a5d15;
+  font-weight: 700;
+  font-size: 9.5pt;
+}
+
+.gen-reserved-label i { margin-right: 0.3rem; }
+
+.gen-reserved-sub {
+  color: #9199b0;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 8.3pt;
+  margin-top: 0.15rem;
+}
+
+.gen-overflow-row { background: rgba(180, 35, 24, 0.05) !important; }
+
+.gen-overflow-note {
+  color: #b42318;
+  font-size: 7.8pt;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+/* Coverage warning banner: flags any term/week shortfall instead of
+   letting content be silently dropped or overlapped. */
+.gen-coverage-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: rgba(180, 35, 24, 0.06);
+  border: 1px solid rgba(180, 35, 24, 0.25);
+  color: #7a1f16;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.gen-coverage-warning i { margin-top: 0.2rem; color: #b42318; }
+.gen-coverage-warning ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.gen-coverage-warning li { margin-bottom: 0.2rem; }
+.gen-coverage-warning li:last-child { margin-bottom: 0; }
+
+/* "Schedule is stale" banner: shown when terms/weeks/hours/module
+   change after a schedule has already been generated, prompting an
+   explicit refresh instead of silently rewriting (and losing) any
+   edits already typed into the table. */
+.gen-stale-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #7a5d15;
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-size: 0.83rem;
+  margin-bottom: 1rem;
+}
+
+.gen-stale-banner i { color: var(--gold); }
+.gen-stale-banner span { flex: 1 1 auto; }
+
 .gen-save-note {
   display: flex;
   align-items: flex-start;
@@ -1427,7 +1559,12 @@ body.sidebar-open .sidebar-overlay { display: block; }
     border: 1px solid #dfe3ee;
   }
 
-  .gen-week-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .gen-week-pill,
+  .gen-week-pill-reserved,
+  .gen-reserved-row,
+  .gen-overflow-row,
+  .gen-coverage-warning,
+  .gen-term-sep-inner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   .gen-section-title { font-size: 12.5pt; margin: 0.6rem 0 0.35rem; page-break-after: avoid; }
   .gen-doc-title h3 { font-size: 16pt; }
