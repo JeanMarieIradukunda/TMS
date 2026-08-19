@@ -13,6 +13,35 @@
     </div>
   </div>
 
+  <!-- Quick actions: the workflows admins repeat most often, front and
+       centre so they don't have to dig through the sidebar for them. -->
+  <section class="dash-section">
+    <h2 class="dash-section-title">Quick actions</h2>
+    <div class="dash-action-grid">
+      <a href="{% url 'outcome-bulk-create' %}" class="dash-action-card dash-accent-teal">
+        <div class="dash-action-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div>
+          <div class="dash-action-title">Add multiple Learning Outcomes</div>
+          <div class="dash-action-sub">Pick a module once, then add several outcomes in one save.</div>
+        </div>
+      </a>
+      <a href="{% url 'content-bulk-create' %}" class="dash-action-card dash-accent-gold">
+        <div class="dash-action-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div>
+          <div class="dash-action-title">Add multiple Indicative Contents</div>
+          <div class="dash-action-sub">Pick a learning outcome once, then add several contents in one save.</div>
+        </div>
+      </a>
+      <a href="{% url 'module-create' %}" class="dash-action-card dash-accent-purple">
+        <div class="dash-action-icon"><i class="fa-solid fa-book-open"></i></div>
+        <div>
+          <div class="dash-action-title">Add a Module</div>
+          <div class="dash-action-sub">Register a new module under a trade and level.</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
   <!-- Overview stats -->
   <section class="dash-section">
     <h2 class="dash-section-title">Overview</h2>
@@ -155,6 +184,53 @@
       </div>
     </details>
 
+  </section>
+
+  <!-- Recent activity: quick way back into whatever was just added,
+       without hunting through the full list pages. -->
+  <section class="dash-section">
+    <h2 class="dash-section-title">Recent activity</h2>
+    <div class="dash-recent-grid">
+      <div class="card-panel dash-recent-panel">
+        <div class="dash-recent-panel-title">
+          <i class="fa-solid fa-book-open"></i> Latest modules
+        </div>
+        {% if recent_modules %}
+        <ul class="dash-recent-list">
+          {% for module in recent_modules %}
+          <li>
+            <a href="{% url 'module-edit' pk=module.pk %}">
+              <span class="dash-recent-item-title">{{ module.mod_code }} — {{ module.mod_name }}</span>
+              <span class="dash-recent-item-sub">{{ module.trade.trade_name }} · {{ module.level.class_level }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="dash-recent-empty">No modules yet.</div>
+        {% endif %}
+      </div>
+
+      <div class="card-panel dash-recent-panel">
+        <div class="dash-recent-panel-title">
+          <i class="fa-solid fa-list-check"></i> Latest learning outcomes
+        </div>
+        {% if recent_outcomes %}
+        <ul class="dash-recent-list">
+          {% for outcome in recent_outcomes %}
+          <li>
+            <a href="{% url 'outcome-edit' pk=outcome.pk %}">
+              <span class="dash-recent-item-title">{{ outcome.outcome_text|truncatechars:60 }}</span>
+              <span class="dash-recent-item-sub">{{ outcome.module }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="dash-recent-empty">No learning outcomes yet.</div>
+        {% endif %}
+      </div>
+    </div>
   </section>
 
 </div>
