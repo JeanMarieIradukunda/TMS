@@ -1123,8 +1123,12 @@
           mod: mod,
           hoursPerWeek: hoursPerWeek,
           termWeeksArray: termWeeksArray,
-          totalWeeks: weekUnits.length,
-          totalTerms: terms.length,
+          // Reported term/week counts always come from the user's own
+          // configuration (termWeeksArray), never from how many week
+          // units the content happened to produce - Training Hours per
+          // Week must not be able to change what's shown here either.
+          totalWeeks: termWeeksArray.reduce(function (a, b) { return a + b; }, 0),
+          totalTerms: termWeeksArray.length,
         });
         renderTable(terms);
 
@@ -1239,10 +1243,18 @@
        * all Learning Outcomes and Indicative Contents into terms"
        * according to each term's own available weeks.
        *
-       * If the module's total training weeks (from hours per week)
-       * run longer than the terms the user defined, extra terms are
-       * appended automatically using the last defined term's length,
-       * so no Learning Outcome / Indicative Content is ever dropped.
+       * IMPORTANT — Number of terms / weeks per term come ONLY from the
+       * user's own configuration (`termWeeksArray`, itself derived from
+       * the module's saved num_terms / term_weeks or the on-screen
+       * overrides). Training Hours per Week only ever decides how many
+       * weeks a given Learning Outcome's content needs (see
+       * buildWeekUnits) and therefore how content is *distributed*
+       * across the weeks that already exist — it must never grow the
+       * number of terms or weeks. If a slower pace (a low hours-per-week
+       * value) would need more weeks than the user defined, the
+       * remaining content is folded into the final defined week instead
+       * of inventing extra terms/weeks, so the generated document's
+       * term/week structure always exactly matches what the user set.
        */
       function groupIntoTerms(weekUnits, termWeeksArray) {
         var boundaries = []; // boundaries[i] = last global week (1-indexed) covered by term i+1
@@ -1251,23 +1263,20 @@
           cum += Math.max(1, w);
           boundaries.push(cum);
         });
+        if (!boundaries.length) boundaries.push(12);
 
-        var fallbackWeeks = termWeeksArray && termWeeksArray.length
-          ? Math.max(1, termWeeksArray[termWeeksArray.length - 1])
-          : 12;
-        if (!boundaries.length) boundaries.push(fallbackWeeks);
+        var totalWeeksAvailable = boundaries[boundaries.length - 1];
+        var lastTermIndex = boundaries.length - 1;
 
         var terms = [];
         weekUnits.forEach(function (unit) {
-          var g = unit.weekIndexGlobal;
-
-          // Extend with fallback-length terms if the schedule runs
-          // longer than the weeks the user entered.
-          while (g > boundaries[boundaries.length - 1]) {
-            boundaries.push(boundaries[boundaries.length - 1] + fallbackWeeks);
-          }
+          // Clamp to the user-defined schedule: never let hours-per-week
+          // push a unit past the last week of the last term the user
+          // configured. Overflow content lands in that final week.
+          var g = Math.min(unit.weekIndexGlobal, totalWeeksAvailable);
 
           var termIndex = boundaries.findIndex(function (b) { return g <= b; });
+          if (termIndex === -1) termIndex = lastTermIndex;
           var termStart = termIndex === 0 ? 0 : boundaries[termIndex - 1];
           unit.localWeek = g - termStart;
 
@@ -1296,7 +1305,11 @@
        * Columns per row (9):
        *   1. Weeks & Dates            (auto week label + editable date)
        *   2. Learning Unit (LU)       (from the module's learning outcome)
-       *   3. Learning Hours           (hours allocated in THIS week only)
+       *   3. Learning Hours           (the LO's own total Learning
+       *                                Hours, NOT the Training Hours
+       *                                per Week setting - every row for
+       *                                the same LO repeats that LO's
+       *                                own hours)
        *   4. Indicative Content (IC)  (this week's slice, bulleted)
        *   5. Learning Activities      (editable, AI-fillable)
        *   6. Resources                (editable, AI-fillable)
@@ -1401,7 +1414,7 @@
               '</div>' +
             '</td>' +
             '<td>' + TMSGen.escapeHtml(TMSGen.shortOutcomeText(outcome.outcome_text)) + '</td>' +
-            '<td>' + unit.hoursThisWeek + '</td>' +
+            '<td>' + outcome.learning_hours + '</td>' +
             '<td>' + contentCell + '</td>' +
             '<td class="gen-editable-cell" contenteditable="true" data-field="learning_activities">' +
               '<span class="gen-placeholder-text">[Methodologies, comma-separated, max 3]</span>' +
