@@ -4,11 +4,11 @@ import re
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -89,7 +89,10 @@ def _build_generator_payload():
             'num_terms': m.num_terms,
             'term_weeks': m.get_term_weeks_list(),
         }
-        for m in Module.objects.select_related('trainer').all()
+        # Locked modules (is_active=False) are deliberately left out of this
+        # payload so they never appear in the public Scheme of Work / Lesson
+        # Plan generator dropdowns - that's what "blocks" their usage.
+        for m in Module.objects.select_related('trainer').filter(is_active=True)
     ]
 
     outcomes = list(
@@ -771,8 +774,31 @@ class ModuleListView(BaseListView):
     quick_add_label = 'Add outcomes'
     quick_add_param = 'module'
 
+    # Renders the Lock/Unlock status badge + Turn On/Turn Off button on
+    # each row. The button itself is only shown to users who hold the
+    # 'core.toggle_module_status' permission - see get_context_data below.
+    toggle_url_name = 'module-toggle-active'
+
     def get_queryset(self):
         return super().get_queryset().select_related('trade', 'level', 'trainer')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Stamp each row with its module's own lock state so the template
+        # can render a Locked/Active badge and the correct button label.
+        objects_by_pk = {obj.pk: obj for obj in context['object_list']}
+        for row in context['rows']:
+            module = objects_by_pk.get(row['pk'])
+            row['is_active'] = module.is_active if module else True
+
+        context.update({
+            'toggle_url_name': self.toggle_url_name,
+            # Rights check happens here, once, instead of per-row in the
+            # template: only users with this permission ever see the
+            # Turn On/Turn Off button at all.
+            'can_toggle_module': self.request.user.has_perm('core.toggle_module_status'),
+        })
+        return context
 
 
 class ModuleCreateView(BaseCreateView):
@@ -793,6 +819,39 @@ class ModuleDeleteView(BaseDeleteView):
     model = Module
     title = 'Module'
     list_url_name = 'module-list'
+
+
+class ModuleToggleActiveView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Handles the Turn On / Turn Off buttons on the Modules list.
+
+    Rights check: only users who hold the 'core.toggle_module_status'
+    permission may flip a module's lock state. Anyone else - even a
+    logged-in admin without that permission - gets a 403 (raise_exception)
+    instead of silently redirecting to login, since they *are* authenticated,
+    they just aren't allowed to do this particular action.
+
+    POST-only (guarded further by @require_POST via dispatch) so the toggle
+    can never be triggered by a GET request/crawler/back-button replay.
+    """
+    permission_required = 'core.toggle_module_status'
+    raise_exception = True
+
+    @method_decorator(require_POST)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        module = get_object_or_404(Module, pk=pk)
+        module.is_active = not module.is_active
+        module.save(update_fields=['is_active'])
+
+        state = 'unlocked' if module.is_active else 'locked'
+        messages.success(
+            request,
+            f'Module "{module.mod_code} - {module.mod_name}" is now {state}.'
+        )
+        return redirect('module-list')
 
 
 # ---------------------------------------------------------------------------
