@@ -47,6 +47,7 @@ urlpatterns = [
     path('modules/create/', views.ModuleCreateView.as_view(), name='module-create'),
     path('modules/<int:pk>/edit/', views.ModuleUpdateView.as_view(), name='module-edit'),
     path('modules/<int:pk>/delete/', views.ModuleDeleteView.as_view(), name='module-delete'),
+    path('modules/<int:pk>/toggle/', views.ModuleToggleActiveView.as_view(), name='module-toggle-active'),
 
     # Learning Outcomes
     path('learning-outcomes/', views.LearningOutcomeListView.as_view(), name='outcome-list'),
