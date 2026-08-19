@@ -3,12 +3,15 @@ import logging
 import re
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
@@ -21,7 +24,8 @@ from .models import (
 from .forms import (
     LogoForm, SectorForm, TradeForm, LevelForm, TradeLevelForm, TrainerForm,
     ModuleForm, LearningOutcomeForm, IndicativeContentForm, StyledAuthenticationForm,
-    LessonPlanForm,
+    LessonPlanForm, ModulePickerForm, OutcomePickerForm,
+    LearningOutcomeFormSet, IndicativeContentFormSet,
 )
 
 logger = logging.getLogger(__name__)
@@ -315,17 +319,28 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        module_count = Module.objects.count()
+        outcome_count = LearningOutcome.objects.count()
         context.update({
             'sector_count': Sector.objects.count(),
             'trade_count': Trade.objects.count(),
             'level_count': Level.objects.count(),
-            'module_count': Module.objects.count(),
+            'module_count': module_count,
             'trainer_count': Trainer.objects.count(),
-            'outcome_count': LearningOutcome.objects.count(),
+            'outcome_count': outcome_count,
             'content_count': IndicativeContent.objects.count(),
             'logo_count': Logo.objects.count(),
             'lesson_plan_count': LessonPlan.objects.count(),
             'latest_logo': Logo.objects.order_by('-id').first(),
+            # Recently touched records so an admin can jump straight back
+            # into what they were working on instead of hunting through
+            # the sidebar.
+            'recent_modules': Module.objects.select_related('trade', 'level').order_by('-id')[:5],
+            'recent_outcomes': LearningOutcome.objects.select_related('module').order_by('-id')[:5],
+            # Nudges the "Quick actions" panel towards bulk-adding outcomes
+            # first (a module has none yet) vs. contents once outcomes exist.
+            'has_modules': module_count > 0,
+            'has_outcomes': outcome_count > 0,
         })
         return context
 
@@ -374,6 +389,23 @@ class BaseListView(LoginRequiredMixin, ListView):
     group_by_module = False
     module_accessor = 'module'
     unassigned_module_label = 'Unassigned module'
+
+    # Optional secondary "Add multiple" button in the topbar, for models
+    # that support the bulk-create workflow (Learning Outcomes / Indicative
+    # Contents) alongside the regular single-record "Add" button.
+    bulk_create_url_name = ''
+    bulk_create_label = ''
+
+    # Optional per-row quick-action link into the *child* model's
+    # bulk-create screen, pre-scoped to this row so an admin can go
+    # straight from "Modules" to "add outcomes for this module" (or from
+    # "Learning Outcomes" to "add contents for this outcome") without
+    # re-picking the parent. quick_add_param is the query string key the
+    # bulk-create view reads (e.g. 'module' or 'outcome'); the row's own pk
+    # is passed as its value.
+    quick_add_url_name = ''
+    quick_add_label = ''
+    quick_add_param = ''
 
     def get_column_value(self, obj, col):
         value = obj
@@ -476,6 +508,11 @@ class BaseListView(LoginRequiredMixin, ListView):
             'has_thumbnail': bool(self.thumbnail_field),
             'group_by_trainer': self.group_by_trainer,
             'group_by_module': self.group_by_module,
+            'bulk_create_url_name': self.bulk_create_url_name,
+            'bulk_create_label': self.bulk_create_label,
+            'quick_add_url_name': self.quick_add_url_name,
+            'quick_add_label': self.quick_add_label,
+            'quick_add_param': self.quick_add_param,
         })
 
         if self.group_by_trainer:
@@ -729,6 +766,11 @@ class ModuleListView(BaseListView):
     group_by_trainer = True
     trainer_accessor = 'trainer'
 
+    # Jump straight from a module row to bulk-adding its Learning Outcomes.
+    quick_add_url_name = 'outcome-bulk-create'
+    quick_add_label = 'Add outcomes'
+    quick_add_param = 'module'
+
     def get_queryset(self):
         return super().get_queryset().select_related('trade', 'level', 'trainer')
 
@@ -773,6 +815,14 @@ class LearningOutcomeListView(BaseListView):
     group_by_module = True
     module_accessor = 'module'
 
+    # Topbar shortcut into the bulk-create screen…
+    bulk_create_url_name = 'outcome-bulk-create'
+    bulk_create_label = 'Add multiple'
+    # …and, per-row, straight on to bulk-adding this outcome's contents.
+    quick_add_url_name = 'content-bulk-create'
+    quick_add_label = 'Add contents'
+    quick_add_param = 'outcome'
+
     def get_queryset(self):
         return super().get_queryset().select_related('module__trainer')
 
@@ -815,6 +865,9 @@ class IndicativeContentListView(BaseListView):
     group_by_module = True
     module_accessor = 'outcome.module'
 
+    bulk_create_url_name = 'content-bulk-create'
+    bulk_create_label = 'Add multiple'
+
     def get_queryset(self):
         return super().get_queryset().select_related('outcome__module__trainer')
 
@@ -837,6 +890,143 @@ class IndicativeContentDeleteView(BaseDeleteView):
     model = IndicativeContent
     title = 'Indicative Content'
     list_url_name = 'content-list'
+
+
+# ---------------------------------------------------------------------------
+# Bulk-create: "pick a parent once, add several children"
+#
+# A module usually needs several Learning Outcomes, and each outcome usually
+# needs several Indicative Contents. Creating those one-at-a-time through the
+# single-record form means re-selecting the same parent over and over. These
+# two views let an admin pick the parent once and add a whole batch of
+# children in a single submit.
+# ---------------------------------------------------------------------------
+class LearningOutcomeBulkCreateView(LoginRequiredMixin, View):
+    template_name = 'core/bulk_outcome_form.html'
+    picker_form_class = ModulePickerForm
+    formset_class = LearningOutcomeFormSet
+    formset_prefix = 'outcomes'
+
+    def get(self, request):
+        selected_module = None
+        module_id = request.GET.get('module')
+        if module_id:
+            selected_module = Module.objects.filter(pk=module_id).select_related('trade', 'level').first()
+
+        picker_form = self.picker_form_class(
+            initial={'module': selected_module.pk} if selected_module else None
+        )
+        formset = self.formset_class(prefix=self.formset_prefix)
+        return render(request, self.template_name, self._context(picker_form, formset, selected_module))
+
+    def post(self, request):
+        picker_form = self.picker_form_class(request.POST)
+        formset = self.formset_class(request.POST, prefix=self.formset_prefix)
+
+        # If the module was locked (pre-selected via a quick-add link), keep
+        # showing it locked on redisplay even if the rest of the form fails.
+        selected_module = None
+        if request.POST.get('lock_module') == '1':
+            selected_module = Module.objects.filter(
+                pk=request.POST.get('module')
+            ).select_related('trade', 'level').first()
+
+        if picker_form.is_valid() and formset.is_valid():
+            module = picker_form.cleaned_data['module']
+            created = 0
+            for form in formset:
+                if not form.has_changed() or form.cleaned_data.get('DELETE'):
+                    continue
+                outcome_text = (form.cleaned_data.get('outcome_text') or '').strip()
+                if not outcome_text:
+                    continue
+                LearningOutcome.objects.create(
+                    module=module,
+                    outcome_text=outcome_text,
+                    learning_hours=form.cleaned_data.get('learning_hours') or 0,
+                )
+                created += 1
+
+            if created:
+                messages.success(
+                    request,
+                    f'Added {created} learning outcome{"s" if created != 1 else ""} to "{module}".'
+                )
+                return redirect('outcome-list')
+            messages.warning(request, 'Add at least one learning outcome before saving.')
+
+        return render(request, self.template_name, self._context(picker_form, formset, selected_module))
+
+    def _context(self, picker_form, formset, selected_module):
+        return {
+            'picker_form': picker_form,
+            'formset': formset,
+            'selected_module': selected_module,
+            'title': 'Add Multiple Learning Outcomes',
+            'parent_label': 'module',
+        }
+
+
+class IndicativeContentBulkCreateView(LoginRequiredMixin, View):
+    template_name = 'core/bulk_content_form.html'
+    picker_form_class = OutcomePickerForm
+    formset_class = IndicativeContentFormSet
+    formset_prefix = 'contents'
+
+    def get(self, request):
+        selected_outcome = None
+        outcome_id = request.GET.get('outcome')
+        if outcome_id:
+            selected_outcome = LearningOutcome.objects.filter(
+                pk=outcome_id
+            ).select_related('module').first()
+
+        picker_form = self.picker_form_class(
+            initial={'outcome': selected_outcome.pk} if selected_outcome else None
+        )
+        formset = self.formset_class(prefix=self.formset_prefix)
+        return render(request, self.template_name, self._context(picker_form, formset, selected_outcome))
+
+    def post(self, request):
+        picker_form = self.picker_form_class(request.POST)
+        formset = self.formset_class(request.POST, prefix=self.formset_prefix)
+
+        selected_outcome = None
+        if request.POST.get('lock_outcome') == '1':
+            selected_outcome = LearningOutcome.objects.filter(
+                pk=request.POST.get('outcome')
+            ).select_related('module').first()
+
+        if picker_form.is_valid() and formset.is_valid():
+            outcome = picker_form.cleaned_data['outcome']
+            created = 0
+            for form in formset:
+                if not form.has_changed() or form.cleaned_data.get('DELETE'):
+                    continue
+                indic_name = (form.cleaned_data.get('indic_name') or '').strip()
+                if not indic_name:
+                    continue
+                IndicativeContent.objects.create(outcome=outcome, indic_name=indic_name)
+                created += 1
+
+            if created:
+                messages.success(
+                    request,
+                    f'Added {created} indicative content{"s" if created != 1 else ""} to "{outcome}".'
+                )
+                return redirect('content-list')
+            messages.warning(request, 'Add at least one indicative content before saving.')
+
+        return render(request, self.template_name, self._context(picker_form, formset, selected_outcome))
+
+    def _context(self, picker_form, formset, selected_outcome):
+        return {
+            'picker_form': picker_form,
+            'formset': formset,
+            'selected_outcome': selected_outcome,
+            'title': 'Add Multiple Indicative Contents',
+            'parent_label': 'outcome',
+        }
 
 
 # ---------------------------------------------------------------------------
