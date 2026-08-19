@@ -2431,3 +2431,243 @@ body.sidebar-open .sidebar-overlay { display: block; }
   gap: 0.3rem;
   flex-shrink: 0;
 }
+
+/* ---------------------------------------------------------------------
+   Upgrade additions: dashboard quick actions, dashboard recent activity,
+   the outline-gold button, per-row "quick add" action icon, and the
+   Learning Outcome / Indicative Content bulk-create screens.
+   --------------------------------------------------------------------- */
+
+.btn-outline-gold {
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  color: #8a6d1c;
+  font-weight: 700;
+  padding: 0.53rem 1.05rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.btn-outline-gold:hover {
+  background: var(--gold);
+  color: var(--navy);
+}
+
+.action-icon.quick-add:hover { background: var(--gold); border-color: var(--gold); color: #3a2e05; }
+
+/* ---------- Dashboard: Quick actions ---------- */
+.dash-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.dash-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.1rem 1.2rem;
+  background: #fff;
+  border: 1px solid #e9ecf4;
+  border-left: 4px solid transparent;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--navy);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(16, 26, 48, 0.09);
+  color: var(--navy);
+}
+
+.dash-action-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.dash-action-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 0.2rem; }
+.dash-action-sub { font-size: 0.78rem; color: #7b859d; line-height: 1.35; }
+
+/* ---------- Dashboard: Recent activity ---------- */
+.dash-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.dash-recent-panel { padding: 1.1rem 1.25rem; }
+
+.dash-recent-panel-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--navy);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dash-recent-panel-title i { color: var(--teal); }
+
+.dash-recent-list { list-style: none; margin: 0; padding: 0; }
+
+.dash-recent-list li { border-top: 1px solid #f1f2f8; }
+.dash-recent-list li:first-child { border-top: none; }
+
+.dash-recent-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0.15rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dash-recent-item-title { font-size: 0.86rem; font-weight: 600; color: var(--navy); }
+.dash-recent-item-sub { font-size: 0.74rem; color: #8a93aa; }
+
+.dash-recent-empty { color: #8a93aa; font-size: 0.85rem; padding: 0.5rem 0.15rem; }
+
+/* ---------- Bulk create: Learning Outcomes / Indicative Contents ---------- */
+.bulk-form-panel { max-width: 900px; }
+
+.bulk-step { margin-bottom: 1.75rem; }
+.bulk-step:last-of-type { margin-bottom: 0; }
+
+.bulk-step-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--navy);
+  margin-bottom: 0.9rem;
+}
+
+.bulk-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), #c69a2b);
+  color: var(--navy);
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bulk-parent-lock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f7f8fc;
+  border: 1px solid #e9ecf4;
+  border-radius: 12px;
+}
+
+.bulk-parent-lock-info { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+
+.bulk-parent-lock-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-3));
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bulk-parent-lock-title { font-weight: 700; font-size: 0.9rem; color: var(--navy); word-break: break-word; }
+.bulk-parent-lock-sub { font-size: 0.78rem; color: #7b859d; }
+
+.bulk-parent-lock-change {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8a6d1c;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bulk-parent-lock-change:hover { text-decoration: underline; }
+
+.bulk-row-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.bulk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: #fbfcff;
+  border: 1px solid #eef0f7;
+  border-radius: 12px;
+}
+
+.bulk-row-index {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #eef0f7;
+  color: #6b7690;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+}
+
+.bulk-row-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.bulk-row-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.bulk-row-field-grow { flex: 1 1 320px; min-width: 220px; }
+.bulk-row-field-narrow { flex: 0 1 120px; min-width: 100px; }
+.bulk-row-field .form-label { font-size: 0.72rem; margin-bottom: 0; }
+
+.bulk-row-single .bulk-row-fields { flex-wrap: nowrap; }
+
+.bulk-row-remove {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid #e9ecf4;
+  background: #fff;
+  color: #6b7690;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.bulk-row-remove:hover:not(:disabled) { background: var(--danger); border-color: var(--danger); color: #fff; }
+.bulk-row-remove:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.bulk-add-row { margin-top: 0.9rem; }
+
+@media (max-width: 640px) {
+  .bulk-row { flex-wrap: wrap; }
+  .bulk-row-fields { width: 100%; }
+}
