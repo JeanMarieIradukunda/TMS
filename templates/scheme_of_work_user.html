@@ -1601,9 +1601,7 @@
         // printed, scrolled to, or read out of context of its term
         // separator) instead of only a bare, continuously-incrementing
         // "Week N" that resets meaning across terms.
-        var weekLabel = unit.partsTotal > 1
-          ? ('Term ' + termNumber + ' \u2013 Week ' + unit.localWeek + ' (' + unit.partIndex + '/' + unit.partsTotal + ')')
-          : ('Term ' + termNumber + ' \u2013 Week ' + unit.localWeek);
+        var weekLabel = 'Term ' + termNumber + ' \u2013 Week ' + unit.localWeek;
 
         var contentItems = unit.contents
           .map(function (text) { return '<li>' + TMSGen.escapeHtml(text) + '</li>'; })
