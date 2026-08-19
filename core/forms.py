@@ -186,3 +186,70 @@ class LessonPlanForm(BootstrapModelForm):
             'activities': forms.Textarea(attrs={'rows': 3}),
             'resources': forms.Textarea(attrs={'rows': 2}),
         }
+
+
+# ---------------------------------------------------------------------------
+# Bulk-create workflow: "pick a parent once, then add several children"
+#
+# Learning Outcomes belong to a Module, and Indicative Contents belong to a
+# Learning Outcome. Admins almost always add several of these at a time for
+# the *same* parent (e.g. 5 outcomes for one module), so the single-record
+# BootstrapModelForm above is repetitive for that job. These picker forms +
+# formsets power a dedicated "add multiple" screen: choose the parent once,
+# then fill in as many child rows as needed and save them all together.
+# ---------------------------------------------------------------------------
+class ModulePickerForm(forms.Form):
+    """Step 1 of the Learning Outcome bulk-create screen: which module are
+    these outcomes for. Rendered as a locked/read-only summary instead of
+    this dropdown whenever the module was already chosen (e.g. the admin
+    arrived via a module's "Add outcomes" quick link)."""
+    module = forms.ModelChoiceField(
+        queryset=Module.objects.select_related('trade', 'level').order_by('mod_code'),
+        label='Module',
+        empty_label='Select a module…',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+
+class OutcomePickerForm(forms.Form):
+    """Step 1 of the Indicative Content bulk-create screen: which learning
+    outcome these contents belong to."""
+    outcome = forms.ModelChoiceField(
+        queryset=LearningOutcome.objects.select_related('module').order_by('module__mod_code', 'id'),
+        label='Learning Outcome',
+        empty_label='Select a learning outcome…',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['outcome'].label_from_instance = (
+            lambda obj: f"{obj.module.mod_code} — {obj.outcome_text[:70]}"
+        )
+
+
+class LearningOutcomeQuickForm(BootstrapModelForm):
+    """One row of the Learning Outcome bulk-create formset. Deliberately
+    excludes 'module' — that's chosen once via ModulePickerForm and applied
+    to every row on save."""
+    class Meta:
+        model = LearningOutcome
+        fields = ['outcome_text', 'learning_hours']
+        widgets = {
+            'outcome_text': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class IndicativeContentQuickForm(BootstrapModelForm):
+    """One row of the Indicative Content bulk-create formset. Excludes
+    'outcome' — that's chosen once via OutcomePickerForm."""
+    class Meta:
+        model = IndicativeContent
+        fields = ['indic_name']
+        widgets = {
+            'indic_name': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+LearningOutcomeFormSet = forms.formset_factory(LearningOutcomeQuickForm, extra=3, can_delete=True)
+IndicativeContentFormSet = forms.formset_factory(IndicativeContentQuickForm, extra=4, can_delete=True)
