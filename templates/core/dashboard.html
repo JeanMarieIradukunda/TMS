@@ -13,6 +13,56 @@
     </div>
   </div>
 
+  <!-- Overview stats: glanceable KPIs first, so admins see the shape of
+       the programme before deciding what to do next. -->
+  <section class="dash-section">
+    <h2 class="dash-section-title">Overview</h2>
+    <div class="dash-stat-grid">
+      <div class="dash-stat-card dash-accent-teal">
+        <div class="dash-stat-icon"><i class="fa-solid fa-industry"></i></div>
+        <div>
+          <div class="dash-stat-label">Sectors</div>
+          <div class="dash-stat-value">{{ sector_count }}</div>
+        </div>
+      </div>
+      <div class="dash-stat-card dash-accent-gold">
+        <div class="dash-stat-icon"><i class="fa-solid fa-toolbox"></i></div>
+        <div>
+          <div class="dash-stat-label">Trades</div>
+          <div class="dash-stat-value">{{ trade_count }}</div>
+        </div>
+      </div>
+      <div class="dash-stat-card dash-accent-purple">
+        <div class="dash-stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div>
+          <div class="dash-stat-label">Levels</div>
+          <div class="dash-stat-value">{{ level_count }}</div>
+        </div>
+      </div>
+      <div class="dash-stat-card dash-accent-teal">
+        <div class="dash-stat-icon"><i class="fa-solid fa-book-open"></i></div>
+        <div>
+          <div class="dash-stat-label">Modules</div>
+          <div class="dash-stat-value">{{ module_count }}</div>
+        </div>
+      </div>
+      <div class="dash-stat-card dash-accent-gold">
+        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+        <div>
+          <div class="dash-stat-label">Trainers</div>
+          <div class="dash-stat-value">{{ trainer_count }}</div>
+        </div>
+      </div>
+      <div class="dash-stat-card dash-accent-purple">
+        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard"></i></div>
+        <div>
+          <div class="dash-stat-label">Lesson Plans</div>
+          <div class="dash-stat-value">{{ lesson_plan_count }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Quick actions: the workflows admins repeat most often, front and
        centre so they don't have to dig through the sidebar for them. -->
   <section class="dash-section">
@@ -39,43 +89,6 @@
           <div class="dash-action-sub">Register a new module under a trade and level.</div>
         </div>
       </a>
-    </div>
-  </section>
-
-  <!-- Overview stats -->
-  <section class="dash-section">
-    <h2 class="dash-section-title">Overview</h2>
-    <div class="dash-stat-grid">
-      <div class="dash-stat-card dash-accent-teal">
-        <div class="dash-stat-icon"><i class="fa-solid fa-industry"></i></div>
-        <div class="dash-stat-label">Sectors</div>
-        <div class="dash-stat-value">{{ sector_count }}</div>
-      </div>
-      <div class="dash-stat-card dash-accent-gold">
-        <div class="dash-stat-icon"><i class="fa-solid fa-toolbox"></i></div>
-        <div class="dash-stat-label">Trades</div>
-        <div class="dash-stat-value">{{ trade_count }}</div>
-      </div>
-      <div class="dash-stat-card dash-accent-purple">
-        <div class="dash-stat-icon"><i class="fa-solid fa-layer-group"></i></div>
-        <div class="dash-stat-label">Levels</div>
-        <div class="dash-stat-value">{{ level_count }}</div>
-      </div>
-      <div class="dash-stat-card dash-accent-teal">
-        <div class="dash-stat-icon"><i class="fa-solid fa-book-open"></i></div>
-        <div class="dash-stat-label">Modules</div>
-        <div class="dash-stat-value">{{ module_count }}</div>
-      </div>
-      <div class="dash-stat-card dash-accent-gold">
-        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-        <div class="dash-stat-label">Trainers</div>
-        <div class="dash-stat-value">{{ trainer_count }}</div>
-      </div>
-      <div class="dash-stat-card dash-accent-purple">
-        <div class="dash-stat-icon"><i class="fa-solid fa-chalkboard"></i></div>
-        <div class="dash-stat-label">Lesson Plans</div>
-        <div class="dash-stat-value">{{ lesson_plan_count }}</div>
-      </div>
     </div>
   </section>
 
