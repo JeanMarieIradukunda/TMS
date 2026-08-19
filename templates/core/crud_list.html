@@ -86,6 +86,7 @@
             <thead>
               <tr>
                 {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+                {% if toggle_url_name %}<th>Status</th>{% endif %}
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
@@ -93,7 +94,31 @@
               {% for row in group.rows %}
               <tr data-searchable>
                 {% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}
+                {% if toggle_url_name %}
+                <td>
+                  {% if row.is_active %}
+                  <span class="badge bg-success">Active</span>
+                  {% else %}
+                  <span class="badge bg-secondary">Locked</span>
+                  {% endif %}
+                </td>
+                {% endif %}
                 <td class="text-end">
+                  {% if toggle_url_name and can_toggle_module %}
+                  <form method="post" action="{% url toggle_url_name pk=row.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    {% if row.is_active %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Turn Off (lock this module)"
+                            onclick="return confirm('Lock this module? It will be hidden from the public Scheme of Work / Lesson Plan generators until you turn it back on.');">
+                      Turn Off
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Turn On (unlock this module)">
+                      Turn On
+                    </button>
+                    {% endif %}
+                  </form>
+                  {% endif %}
                   {% if quick_add_url_name %}
                   <a href="{% url quick_add_url_name %}?{{ quick_add_param }}={{ row.pk }}" class="action-icon quick-add" title="{{ quick_add_label|default:'Add related records' }}">
                     <i class="fa-solid fa-layer-group"></i>
