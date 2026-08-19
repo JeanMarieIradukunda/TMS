@@ -51,12 +51,14 @@ urlpatterns = [
     # Learning Outcomes
     path('learning-outcomes/', views.LearningOutcomeListView.as_view(), name='outcome-list'),
     path('learning-outcomes/create/', views.LearningOutcomeCreateView.as_view(), name='outcome-create'),
+    path('learning-outcomes/bulk-create/', views.LearningOutcomeBulkCreateView.as_view(), name='outcome-bulk-create'),
     path('learning-outcomes/<int:pk>/edit/', views.LearningOutcomeUpdateView.as_view(), name='outcome-edit'),
     path('learning-outcomes/<int:pk>/delete/', views.LearningOutcomeDeleteView.as_view(), name='outcome-delete'),
 
     # Indicative Contents
     path('indicative-contents/', views.IndicativeContentListView.as_view(), name='content-list'),
     path('indicative-contents/create/', views.IndicativeContentCreateView.as_view(), name='content-create'),
+    path('indicative-contents/bulk-create/', views.IndicativeContentBulkCreateView.as_view(), name='content-bulk-create'),
     path('indicative-contents/<int:pk>/edit/', views.IndicativeContentUpdateView.as_view(), name='content-edit'),
     path('indicative-contents/<int:pk>/delete/', views.IndicativeContentDeleteView.as_view(), name='content-delete'),
 
