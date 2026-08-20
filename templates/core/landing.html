@@ -6,334 +6,277 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Training Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
-  <!--
-    NEW: self-contained redesign layer.
-    None of the rules below touch or override the external style.css file —
-    everything is scoped to a fresh "bp-*" (blueprint) namespace so the
-    original stylesheet, and anything else that depends on it, is untouched.
-  -->
-  <style>
-    :root{
-      --bp-ink:      #0e2a46;
-      --bp-ink-2:    #123a5e;
-      --bp-line:     #4f89b8;
-      --bp-line-dim: rgba(143,193,232,0.28);
-      --bp-paper:    #f5efdd;
-      --bp-paper-2:  #ffffff;
-      --bp-amber:    #f2a93b;
-      --bp-amber-2:  #e4572e;
-      --bp-ink-text: #0e2a46;
-      --bp-mist:     #cfe3f2;
-      --font-display: 'Big Shoulders Display', 'Sora', sans-serif;
-      --font-body:    'Space Grotesk', 'DM Sans', sans-serif;
-      --font-mono:    'IBM Plex Mono', monospace;
-    }
-
-    .bp-page{
-      background:
-        radial-gradient(1200px 600px at 85% -10%, rgba(242,169,59,0.10), transparent 60%),
-        repeating-linear-gradient(0deg, var(--bp-line-dim) 0 1px, transparent 1px 44px),
-        repeating-linear-gradient(90deg, var(--bp-line-dim) 0 1px, transparent 1px 44px),
-        linear-gradient(180deg, var(--bp-ink) 0%, var(--bp-ink-2) 100%);
-      color: var(--bp-mist);
-      font-family: var(--font-body);
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    .bp-shell{ max-width: 1180px; margin: 0 auto; padding: 28px 24px 0; position: relative; }
-
-    /* ---------- corner registration marks — the signature device ---------- */
-    .bp-reg{ position:absolute; width:26px; height:26px; pointer-events:none; opacity:.55; }
-    .bp-reg::before,.bp-reg::after{ content:""; position:absolute; background:var(--bp-line); }
-    .bp-reg::before{ width:100%; height:1px; top:50%; }
-    .bp-reg::after{ width:1px; height:100%; left:50%; }
-    .bp-reg-tl{ top:14px; left:14px; }
-    .bp-reg-tr{ top:14px; right:14px; }
-    .bp-reg-bl{ bottom:14px; left:14px; }
-    .bp-reg-br{ bottom:14px; right:14px; }
-
-    /* ---------- top bar ---------- */
-    .bp-topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      padding-bottom:20px; border-bottom:1px solid var(--bp-line-dim);
-      font-family: var(--font-mono); font-size:.78rem; letter-spacing:.06em;
-      text-transform:uppercase; color:var(--bp-mist);
-    }
-    .bp-brand{ display:flex; align-items:center; gap:.6rem; font-weight:600; color:var(--bp-paper); }
-    .bp-brand .bp-dot{
-      width:9px; height:9px; border-radius:50%; background:var(--bp-amber);
-      box-shadow:0 0 0 4px rgba(242,169,59,0.18);
-    }
-    .bp-stats{ display:flex; gap:1.6rem; }
-    .bp-stats i{ margin-right:.4rem; color:var(--bp-amber); }
-
-    /* ---------- hero ---------- */
-    .bp-hero{
-      display:grid; grid-template-columns: 1.05fr .95fr; gap:3rem;
-      align-items:center; padding:72px 0 84px; position:relative;
-    }
-    .bp-eyebrow{
-      font-family: var(--font-mono); text-transform:uppercase; letter-spacing:.18em;
-      font-size:.75rem; color:var(--bp-amber); display:flex; align-items:center; gap:.6rem;
-      margin-bottom:1.1rem;
-    }
-    .bp-eyebrow::before{ content:""; width:34px; height:1px; background:var(--bp-amber); display:inline-block; }
-
-    .bp-h1{
-      font-family: var(--font-display); font-weight:800; text-transform:uppercase;
-      font-size: clamp(2.6rem, 5vw, 4.1rem); line-height:0.96; letter-spacing:.005em;
-      color: var(--bp-paper); margin-bottom:1.3rem;
-    }
-    .bp-h1 .bp-accent{ color: var(--bp-amber); font-style:normal; }
-    .bp-h1 .bp-accent-2{ display:block; -webkit-text-stroke: 1.5px var(--bp-amber); color:transparent; }
-
-    .bp-sub{
-      font-size:1.06rem; line-height:1.65; color: var(--bp-mist); max-width:46ch;
-      margin-bottom:2.1rem;
-    }
-
-    .bp-actions{ display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.6rem; }
-    .bp-btn{
-      font-family: var(--font-body); font-weight:600; font-size:.95rem;
-      padding:.95rem 1.6rem; border-radius:3px; text-decoration:none;
-      display:inline-flex; align-items:center; gap:.6rem; transition: transform .15s ease, box-shadow .15s ease;
-      border:1px solid transparent;
-    }
-    .bp-btn-primary{
-      background: var(--bp-amber); color: var(--bp-ink); box-shadow: 4px 4px 0 var(--bp-amber-2);
-    }
-    .bp-btn-primary:hover{ transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--bp-amber-2); color:var(--bp-ink); }
-    .bp-btn-secondary{
-      background: transparent; color: var(--bp-paper); border-color: var(--bp-line);
-    }
-    .bp-btn-secondary:hover{ background: rgba(143,193,232,0.08); color: var(--bp-paper); }
-
-    .bp-login-link{
-      font-family: var(--font-mono); font-size:.82rem; color: var(--bp-mist);
-      text-decoration:none; display:inline-flex; align-items:center; gap:.5rem;
-      border-bottom:1px dashed var(--bp-line); padding-bottom:2px; opacity:.85;
-    }
-    .bp-login-link:hover{ color: var(--bp-paper); opacity:1; }
-
-    /* ---------- hero visual: schematic sheet ---------- */
-    .bp-visual{ position:relative; }
-    .bp-sheet{
-      background: var(--bp-paper); border-radius:4px; padding:22px 22px 26px;
-      box-shadow: 10px 10px 0 rgba(0,0,0,0.25);
-      transform: rotate(1.2deg);
-      position:relative;
-    }
-    .bp-sheet::before{
-      content:"SCHEME · 01"; position:absolute; top:-11px; left:18px;
-      background:var(--bp-amber); color:var(--bp-ink); font-family:var(--font-mono);
-      font-size:.66rem; letter-spacing:.08em; padding:2px 8px; border-radius:2px;
-    }
-    .bp-sheet-head{ display:flex; gap:6px; margin-bottom:16px; }
-    .bp-sheet-head span{ width:9px; height:9px; border-radius:50%; background: var(--bp-ink-text); opacity:.18; }
-    .bp-sheet-title{ height:16px; width:62%; background: var(--bp-ink-text); opacity:.85; border-radius:2px; margin-bottom:16px; }
-    .bp-sheet-row{ height:10px; width:100%; background: var(--bp-ink-text); opacity:.14; border-radius:2px; margin-bottom:10px; }
-    .bp-sheet-row.short{ width:54%; }
-
-    .bp-callout{
-      position:absolute; background: var(--bp-ink); border:1px solid var(--bp-line);
-      border-radius:3px; padding:.75rem 1rem; display:flex; align-items:center; gap:.7rem;
-      font-family: var(--font-mono);
-    }
-    .bp-callout i{ color: var(--bp-amber); font-size:1.1rem; }
-    .bp-callout strong{ display:block; font-family:var(--font-display); font-size:1.3rem; color:var(--bp-paper); line-height:1; }
-    .bp-callout span{ font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color: var(--bp-mist); }
-    .bp-callout-a{ top:-18px; right:-14px; }
-    .bp-callout-b{ bottom:-20px; left:-18px; }
-
-    /* dashed leader lines connecting callouts to the sheet, drawn with pseudo-elements */
-    .bp-callout-a::after, .bp-callout-b::after{
-      content:""; position:absolute; border-left:1px dashed var(--bp-line); opacity:.6;
-    }
-    .bp-callout-a::after{ width:1px; height:34px; top:100%; right:40px; }
-    .bp-callout-b::after{ width:1px; height:34px; bottom:100%; left:40px; }
-
-    /* ---------- quick access ---------- */
-    .bp-section-label{
-      font-family: var(--font-mono); text-transform:uppercase; letter-spacing:.16em;
-      font-size:.75rem; color: var(--bp-amber); text-align:center; margin-bottom:2.4rem;
-      display:flex; align-items:center; gap:1rem; justify-content:center;
-    }
-    .bp-section-label::before,.bp-section-label::after{ content:""; height:1px; width:60px; background:var(--bp-line-dim); }
-
-    .bp-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; padding-bottom:80px; }
-
-    .bp-card{
-      background: var(--bp-paper-2); border-radius:5px; padding:1.8rem 1.6rem;
-      text-decoration:none; color: var(--bp-ink-text); position:relative; overflow:hidden;
-      border:1px solid rgba(255,255,255,0.5);
-      transition: transform .18s ease, box-shadow .18s ease;
-      display:flex; flex-direction:column; gap:1rem; min-height:210px;
-    }
-    .bp-card::before{
-      content:""; position:absolute; top:0; left:0; width:5px; height:100%; background: var(--bp-amber);
-      transform: scaleY(0); transform-origin:top; transition: transform .2s ease;
-    }
-    .bp-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(0,0,0,0.28); }
-    .bp-card:hover::before{ transform: scaleY(1); }
-
-    .bp-card-index{
-      font-family: var(--font-mono); font-size:.72rem; letter-spacing:.08em;
-      color: var(--bp-amber-2); text-transform:uppercase;
-    }
-    .bp-card-icon{
-      width:46px; height:46px; border-radius:8px; display:flex; align-items:center; justify-content:center;
-      background: var(--bp-ink); color: var(--bp-amber); font-size:1.15rem;
-    }
-    .bp-card h3{
-      font-family: var(--font-display); font-weight:700; text-transform:uppercase;
-      font-size:1.3rem; letter-spacing:.01em; margin:0; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;
-    }
-    .bp-card p{ font-size:.92rem; line-height:1.55; color:#3c4c5c; margin:0; flex:1; }
-    .bp-badge{
-      font-family: var(--font-mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.05em;
-      background: rgba(14,42,70,0.08); color: var(--bp-ink-text); padding:2px 8px; border-radius:20px;
-    }
-    .bp-badge-restricted{ background: rgba(228,87,46,0.14); color: var(--bp-amber-2); }
-    .bp-card-go{
-      font-family: var(--font-mono); font-size:.78rem; display:inline-flex; align-items:center; gap:.5rem;
-      color: var(--bp-ink-text); opacity:.7;
-    }
-    .bp-card:hover .bp-card-go{ opacity:1; gap:.8rem; }
-
-    /* ---------- footer ---------- */
-    .bp-footer{
-      border-top:1px solid var(--bp-line-dim); padding:20px 0 30px;
-      font-family: var(--font-mono); font-size:.75rem; letter-spacing:.04em;
-      color: var(--bp-mist); text-align:center; opacity:.75;
-    }
-    .bp-footer i{ color: var(--bp-amber); }
-
-    @media (max-width: 960px){
-      .bp-hero{ grid-template-columns:1fr; padding-top:48px; }
-      .bp-visual{ order:-1; margin-bottom:1rem; }
-      .bp-grid{ grid-template-columns:1fr; }
-      .bp-topbar{ flex-direction:column; align-items:flex-start; gap:10px; }
-      .bp-callout-a, .bp-callout-b{ position:static; margin-top:12px; }
-      .bp-callout-a::after, .bp-callout-b::after{ display:none; }
-    }
-  </style>
+  <script>document.documentElement.classList.add('js');</script>
 </head>
-<body class="landing-page bp-page">
-  <span class="bp-reg bp-reg-tl" aria-hidden="true"></span>
-  <span class="bp-reg bp-reg-tr" aria-hidden="true"></span>
-  <span class="bp-reg bp-reg-bl" aria-hidden="true"></span>
-  <span class="bp-reg bp-reg-br" aria-hidden="true"></span>
-
-  <div class="landing-shell bp-shell">
+<body class="landing-page">
+  <div class="landing-shell">
 
     <!-- Top bar -->
-    <header class="landing-topbar bp-topbar">
-      <div class="landing-topbar-brand bp-brand">
-        <span class="dot bp-dot" aria-hidden="true"></span>
+    <header class="landing-topbar" id="landingTopbar">
+      <div class="landing-topbar-brand">
+        <span class="dot" aria-hidden="true"></span>
         Padri Vjeko Centre
       </div>
-      <div class="landing-topbar-stats bp-stats">
+      <div class="landing-topbar-stats">
         <span><i class="fa-solid fa-diagram-project" aria-hidden="true"></i>{{ module_count }} module{{ module_count|pluralize }}</span>
         <span><i class="fa-solid fa-chalkboard" aria-hidden="true"></i>{{ lesson_plan_count }} lesson plan{{ lesson_plan_count|pluralize }}</span>
       </div>
     </header>
 
     <!-- Hero -->
-    <main class="landing-hero bp-hero">
+    <main class="landing-hero">
       <span class="landing-hero-glow-a" aria-hidden="true"></span>
       <span class="landing-hero-glow-b" aria-hidden="true"></span>
 
-      <div class="landing-hero-content bp-hero-content">
-        <p class="landing-hero-eyebrow bp-eyebrow">Training Management System</p>
-        <h1 class="bp-h1">Plan and deliver training<span class="bp-accent-2">with confidence</span></h1>
-        <p class="landing-hero-sub bp-sub">Plan, manage and deliver your training programme &mdash; from scheme of work to session plan &mdash; in one place.</p>
+      <div class="landing-hero-content">
+        <span class="landing-hero-eyebrow">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          Training Management System
+        </span>
+        <h1>Plan and deliver training <span class="accent">with confidence</span></h1>
+        <p class="landing-hero-sub">Plan, manage and deliver your training programme &mdash; from scheme of work to session plan &mdash; in one place, built for the way trainers actually work.</p>
 
-        <div class="landing-hero-actions bp-actions">
-          <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary bp-btn bp-btn-primary">
+        <div class="landing-hero-actions">
+          <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary">
             Generate Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
           </a>
-          <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary bp-btn bp-btn-secondary">
+          <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary">
             Generate Lesson Plan
           </a>
         </div>
 
-        <a href="{% url 'login' %}" class="landing-hero-login-link bp-login-link">
+        <a href="{% url 'login' %}" class="landing-hero-login-link">
           <i class="fa-solid fa-lock" aria-hidden="true"></i> Administrator / trainer sign in
         </a>
       </div>
 
-      <div class="landing-hero-visual bp-visual" aria-hidden="true">
-        <div class="landing-doc-mock bp-sheet">
-          <div class="landing-doc-mock-header bp-sheet-head">
-            <span></span><span></span><span></span>
+      <div class="landing-hero-visual" aria-hidden="true">
+        <div class="landing-doc-mock landing-doc-mock-back">
+          <div class="landing-doc-mock-header">
+            <div class="landing-doc-mock-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="landing-doc-mock-tag">Scheme</span>
           </div>
-          <div class="landing-doc-mock-title bp-sheet-title"></div>
-          <div class="landing-doc-mock-row bp-sheet-row"></div>
-          <div class="landing-doc-mock-row bp-sheet-row"></div>
-          <div class="landing-doc-mock-row short bp-sheet-row short"></div>
-          <div class="landing-doc-mock-row bp-sheet-row"></div>
+          <div class="landing-doc-mock-title"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row short"></div>
         </div>
 
-        <div class="landing-hero-stat-card bp-callout bp-callout-a">
-          <i class="fa-solid fa-diagram-project"></i>
-          <div><strong>{{ module_count }}</strong><span>modules</span></div>
+        <div class="landing-doc-mock landing-doc-mock-front">
+          <div class="landing-doc-mock-header">
+            <div class="landing-doc-mock-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="landing-doc-mock-tag">Lesson</span>
+          </div>
+          <div class="landing-doc-mock-title"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row"></div>
+          <div class="landing-doc-mock-row short"></div>
+          <div class="landing-doc-mock-row"></div>
         </div>
-        <div class="landing-hero-stat-card landing-hero-stat-card-alt bp-callout bp-callout-b">
+
+        <div class="landing-hero-stat-card">
+          <i class="fa-solid fa-diagram-project"></i>
+          <div><strong data-count-to="{{ module_count }}">{{ module_count }}</strong><span>modules</span></div>
+        </div>
+        <div class="landing-hero-stat-card landing-hero-stat-card-alt">
           <i class="fa-solid fa-chalkboard"></i>
-          <div><strong>{{ lesson_plan_count }}</strong><span>lesson plans</span></div>
+          <div><strong data-count-to="{{ lesson_plan_count }}">{{ lesson_plan_count }}</strong><span>lesson plans</span></div>
         </div>
       </div>
     </main>
 
-    <!-- Quick access -->
-    <p class="bp-section-label">Quick access</p>
-    <section class="landing-quick-access bp-grid" aria-label="Quick access">
+    <!-- Why this platform -->
+    <section class="landing-section landing-features-section" aria-label="Why Padri Vjeko Centre">
+      <div class="landing-section-head reveal">
+        <span class="landing-section-eyebrow">Why trainers choose it</span>
+        <h2>Everything a training programme needs, structured properly</h2>
+        <p>No more scattered spreadsheets or one-off documents &mdash; every scheme and plan follows the same trusted structure.</p>
+      </div>
 
-      <a href="{% url 'login' %}" class="landing-quick-item bp-card">
-        <span class="bp-card-index">01 / Access</span>
-        <div class="lq-icon lq-icon-login bp-card-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
-        <div class="lq-text">
-          <h3>Login <span class="lq-badge lq-badge-restricted bp-badge bp-badge-restricted"><i class="fa-solid fa-lock"></i> Restricted</span></h3>
-          <p>Sign in with your administrator or trainer account to access the full management system.</p>
+      <div class="landing-features-grid">
+        <div class="landing-feature-card reveal" style="--reveal-delay: 0s">
+          <div class="landing-feature-icon icon-gold"><i class="fa-solid fa-diagram-project"></i></div>
+          <h3>Structured schemes of work</h3>
+          <p>Build a coherent, module-by-module scheme of work for any trade and level in minutes, not days.</p>
         </div>
-        <span class="bp-card-go">Continue <i class="fa-solid fa-arrow-right-long"></i></span>
-      </a>
-
-      <a href="{% url 'schemeofwork-user' %}" class="landing-quick-item bp-card">
-        <span class="bp-card-index">02 / Plan</span>
-        <div class="lq-icon lq-icon-scheme bp-card-icon"><i class="fa-solid fa-diagram-project"></i></div>
-        <div class="lq-text">
-          <h3>Scheme of Work <span class="lq-badge bp-badge">{{ module_count }} module{{ module_count|pluralize }}</span></h3>
-          <p>View and generate structured schemes of work for your selected trade and level.</p>
+        <div class="landing-feature-card reveal" style="--reveal-delay: 0.1s">
+          <div class="landing-feature-icon icon-teal"><i class="fa-solid fa-chalkboard"></i></div>
+          <h3>Ready-to-teach lesson plans</h3>
+          <p>Turn any module into a clear, classroom-ready session plan &mdash; objectives, activities and assessment included.</p>
         </div>
-        <span class="bp-card-go">Continue <i class="fa-solid fa-arrow-right-long"></i></span>
-      </a>
-
-      <a href="{% url 'lessonplan-user' %}" class="landing-quick-item bp-card">
-        <span class="bp-card-index">03 / Deliver</span>
-        <div class="lq-icon lq-icon-lesson bp-card-icon"><i class="fa-solid fa-chalkboard"></i></div>
-        <div class="lq-text">
-          <h3>Lesson Plans <span class="lq-badge bp-badge">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span></h3>
-          <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
+        <div class="landing-feature-card reveal" style="--reveal-delay: 0.2s">
+          <div class="landing-feature-icon icon-violet"><i class="fa-solid fa-shield-halved"></i></div>
+          <h3>Role-based access</h3>
+          <p>Trainees generate documents freely, while administrators and trainers sign in for full oversight and control.</p>
         </div>
-        <span class="bp-card-go">Continue <i class="fa-solid fa-arrow-right-long"></i></span>
-      </a>
-
+      </div>
     </section>
 
-    <footer class="landing-footer bp-footer">
-      <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>
-      &copy; {% now "Y" %} Padri Vjeko Centre &middot; Training Management System
+    <!-- How it works -->
+    <section class="landing-section landing-steps-section" aria-label="How it works">
+      <div class="landing-section-head reveal">
+        <span class="landing-section-eyebrow">How it works</span>
+        <h2>From blank page to classroom-ready in three steps</h2>
+        <p>The same simple flow every time, whichever trade or level you're planning for.</p>
+      </div>
+
+      <div class="landing-steps">
+        <div class="landing-step reveal" style="--reveal-delay: 0s">
+          <div class="landing-step-num">01</div>
+          <h3>Choose trade &amp; level</h3>
+          <p>Select the trade, module and level you're planning training for.</p>
+        </div>
+        <div class="landing-step reveal" style="--reveal-delay: 0.12s">
+          <div class="landing-step-num">02</div>
+          <h3>Generate the scheme</h3>
+          <p>Get a complete, structured scheme of work built around your modules.</p>
+        </div>
+        <div class="landing-step reveal" style="--reveal-delay: 0.24s">
+          <div class="landing-step-num">03</div>
+          <h3>Generate the lesson plan</h3>
+          <p>Turn any part of the scheme into a ready-to-deliver session plan.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick access -->
+    <section class="landing-section landing-quick-access-section" aria-label="Quick access">
+      <div class="landing-quick-access">
+
+        <a href="{% url 'login' %}" class="landing-quick-item reveal" style="--reveal-delay: 0s">
+          <div class="lq-icon lq-icon-login"><i class="fa-solid fa-right-to-bracket"></i></div>
+          <div class="lq-text">
+            <h3>Login <span class="lq-badge lq-badge-restricted"><i class="fa-solid fa-lock"></i>Restricted</span></h3>
+            <p>Sign in with your administrator or trainer account to access the full management system.</p>
+          </div>
+          <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+        </a>
+
+        <a href="{% url 'schemeofwork-user' %}" class="landing-quick-item reveal" style="--reveal-delay: 0.1s">
+          <div class="lq-icon lq-icon-scheme"><i class="fa-solid fa-diagram-project"></i></div>
+          <div class="lq-text">
+            <h3>Scheme of Work <span class="lq-badge">{{ module_count }} module{{ module_count|pluralize }}</span></h3>
+            <p>View and generate structured schemes of work for your selected trade and level.</p>
+          </div>
+          <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+        </a>
+
+        <a href="{% url 'lessonplan-user' %}" class="landing-quick-item reveal" style="--reveal-delay: 0.2s">
+          <div class="lq-icon lq-icon-lesson"><i class="fa-solid fa-chalkboard"></i></div>
+          <div class="lq-text">
+            <h3>Lesson Plans <span class="lq-badge">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span></h3>
+            <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
+          </div>
+          <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- CTA banner -->
+    <section class="landing-section landing-cta-section">
+      <div class="landing-cta reveal">
+        <div class="landing-cta-content">
+          <h2>Ready to plan your next training programme?</h2>
+          <p>Generate a scheme of work or lesson plan right now &mdash; no account needed to get started.</p>
+          <div class="landing-cta-actions">
+            <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary">
+              Generate Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+            </a>
+            <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary">
+              Generate Lesson Plan
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <div class="landing-footer-links">
+        <a href="{% url 'schemeofwork-user' %}">Scheme of Work</a>
+        <a href="{% url 'lessonplan-user' %}">Lesson Plans</a>
+        <a href="{% url 'login' %}">Trainer / Admin Login</a>
+      </div>
+      <div class="landing-footer-copy">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+        &copy; {% now "Y" %} Padri Vjeko Centre &middot; Training Management System
+      </div>
     </footer>
 
   </div>
+
+  <script>
+    (function () {
+      // Sticky top bar shadow on scroll
+      var topbar = document.getElementById('landingTopbar');
+      var onScroll = function () {
+        if (window.scrollY > 8) {
+          topbar.classList.add('is-scrolled');
+        } else {
+          topbar.classList.remove('is-scrolled');
+        }
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      // Scroll-triggered reveal animations
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var revealEls = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window && !reduceMotion) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+        revealEls.forEach(function (el) { observer.observe(el); });
+      } else {
+        revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+      }
+
+      // Animated stat counters
+      if (!reduceMotion) {
+        var counters = document.querySelectorAll('[data-count-to]');
+        var animateCounter = function (el) {
+          var target = parseInt(el.getAttribute('data-count-to'), 10) || 0;
+          var duration = 900;
+          var start = null;
+          var step = function (timestamp) {
+            if (!start) start = timestamp;
+            var progress = Math.min((timestamp - start) / duration, 1);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(eased * target);
+            if (progress < 1) {
+              window.requestAnimationFrame(step);
+            } else {
+              el.textContent = target;
+            }
+          };
+          window.requestAnimationFrame(step);
+        };
+        if ('IntersectionObserver' in window) {
+          var counterObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                animateCounter(entry.target);
+                counterObserver.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.6 });
+          counters.forEach(function (el) { counterObserver.observe(el); });
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
