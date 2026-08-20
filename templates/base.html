@@ -136,33 +136,127 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/main.js' %}"></script>
 <script>
-  // Self-contained mobile nav toggle for the horizontal top navigation.
-  // Does not depend on main.js so this keeps working even if that file
-  // still contains the old sidebar-toggle wiring.
+  // Self-contained top navigation behaviour. Does not depend on main.js
+  // so this keeps working even if that file still has old sidebar wiring.
   (function () {
     var toggleBtn = document.getElementById('topnavToggleBtn');
-    if (!toggleBtn) return;
-    toggleBtn.addEventListener('click', function () {
-      var isOpen = document.body.classList.toggle('topnav-open');
-      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    // Close the mobile menu after a nav link is tapped.
     var menu = document.getElementById('topnavMenu');
+    var dropdowns = document.querySelectorAll('.topnav-dropdown');
+    var desktopQuery = window.matchMedia('(min-width: 901px)');
+
+    // ---- Mobile hamburger toggle ----
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        var isOpen = document.body.classList.toggle('topnav-open');
+        toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+
     if (menu) {
       menu.querySelectorAll('a.topnav-link, a.topnav-dropdown-item').forEach(function (link) {
         link.addEventListener('click', function () {
           document.body.classList.remove('topnav-open');
-          toggleBtn.setAttribute('aria-expanded', 'false');
+          if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
         });
       });
     }
 
-    // On desktop, clicking outside an open <details> dropdown closes it.
-    document.addEventListener('click', function (e) {
-      document.querySelectorAll('.topnav-dropdown[open]').forEach(function (d) {
-        if (!d.contains(e.target)) d.removeAttribute('open');
+    // ---- Desktop dropdowns ----
+    // Rendered with position: fixed (see style.css) so they overlay the
+    // page content instead of being clipped by the nav bar's own
+    // horizontal-scroll container. Position is computed here from the
+    // trigger's on-screen location.
+    function getMenu(details) {
+      return details.querySelector('.topnav-dropdown-menu');
+    }
+
+    function positionMenu(details) {
+      var summary = details.querySelector('summary.topnav-link');
+      var dmenu = getMenu(details);
+      if (!summary || !dmenu) return;
+      var rect = summary.getBoundingClientRect();
+      var left = rect.left;
+      var maxLeft = window.innerWidth - dmenu.offsetWidth - 12;
+      if (left > maxLeft) left = Math.max(12, maxLeft);
+      dmenu.style.top = (rect.bottom + 8) + 'px';
+      dmenu.style.left = left + 'px';
+    }
+
+    function closeDropdown(details) {
+      var dmenu = getMenu(details);
+      if (dmenu) dmenu.classList.remove('is-open');
+      details.removeAttribute('open');
+    }
+
+    function closeAllExcept(except) {
+      dropdowns.forEach(function (d) {
+        if (d !== except) closeDropdown(d);
       });
+    }
+
+    function openDropdown(details) {
+      closeAllExcept(details);
+      details.setAttribute('open', '');
+      positionMenu(details);
+      var dmenu = getMenu(details);
+      if (dmenu) {
+        // Force layout before adding the class so the opacity/transform
+        // transition actually plays.
+        requestAnimationFrame(function () { dmenu.classList.add('is-open'); });
+      }
+    }
+
+    dropdowns.forEach(function (details) {
+      var summary = details.querySelector('summary.topnav-link');
+      if (!summary) return;
+
+      details.addEventListener('mouseenter', function () {
+        if (desktopQuery.matches) openDropdown(details);
+      });
+      details.addEventListener('mouseleave', function () {
+        if (desktopQuery.matches) closeDropdown(details);
+      });
+
+      summary.addEventListener('click', function (e) {
+        if (desktopQuery.matches) {
+          // Take over from the native <details> toggle on desktop so we
+          // control the fixed-position overlay ourselves (keyboard users
+          // activating the summary still get an accessible open/close).
+          e.preventDefault();
+          if (details.hasAttribute('open')) {
+            closeDropdown(details);
+          } else {
+            openDropdown(details);
+          }
+        }
+        // On mobile, do nothing extra — let native <details> toggling
+        // expand the menu inline underneath the label.
+      });
+    });
+
+    window.addEventListener('resize', function () {
+      dropdowns.forEach(function (d) {
+        if (d.hasAttribute('open') && desktopQuery.matches) positionMenu(d);
+      });
+    });
+
+    window.addEventListener('scroll', function () {
+      dropdowns.forEach(function (d) {
+        if (d.hasAttribute('open') && desktopQuery.matches) positionMenu(d);
+      });
+    }, true);
+
+    document.addEventListener('click', function (e) {
+      if (!desktopQuery.matches) return;
+      dropdowns.forEach(function (d) {
+        if (d.hasAttribute('open') && !d.contains(e.target)) closeDropdown(d);
+      });
+    });
+
+    // Switching from mobile to desktop (or back) mid-session shouldn't
+    // leave a stale open/fixed-position menu behind.
+    desktopQuery.addEventListener('change', function () {
+      dropdowns.forEach(function (d) { closeDropdown(d); });
     });
   })();
 </script>
