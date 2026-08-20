@@ -257,9 +257,12 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
 .topnav-dropdown.has-active > summary.topnav-link { color: var(--app-primary); border-bottom-color: var(--app-primary); }
 .topnav-dropdown.has-active > summary.topnav-link i:first-child { color: var(--app-primary); }
 
+/* Positioned with JS (top/left set to the summary's viewport rect) and
+   rendered with position: fixed so it overlays the page content instead
+   of being clipped by .topnav-inner's horizontal scroll container. */
 .topnav-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
+  position: fixed;
+  top: 0;
   left: 0;
   min-width: 230px;
   background: var(--app-surface);
@@ -267,7 +270,19 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   border-radius: var(--app-radius-md);
   box-shadow: var(--app-shadow-lg);
   padding: 0.45rem;
-  z-index: 1055;
+  z-index: 1200;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+  pointer-events: none;
+}
+
+.topnav-dropdown-menu.is-open {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .topnav-dropdown-item {
@@ -723,8 +738,15 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   .topnav-link.active { border-left-color: var(--app-primary); background: var(--app-primary-soft); border-bottom-color: transparent; }
   .topnav-dropdown.has-active > summary.topnav-link { border-left-color: var(--app-primary); }
 
+  /* On mobile the menu expands inline under its group label (native
+     <details> flow) instead of floating as a fixed overlay. */
   .topnav-dropdown-menu {
     position: static;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
     box-shadow: none;
     border: none;
     padding: 0 0 0 1.6rem;
@@ -736,11 +758,6 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   .btn-logout .btn-logout-label { display: none; }
 
   .main-content { padding: 1.25rem; }
-}
-
-@media (min-width: 901px) {
-  .topnav-dropdown:hover > .topnav-dropdown-menu,
-  .topnav-dropdown[open] > .topnav-dropdown-menu { display: block; }
 }
 
 /* ---------- Loading / button states ---------- */
