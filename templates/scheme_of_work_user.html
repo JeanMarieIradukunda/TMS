@@ -115,6 +115,10 @@
       color: var(--sow-navy);
       margin: 0.1rem 0 0.35rem;
       text-transform: uppercase;
+      /* Now carries "Scheme of Work — MOD-CODE — Module Name" once a
+         module has been generated, so a long module name doesn't force
+         an overly cramped single line. */
+      line-height: 1.25;
     }
     .gen-doc-title p {
       font-size: 9pt;
@@ -819,7 +823,12 @@
         <div class="gen-doc-logos" id="docLogos"></div>
 
         <div class="gen-doc-title">
-          <h3>Scheme of Work</h3>
+          <!-- Populated dynamically once a module has been generated:
+               "Scheme of Work — MOD-CODE — Module Name". Falls back to
+               the plain "Scheme of Work" default until then, and on
+               Reset. Same markup renders on screen and in print, so no
+               separate print-only title is needed. -->
+          <h3 id="docTitleText">Scheme of Work</h3>
           <p id="docGeneratedOn"></p>
         </div>
 
@@ -925,6 +934,8 @@
       // ------------------------------------------------------------------
       var AI_ENDPOINT = '/api/scheme-of-work/ai-generate/';
 
+      var DEFAULT_DOC_TITLE = 'Scheme of Work';
+
       var data = TMSGen.readData() || {
         sectors: [], trades: [], levels: [], trade_levels: [],
         modules: [], outcomes: [], contents: [], trainers: [], logos: [],
@@ -944,6 +955,7 @@
       var docSection = document.getElementById('docSection');
       var noDataAlert = document.getElementById('noDataAlert');
       var selectorFields = document.getElementById('selectorFields');
+      var docTitleText = document.getElementById('docTitleText');
 
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
@@ -956,6 +968,25 @@
         var map = {};
         (list || []).forEach(function (item) { map[item[key]] = item; });
         return map;
+      }
+
+      /**
+       * Builds the document title shown in both the on-screen preview
+       * and the printed/PDF output: "Scheme of Work — MOD-CODE —
+       * Module Name". Falls back to the plain default when no module
+       * is supplied (initial state / after Reset).
+       */
+      function buildDocTitle(mod) {
+        if (!mod) return DEFAULT_DOC_TITLE;
+        var parts = [DEFAULT_DOC_TITLE];
+        if (mod.mod_code) parts.push(mod.mod_code);
+        if (mod.mod_name) parts.push(mod.mod_name);
+        return parts.join(' \u2014 ');
+      }
+
+      function setDocTitle(mod) {
+        if (!docTitleText) return;
+        docTitleText.textContent = buildDocTitle(mod);
       }
 
       /**
@@ -1131,6 +1162,7 @@
         onTradeChange();
         docSection.classList.add('d-none');
         currentContext = null;
+        setDocTitle(null); // NEW: revert the doc title to the plain default
       }
 
       function onGenerate(opts) {
@@ -1198,6 +1230,12 @@
 
         document.getElementById('docPreparedBy').textContent = mod.trainer_name || '';
         document.getElementById('docFooterModule').textContent = mod.mod_code + ' \u2014 ' + mod.mod_name;
+
+        // NEW: doc title reflects the selected module — "Scheme of Work
+        // — MOD-CODE — Module Name" — identically on screen and in the
+        // printed / saved-as-PDF output, since both render this same
+        // #docTitleText element.
+        setDocTitle(mod);
 
         docSection.classList.remove('d-none');
         if (!opts.silent) docSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
