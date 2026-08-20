@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -56,6 +57,19 @@ class TradeLevel(models.Model):
 
 
 class Trainer(models.Model):
+    # Links this trainer record to a real Django login account so trainers
+    # can sign in through the existing admin login page/Dashboard. Optional
+    # (null=True) so trainer records with no login access yet don't break.
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='trainer_profile',
+        help_text="The login account this trainer uses to sign in. "
+                  "Leave blank if this trainer doesn't need portal access.",
+    )
+
     fname = models.CharField(max_length=100)
     lname = models.CharField(max_length=100)
     username = models.CharField(max_length=100, unique=True)
