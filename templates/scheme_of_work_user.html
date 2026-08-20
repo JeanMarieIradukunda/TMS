@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scheme of Work  Building</title>
+  <title>Scheme of Work Generator · Training Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -990,6 +990,46 @@
       }
 
       /**
+       * Browsers use document.title as the suggested filename in the
+       * "Print / Save as PDF" dialog. Strip characters that are illegal
+       * (or awkward) in filenames on common OSes so the suggested name
+       * is always clean.
+       */
+      function slugifyForFilename(str) {
+        return (str || '')
+          .replace(/[\\/:*?"<>|]+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      /**
+       * Swaps document.title to the current scheme's title (so the
+       * browser's "Print / Save as PDF" dialog suggests a matching
+       * filename, e.g. "Scheme of Work - PLB301 - Wiring Systems.pdf")
+       * for the duration of the print action only, then restores the
+       * original tab title once the dialog has been handled.
+       */
+      function printWithFilename() {
+        var originalTitle = document.title;
+        var suggested = currentContext
+          ? slugifyForFilename(buildDocTitle(currentContext.mod))
+          : slugifyForFilename(DEFAULT_DOC_TITLE);
+
+        document.title = suggested;
+        TMSGen.print();
+
+        // 'afterprint' fires reliably in Chrome/Firefox/Edge for both
+        // the "Print" and "Save as PDF" destinations.
+        var restore = function () {
+          document.title = originalTitle;
+          window.removeEventListener('afterprint', restore);
+        };
+        window.addEventListener('afterprint', restore);
+        // Fallback in case 'afterprint' doesn't fire in some browser (rare).
+        setTimeout(restore, 5000);
+      }
+
+      /**
        * (Re)builds one "Term N weeks" number input per term, based on
        * numTermsInput's current value. Existing values are preserved
        * when the count changes (e.g. going from 3 to 4 terms keeps the
@@ -1095,7 +1135,7 @@
         editSelectionBtn.addEventListener('click', function () {
           selectorFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
-        printBtn.addEventListener('click', TMSGen.print);
+        printBtn.addEventListener('click', printWithFilename); // was: TMSGen.print
         aiGenerateBtn.addEventListener('click', onAiGenerate);
         var refreshBtn = document.getElementById('docStaleRefreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', function () { onGenerate({ silent: true }); });
