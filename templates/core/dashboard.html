@@ -2,268 +2,224 @@
 {% block title %}Dashboard · TMS{% endblock %}
 {% block content %}
 
-<div class="dbx-page">
+<div class="db-page">
 
-  <!-- ============================================================
-       TOP HERO
-       ============================================================ -->
-  <div class="dbx-hero">
-    <div>
-      <p class="dbx-hero-eyebrow">Dashboard</p>
+  <!-- Hero: greeting + the most-used actions, right where you land -->
+  <div class="db-hero">
+    <div class="db-hero-intro">
+      <p class="db-hero-eyebrow">Dashboard</p>
       <h1>Welcome back, {{ request.user.username|title }} 👋</h1>
-      <p class="dbx-hero-sub">Here's what's happening across your training programme.</p>
+      <p class="db-hero-sub">Here's what's happening across your training programme.</p>
+    </div>
+    <div class="db-hero-actions">
+      <a href="{% url 'outcome-bulk-create' %}" class="db-hero-action db-hero-action-primary">
+        <i class="fa-solid fa-layer-group"></i> Add multiple Outcomes
+      </a>
+      <a href="{% url 'content-bulk-create' %}" class="db-hero-action">
+        <i class="fa-solid fa-layer-group"></i> Add multiple Contents
+      </a>
+      <a href="{% url 'module-create' %}" class="db-hero-action">
+        <i class="fa-solid fa-book-open"></i> Add a Module
+      </a>
     </div>
   </div>
 
-  <!-- ============================================================
-       HORIZONTAL NAV BAR (replaces the old left sidebar)
-       Sits directly below the hero/header, scrolls horizontally on
-       small screens, groups links exactly as the old sidebar did.
-       Every href below is unchanged from the original template.
-       ============================================================ -->
-  <nav class="dbx-navbar" aria-label="Dashboard sections">
-    <div class="dbx-navbar-scroll">
-
-      <div class="dbx-navgroup">
-        <span class="dbx-navgroup-label">Curriculum</span>
-        <a href="{% url 'sector-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-industry"></i><span>Sectors</span>
-        </a>
-        <a href="{% url 'trade-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-toolbox"></i><span>Trades</span>
-        </a>
-        <a href="{% url 'level-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-layer-group"></i><span>Levels</span>
-        </a>
-        <a href="{% url 'tradelevel-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-diagram-project"></i><span>Trade Levels</span>
-        </a>
-        <a href="{% url 'module-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-book-open"></i><span>Modules</span>
-        </a>
-        <a href="{% url 'outcome-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-list-check"></i><span>Learning Outcomes</span>
-        </a>
-        <a href="{% url 'content-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-file-lines"></i><span>Indicative Contents</span>
-        </a>
+  <!-- KPI bento rail: glanceable counts across the whole programme -->
+  <div class="db-kpi-rail">
+    <div class="db-kpi-card db-kpi-1">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-industry"></i></div>
       </div>
-
-      <div class="dbx-navgroup">
-        <span class="dbx-navgroup-label">People</span>
-        <a href="{% url 'trainer-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-chalkboard-user"></i><span>Trainers</span>
-        </a>
-      </div>
-
-      <div class="dbx-navgroup">
-        <span class="dbx-navgroup-label">Documents</span>
-        <a href="{% url 'lessonplan-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-chalkboard"></i><span>Lesson Plans</span>
-        </a>
-        <a href="{% url 'logo-list' %}" class="dbx-navlink">
-          <i class="fa-solid fa-image"></i><span>Logos</span>
-        </a>
-      </div>
-
+      <div class="db-kpi-value">{{ sector_count }}</div>
+      <div class="db-kpi-label">Sectors</div>
     </div>
-  </nav>
-
-  <!-- ============================================================
-       MAIN GRID: overview stats (bento layout) + quick actions rail
-       ============================================================ -->
-  <div class="dbx-main-grid">
-
-    <!-- Overview stats -->
-    <section class="dbx-panel dbx-panel-stats">
-      <h2 class="dbx-panel-title">Overview</h2>
-      <div class="dbx-bento">
-        <div class="dbx-bento-item dbx-accent-teal">
-          <i class="fa-solid fa-industry"></i>
-          <div class="dbx-bento-value">{{ sector_count }}</div>
-          <div class="dbx-bento-label">Sectors</div>
-        </div>
-        <div class="dbx-bento-item dbx-accent-gold">
-          <i class="fa-solid fa-toolbox"></i>
-          <div class="dbx-bento-value">{{ trade_count }}</div>
-          <div class="dbx-bento-label">Trades</div>
-        </div>
-        <div class="dbx-bento-item dbx-accent-purple">
-          <i class="fa-solid fa-layer-group"></i>
-          <div class="dbx-bento-value">{{ level_count }}</div>
-          <div class="dbx-bento-label">Levels</div>
-        </div>
-        <div class="dbx-bento-item dbx-accent-teal">
-          <i class="fa-solid fa-book-open"></i>
-          <div class="dbx-bento-value">{{ module_count }}</div>
-          <div class="dbx-bento-label">Modules</div>
-        </div>
-        <div class="dbx-bento-item dbx-accent-gold">
-          <i class="fa-solid fa-chalkboard-user"></i>
-          <div class="dbx-bento-value">{{ trainer_count }}</div>
-          <div class="dbx-bento-label">Trainers</div>
-        </div>
-        <div class="dbx-bento-item dbx-accent-purple">
-          <i class="fa-solid fa-chalkboard"></i>
-          <div class="dbx-bento-value">{{ lesson_plan_count }}</div>
-          <div class="dbx-bento-label">Lesson Plans</div>
-        </div>
+    <div class="db-kpi-card db-kpi-2">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-toolbox"></i></div>
       </div>
-    </section>
-
-    <!-- Quick actions rail -->
-    <section class="dbx-panel dbx-panel-actions">
-      <h2 class="dbx-panel-title">Quick actions</h2>
-      <div class="dbx-action-rail">
-        <a href="{% url 'outcome-bulk-create' %}" class="dbx-action-card dbx-accent-teal">
-          <div class="dbx-action-icon"><i class="fa-solid fa-layer-group"></i></div>
-          <div class="dbx-action-title">Add multiple Learning Outcomes</div>
-          <div class="dbx-action-sub">Pick a module once, then add several outcomes in one save.</div>
-        </a>
-        <a href="{% url 'content-bulk-create' %}" class="dbx-action-card dbx-accent-gold">
-          <div class="dbx-action-icon"><i class="fa-solid fa-layer-group"></i></div>
-          <div class="dbx-action-title">Add multiple Indicative Contents</div>
-          <div class="dbx-action-sub">Pick a learning outcome once, then add several contents in one save.</div>
-        </a>
-        <a href="{% url 'module-create' %}" class="dbx-action-card dbx-accent-purple">
-          <div class="dbx-action-icon"><i class="fa-solid fa-book-open"></i></div>
-          <div class="dbx-action-title">Add a Module</div>
-          <div class="dbx-action-sub">Register a new module under a trade and level.</div>
-        </a>
+      <div class="db-kpi-value">{{ trade_count }}</div>
+      <div class="db-kpi-label">Trades</div>
+    </div>
+    <div class="db-kpi-card db-kpi-3">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-layer-group"></i></div>
       </div>
-    </section>
-
+      <div class="db-kpi-value">{{ level_count }}</div>
+      <div class="db-kpi-label">Levels</div>
+    </div>
+    <div class="db-kpi-card db-kpi-4">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-book-open"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ module_count }}</div>
+      <div class="db-kpi-label">Modules</div>
+    </div>
+    <div class="db-kpi-card db-kpi-5">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ trainer_count }}</div>
+      <div class="db-kpi-label">Trainers</div>
+    </div>
+    <div class="db-kpi-card db-kpi-6">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-chalkboard"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ lesson_plan_count }}</div>
+      <div class="db-kpi-label">Lesson Plans</div>
+    </div>
   </div>
 
-  <!-- ============================================================
-       RECORD BROWSER: same links/counts as the old "Quick navigation"
-       accordion, now shown as a single scannable card grid instead
-       of collapsible groups (the horizontal navbar above already
-       gives grouped/quick access, so this becomes a browsable index).
-       ============================================================ -->
-  <section class="dbx-panel">
-    <h2 class="dbx-panel-title">Browse records</h2>
-    <div class="dbx-record-grid">
-      <a href="{% url 'sector-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-industry"></i></div>
-        <div>
-          <div class="dbx-record-title">Sectors</div>
-          <div class="dbx-record-sub">{{ sector_count }} record{{ sector_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'trade-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-toolbox"></i></div>
-        <div>
-          <div class="dbx-record-title">Trades</div>
-          <div class="dbx-record-sub">{{ trade_count }} record{{ trade_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'level-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-layer-group"></i></div>
-        <div>
-          <div class="dbx-record-title">Levels</div>
-          <div class="dbx-record-sub">{{ level_count }} record{{ level_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'tradelevel-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-diagram-project"></i></div>
-        <div>
-          <div class="dbx-record-title">Trade Levels</div>
-          <div class="dbx-record-sub">Mappings</div>
-        </div>
-      </a>
-      <a href="{% url 'module-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-book-open"></i></div>
-        <div>
-          <div class="dbx-record-title">Modules</div>
-          <div class="dbx-record-sub">{{ module_count }} record{{ module_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'outcome-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-list-check"></i></div>
-        <div>
-          <div class="dbx-record-title">Learning Outcomes</div>
-          <div class="dbx-record-sub">{{ outcome_count }} record{{ outcome_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'content-list' %}" class="dbx-record-card dbx-accent-teal">
-        <div class="dbx-record-icon"><i class="fa-solid fa-file-lines"></i></div>
-        <div>
-          <div class="dbx-record-title">Indicative Contents</div>
-          <div class="dbx-record-sub">{{ content_count }} record{{ content_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'trainer-list' %}" class="dbx-record-card dbx-accent-gold">
-        <div class="dbx-record-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-        <div>
-          <div class="dbx-record-title">Trainers</div>
-          <div class="dbx-record-sub">{{ trainer_count }} record{{ trainer_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'lessonplan-list' %}" class="dbx-record-card dbx-accent-purple">
-        <div class="dbx-record-icon"><i class="fa-solid fa-chalkboard"></i></div>
-        <div>
-          <div class="dbx-record-title">Lesson Plans</div>
-          <div class="dbx-record-sub">{{ lesson_plan_count }} record{{ lesson_plan_count|pluralize }}</div>
-        </div>
-      </a>
-      <a href="{% url 'logo-list' %}" class="dbx-record-card dbx-accent-purple">
-        {% if latest_logo and latest_logo.image %}
-          <div class="dbx-record-icon dbx-record-icon-image"><img src="{{ latest_logo.image }}" alt="{{ latest_logo.name }}"></div>
-        {% else %}
-          <div class="dbx-record-icon"><i class="fa-solid fa-image"></i></div>
-        {% endif %}
-        <div>
-          <div class="dbx-record-title">Logos</div>
-          <div class="dbx-record-sub">{{ logo_count }} record{{ logo_count|pluralize }}</div>
-        </div>
-      </a>
+  <!-- Browse by category: tabbed switcher instead of stacked accordions -->
+  <section class="db-section">
+    <div class="db-section-head">
+      <h2 class="db-section-title">Browse your data</h2>
+      <div class="db-tabs" role="tablist">
+        <button type="button" class="db-tab-btn active" data-db-tab="curriculum">
+          <i class="fa-solid fa-diagram-project"></i> Curriculum Data
+        </button>
+        <button type="button" class="db-tab-btn" data-db-tab="people">
+          <i class="fa-solid fa-users"></i> People
+        </button>
+        <button type="button" class="db-tab-btn" data-db-tab="documents">
+          <i class="fa-solid fa-folder-open"></i> Documents &amp; Media
+        </button>
+      </div>
+    </div>
+
+    <div class="db-tab-panel active" data-db-panel="curriculum">
+      <div class="db-nav-grid">
+        <a href="{% url 'sector-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-industry"></i></div>
+          <div>
+            <div class="db-nav-title">Sectors</div>
+            <div class="db-nav-sub">{{ sector_count }} record{{ sector_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'trade-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-toolbox"></i></div>
+          <div>
+            <div class="db-nav-title">Trades</div>
+            <div class="db-nav-sub">{{ trade_count }} record{{ trade_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'level-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <div class="db-nav-title">Levels</div>
+            <div class="db-nav-sub">{{ level_count }} record{{ level_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'tradelevel-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-diagram-project"></i></div>
+          <div>
+            <div class="db-nav-title">Trade Levels</div>
+            <div class="db-nav-sub">Mappings</div>
+          </div>
+        </a>
+        <a href="{% url 'module-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-book-open"></i></div>
+          <div>
+            <div class="db-nav-title">Modules</div>
+            <div class="db-nav-sub">{{ module_count }} record{{ module_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'outcome-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-list-check"></i></div>
+          <div>
+            <div class="db-nav-title">Learning Outcomes</div>
+            <div class="db-nav-sub">{{ outcome_count }} record{{ outcome_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'content-list' %}" class="db-nav-card db-accent-teal">
+          <div class="db-nav-icon"><i class="fa-solid fa-file-lines"></i></div>
+          <div>
+            <div class="db-nav-title">Indicative Contents</div>
+            <div class="db-nav-sub">{{ content_count }} record{{ content_count|pluralize }}</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="db-tab-panel" data-db-panel="people">
+      <div class="db-nav-grid">
+        <a href="{% url 'trainer-list' %}" class="db-nav-card db-accent-gold">
+          <div class="db-nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+          <div>
+            <div class="db-nav-title">Trainers</div>
+            <div class="db-nav-sub">{{ trainer_count }} record{{ trainer_count|pluralize }}</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="db-tab-panel" data-db-panel="documents">
+      <div class="db-nav-grid">
+        <a href="{% url 'lessonplan-list' %}" class="db-nav-card db-accent-purple">
+          <div class="db-nav-icon"><i class="fa-solid fa-chalkboard"></i></div>
+          <div>
+            <div class="db-nav-title">Lesson Plans</div>
+            <div class="db-nav-sub">{{ lesson_plan_count }} record{{ lesson_plan_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'logo-list' %}" class="db-nav-card db-accent-purple">
+          {% if latest_logo and latest_logo.image %}
+            <div class="db-nav-icon db-nav-icon-image"><img src="{{ latest_logo.image }}" alt="{{ latest_logo.name }}"></div>
+          {% else %}
+            <div class="db-nav-icon"><i class="fa-solid fa-image"></i></div>
+          {% endif %}
+          <div>
+            <div class="db-nav-title">Logos</div>
+            <div class="db-nav-sub">{{ logo_count }} record{{ logo_count|pluralize }}</div>
+          </div>
+        </a>
+      </div>
     </div>
   </section>
 
-  <!-- ============================================================
-       RECENT ACTIVITY
-       ============================================================ -->
-  <section class="dbx-panel">
-    <h2 class="dbx-panel-title">Recent activity</h2>
-    <div class="dbx-recent-grid">
-      <div class="dbx-recent-panel">
-        <div class="dbx-recent-panel-title">
+  <!-- Recent activity: quick way back into whatever was just added -->
+  <section class="db-section">
+    <div class="db-section-head">
+      <h2 class="db-section-title">Recent activity</h2>
+    </div>
+    <div class="db-activity-grid">
+      <div class="card-panel db-activity-panel">
+        <div class="db-activity-panel-title">
           <i class="fa-solid fa-book-open"></i> Latest modules
         </div>
         {% if recent_modules %}
-        <ul class="dbx-recent-list">
+        <ul class="db-timeline">
           {% for module in recent_modules %}
           <li>
             <a href="{% url 'module-edit' pk=module.pk %}">
-              <span class="dbx-recent-item-title">{{ module.mod_code }} — {{ module.mod_name }}</span>
-              <span class="dbx-recent-item-sub">{{ module.trade.trade_name }} · {{ module.level.class_level }}</span>
+              <div class="db-timeline-title">{{ module.mod_code }} — {{ module.mod_name }}</div>
+              <div class="db-timeline-sub">{{ module.trade.trade_name }} · {{ module.level.class_level }}</div>
             </a>
           </li>
           {% endfor %}
         </ul>
         {% else %}
-        <div class="dbx-recent-empty">No modules yet.</div>
+        <div class="db-activity-empty">No modules yet.</div>
         {% endif %}
       </div>
 
-      <div class="dbx-recent-panel">
-        <div class="dbx-recent-panel-title">
+      <div class="card-panel db-activity-panel">
+        <div class="db-activity-panel-title">
           <i class="fa-solid fa-list-check"></i> Latest learning outcomes
         </div>
         {% if recent_outcomes %}
-        <ul class="dbx-recent-list">
+        <ul class="db-timeline">
           {% for outcome in recent_outcomes %}
           <li>
             <a href="{% url 'outcome-edit' pk=outcome.pk %}">
-              <span class="dbx-recent-item-title">{{ outcome.outcome_text|truncatechars:60 }}</span>
-              <span class="dbx-recent-item-sub">{{ outcome.module }}</span>
+              <div class="db-timeline-title">{{ outcome.outcome_text|truncatechars:60 }}</div>
+              <div class="db-timeline-sub">{{ outcome.module }}</div>
             </a>
           </li>
           {% endfor %}
         </ul>
         {% else %}
-        <div class="dbx-recent-empty">No learning outcomes yet.</div>
+        <div class="db-activity-empty">No learning outcomes yet.</div>
         {% endif %}
       </div>
     </div>
@@ -271,332 +227,25 @@
 
 </div>
 
-<style>
-/* =====================================================================
-   DASHBOARD REDESIGN — scoped with the "dbx-" prefix so nothing here
-   collides with existing global classes/styles used elsewhere in the
-   app. Purely presentational: no functionality, urls, or logic below
-   this line differs from the original template.
-   ===================================================================== */
+{% endblock %}
 
-.dbx-page{
-  --dbx-teal:#0f9d8e;
-  --dbx-teal-soft:#e3f6f3;
-  --dbx-gold:#c8932b;
-  --dbx-gold-soft:#faf1df;
-  --dbx-purple:#6d5bd0;
-  --dbx-purple-soft:#efecfc;
-  --dbx-ink:#1b2430;
-  --dbx-muted:#68758a;
-  --dbx-border:#e6e9ef;
-  --dbx-bg:#f6f8fa;
-  max-width:1280px;
-  margin:0 auto;
-  padding:0 20px 48px;
-  color:var(--dbx-ink);
-}
+{% block extra_scripts %}
+<script>
+  // Simple, self-contained tab switcher for the "Browse your data" section.
+  (function () {
+    var tabs = document.querySelectorAll('.db-tab-btn');
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = btn.getAttribute('data-db-tab');
 
-/* Hero */
-.dbx-hero{
-  padding:32px 0 20px;
-}
-.dbx-hero-eyebrow{
-  margin:0 0 4px;
-  font-size:.78rem;
-  font-weight:700;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  color:var(--dbx-teal);
-}
-.dbx-hero h1{
-  margin:0 0 6px;
-  font-size:1.9rem;
-  font-weight:800;
-  line-height:1.2;
-}
-.dbx-hero-sub{
-  margin:0;
-  color:var(--dbx-muted);
-  font-size:.98rem;
-}
-
-/* Horizontal navbar (replaces left sidebar) */
-.dbx-navbar{
-  position:sticky;
-  top:0;
-  z-index:20;
-  background:#fff;
-  border:1px solid var(--dbx-border);
-  border-radius:14px;
-  box-shadow:0 2px 10px rgba(20,30,50,.05);
-  margin-bottom:28px;
-  overflow:hidden;
-}
-.dbx-navbar-scroll{
-  display:flex;
-  align-items:center;
-  gap:28px;
-  overflow-x:auto;
-  padding:12px 18px;
-  scrollbar-width:thin;
-}
-.dbx-navbar-scroll::-webkit-scrollbar{ height:6px; }
-.dbx-navbar-scroll::-webkit-scrollbar-thumb{ background:var(--dbx-border); border-radius:6px; }
-
-.dbx-navgroup{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-shrink:0;
-}
-.dbx-navgroup-label{
-  font-size:.72rem;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.05em;
-  color:var(--dbx-muted);
-  padding-right:4px;
-  white-space:nowrap;
-}
-.dbx-navlink{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  white-space:nowrap;
-  padding:8px 13px;
-  border-radius:999px;
-  font-size:.87rem;
-  font-weight:600;
-  color:var(--dbx-ink);
-  background:var(--dbx-bg);
-  border:1px solid transparent;
-  text-decoration:none;
-  transition:all .15s ease;
-}
-.dbx-navlink i{ color:var(--dbx-teal); font-size:.85rem; }
-.dbx-navlink:hover{
-  background:var(--dbx-teal-soft);
-  border-color:var(--dbx-teal);
-  color:var(--dbx-teal);
-  transform:translateY(-1px);
-}
-
-/* Panels */
-.dbx-panel{
-  background:#fff;
-  border:1px solid var(--dbx-border);
-  border-radius:16px;
-  padding:22px;
-  margin-bottom:24px;
-}
-.dbx-panel-title{
-  margin:0 0 16px;
-  font-size:1.05rem;
-  font-weight:700;
-}
-
-/* Main grid: stats (bento) + actions rail side by side on desktop */
-.dbx-main-grid{
-  display:grid;
-  grid-template-columns:1.4fr 1fr;
-  gap:24px;
-  align-items:start;
-}
-
-/* Bento-style stats */
-.dbx-bento{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:14px;
-}
-.dbx-bento-item{
-  position:relative;
-  border-radius:14px;
-  padding:18px 16px;
-  background:var(--dbx-bg);
-  border:1px solid var(--dbx-border);
-  overflow:hidden;
-}
-.dbx-bento-item i{
-  font-size:1.1rem;
-  opacity:.85;
-}
-.dbx-bento-value{
-  font-size:1.7rem;
-  font-weight:800;
-  margin-top:10px;
-  line-height:1;
-}
-.dbx-bento-label{
-  margin-top:4px;
-  font-size:.82rem;
-  color:var(--dbx-muted);
-  font-weight:600;
-}
-.dbx-bento-item.dbx-accent-teal{ background:var(--dbx-teal-soft); }
-.dbx-bento-item.dbx-accent-teal i{ color:var(--dbx-teal); }
-.dbx-bento-item.dbx-accent-gold{ background:var(--dbx-gold-soft); }
-.dbx-bento-item.dbx-accent-gold i{ color:var(--dbx-gold); }
-.dbx-bento-item.dbx-accent-purple{ background:var(--dbx-purple-soft); }
-.dbx-bento-item.dbx-accent-purple i{ color:var(--dbx-purple); }
-
-/* Quick action rail (vertical stack next to bento on desktop) */
-.dbx-action-rail{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-.dbx-action-card{
-  display:block;
-  padding:14px 16px;
-  border-radius:14px;
-  border:1px solid var(--dbx-border);
-  text-decoration:none;
-  color:var(--dbx-ink);
-  background:var(--dbx-bg);
-  border-left:4px solid transparent;
-  transition:all .15s ease;
-}
-.dbx-action-card:hover{
-  transform:translateX(2px);
-  box-shadow:0 4px 14px rgba(20,30,50,.06);
-}
-.dbx-action-card.dbx-accent-teal{ border-left-color:var(--dbx-teal); }
-.dbx-action-card.dbx-accent-gold{ border-left-color:var(--dbx-gold); }
-.dbx-action-card.dbx-accent-purple{ border-left-color:var(--dbx-purple); }
-.dbx-action-icon{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:30px;
-  height:30px;
-  border-radius:9px;
-  background:#fff;
-  margin-bottom:8px;
-  font-size:.85rem;
-}
-.dbx-action-card.dbx-accent-teal .dbx-action-icon{ color:var(--dbx-teal); }
-.dbx-action-card.dbx-accent-gold .dbx-action-icon{ color:var(--dbx-gold); }
-.dbx-action-card.dbx-accent-purple .dbx-action-icon{ color:var(--dbx-purple); }
-.dbx-action-title{
-  font-weight:700;
-  font-size:.92rem;
-  margin-bottom:3px;
-}
-.dbx-action-sub{
-  font-size:.82rem;
-  color:var(--dbx-muted);
-  line-height:1.35;
-}
-
-/* Record browse grid */
-.dbx-record-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
-  gap:14px;
-}
-.dbx-record-card{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:14px;
-  border-radius:14px;
-  border:1px solid var(--dbx-border);
-  text-decoration:none;
-  color:var(--dbx-ink);
-  transition:all .15s ease;
-}
-.dbx-record-card:hover{
-  box-shadow:0 4px 14px rgba(20,30,50,.06);
-  transform:translateY(-2px);
-}
-.dbx-record-icon{
-  flex-shrink:0;
-  width:42px;
-  height:42px;
-  border-radius:11px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:1rem;
-}
-.dbx-record-card.dbx-accent-teal .dbx-record-icon{ background:var(--dbx-teal-soft); color:var(--dbx-teal); }
-.dbx-record-card.dbx-accent-gold .dbx-record-icon{ background:var(--dbx-gold-soft); color:var(--dbx-gold); }
-.dbx-record-card.dbx-accent-purple .dbx-record-icon{ background:var(--dbx-purple-soft); color:var(--dbx-purple); }
-.dbx-record-icon-image{ overflow:hidden; padding:0; }
-.dbx-record-icon-image img{ width:100%; height:100%; object-fit:cover; }
-.dbx-record-title{ font-weight:700; font-size:.9rem; }
-.dbx-record-sub{ font-size:.78rem; color:var(--dbx-muted); }
-
-/* Recent activity */
-.dbx-recent-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-}
-.dbx-recent-panel{
-  border:1px solid var(--dbx-border);
-  border-radius:14px;
-  padding:16px;
-  background:var(--dbx-bg);
-}
-.dbx-recent-panel-title{
-  font-weight:700;
-  font-size:.92rem;
-  margin-bottom:10px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:var(--dbx-ink);
-}
-.dbx-recent-panel-title i{ color:var(--dbx-teal); }
-.dbx-recent-list{
-  list-style:none;
-  margin:0;
-  padding:0;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.dbx-recent-list a{
-  display:flex;
-  flex-direction:column;
-  padding:9px 10px;
-  border-radius:9px;
-  text-decoration:none;
-  color:var(--dbx-ink);
-  background:#fff;
-  border:1px solid var(--dbx-border);
-}
-.dbx-recent-list a:hover{ border-color:var(--dbx-teal); }
-.dbx-recent-item-title{ font-weight:600; font-size:.86rem; }
-.dbx-recent-item-sub{ font-size:.76rem; color:var(--dbx-muted); margin-top:2px; }
-.dbx-recent-empty{ font-size:.85rem; color:var(--dbx-muted); padding:8px 2px; }
-
-/* =====================================================================
-   RESPONSIVE
-   ===================================================================== */
-
-/* Tablet */
-@media (max-width: 992px){
-  .dbx-main-grid{ grid-template-columns:1fr; }
-  .dbx-bento{ grid-template-columns:repeat(3, 1fr); }
-}
-
-/* Mobile */
-@media (max-width: 640px){
-  .dbx-page{ padding:0 14px 36px; }
-  .dbx-hero h1{ font-size:1.5rem; }
-  .dbx-navbar-scroll{ gap:18px; padding:10px 12px; }
-  .dbx-navgroup-label{ display:none; } /* icons+labels on links are enough on mobile */
-  .dbx-bento{ grid-template-columns:repeat(2, 1fr); }
-  .dbx-recent-grid{ grid-template-columns:1fr; }
-  .dbx-record-grid{ grid-template-columns:1fr 1fr; }
-}
-
-@media (max-width: 420px){
-  .dbx-record-grid{ grid-template-columns:1fr; }
-}
-</style>
-
+        document.querySelectorAll('.db-tab-btn').forEach(function (b) {
+          b.classList.toggle('active', b === btn);
+        });
+        document.querySelectorAll('.db-tab-panel').forEach(function (panel) {
+          panel.classList.toggle('active', panel.getAttribute('data-db-panel') === target);
+        });
+      });
+    });
+  })();
+</script>
 {% endblock %}
