@@ -4,6 +4,93 @@
 
 <div class="db-page">
 
+{% if is_trainer %}
+  <!-- ===================== Trainer Dashboard ===================== -->
+  <!-- Same template/URL as the admin Dashboard - just a smaller slice:
+       only Learning Outcomes / Indicative Contents, scoped to this
+       trainer's own modules (see DashboardView.get_context_data). -->
+  <div class="db-hero">
+    <div class="db-hero-intro">
+      <p class="db-hero-eyebrow">Dashboard</p>
+      <h1>Welcome back, {{ request.user.username|title }} 👋</h1>
+      <p class="db-hero-sub">Learning outcomes and indicative contents for your assigned modules.</p>
+    </div>
+  </div>
+
+  <div class="db-kpi-rail">
+    <div class="db-kpi-card db-kpi-1">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-book-open"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ module_count }}</div>
+      <div class="db-kpi-label">Assigned Modules</div>
+    </div>
+    <div class="db-kpi-card db-kpi-2">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-list-check"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ outcome_count }}</div>
+      <div class="db-kpi-label">Learning Outcomes</div>
+    </div>
+    <div class="db-kpi-card db-kpi-3">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-file-lines"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ content_count }}</div>
+      <div class="db-kpi-label">Indicative Contents</div>
+    </div>
+  </div>
+
+  <section class="db-section">
+    <div class="db-section-head">
+      <h2 class="db-section-title">Browse your data</h2>
+    </div>
+    <div class="db-nav-grid">
+      <a href="{% url 'outcome-list' %}" class="db-nav-card db-accent-teal">
+        <div class="db-nav-icon"><i class="fa-solid fa-list-check"></i></div>
+        <div>
+          <div class="db-nav-title">Learning Outcomes</div>
+          <div class="db-nav-sub">{{ outcome_count }} record{{ outcome_count|pluralize }}</div>
+        </div>
+      </a>
+      <a href="{% url 'content-list' %}" class="db-nav-card db-accent-teal">
+        <div class="db-nav-icon"><i class="fa-solid fa-file-lines"></i></div>
+        <div>
+          <div class="db-nav-title">Indicative Contents</div>
+          <div class="db-nav-sub">{{ content_count }} record{{ content_count|pluralize }}</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="db-section">
+    <div class="db-section-head">
+      <h2 class="db-section-title">Recent activity</h2>
+    </div>
+    <div class="db-activity-grid">
+      <div class="card-panel db-activity-panel">
+        <div class="db-activity-panel-title">
+          <i class="fa-solid fa-list-check"></i> Latest learning outcomes
+        </div>
+        {% if recent_outcomes %}
+        <ul class="db-timeline">
+          {% for outcome in recent_outcomes %}
+          <li>
+            <div class="db-timeline-title">{{ outcome.outcome_text|truncatechars:60 }}</div>
+            <div class="db-timeline-sub">{{ outcome.module }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="db-activity-empty">No learning outcomes yet for your modules.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+{% else %}
+  <!-- ===================== Admin Dashboard ===================== -->
+
   <!-- Hero: greeting + the most-used actions, right where you land -->
   <div class="db-hero">
     <div class="db-hero-intro">
@@ -224,6 +311,8 @@
       </div>
     </div>
   </section>
+
+{% endif %}
 
 </div>
 
