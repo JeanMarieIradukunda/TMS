@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -318,13 +319,35 @@ class AdminLogoutView(LogoutView):
 # Dashboard
 # ---------------------------------------------------------------------------
 class DashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Shared Dashboard for both admins and trainers. Trainers get the same
+    URL/template, just a smaller, module-scoped slice of the context - see
+    the trainer branch below and the {% if request.user.trainer_profile %}
+    checks in dashboard.html that decide what actually renders.
+    """
     template_name = 'core/dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        trainer = getattr(self.request.user, 'trainer_profile', None)
+
+        if trainer:
+            # Trainer view: counts scoped to their own assigned modules only.
+            outcome_qs = LearningOutcome.objects.filter(module__trainer=trainer)
+            content_qs = IndicativeContent.objects.filter(outcome__module__trainer=trainer)
+            context.update({
+                'is_trainer': True,
+                'module_count': Module.objects.filter(trainer=trainer).count(),
+                'outcome_count': outcome_qs.count(),
+                'content_count': content_qs.count(),
+                'recent_outcomes': outcome_qs.select_related('module').order_by('-id')[:5],
+            })
+            return context
+
         module_count = Module.objects.count()
         outcome_count = LearningOutcome.objects.count()
         context.update({
+            'is_trainer': False,
             'sector_count': Sector.objects.count(),
             'trade_count': Trade.objects.count(),
             'level_count': Level.objects.count(),
@@ -349,9 +372,35 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 
 # ---------------------------------------------------------------------------
+# Trainer access control
+#
+# Trainers log in through the same login page/User model as admins (see
+# Trainer.user), but must only reach Learning Outcomes / Indicative Contents,
+# scoped to modules assigned to them. Everything else stays admin-only.
+#
+# This mixin is the single gate: it's wired into the four generic CRUD base
+# classes below, so every model built on top of them (Sectors, Trades,
+# Levels, Trade Levels, Modules, Trainers, Logos, Lesson Plans, and the
+# Learning Outcome / Indicative Content create-edit-delete screens) is
+# admin-only by default. A view opts trainers in explicitly by setting
+# trainer_allowed = True.
+# ---------------------------------------------------------------------------
+class TrainerAccessMixin:
+    trainer_allowed = False
+
+    def dispatch(self, request, *args, **kwargs):
+        # None for admins/staff (no linked Trainer row) - only set for a
+        # logged-in trainer account, and used below to scope querysets.
+        self.trainer_profile = getattr(request.user, 'trainer_profile', None)
+        if self.trainer_profile and not self.trainer_allowed:
+            raise PermissionDenied("Trainers do not have access to this section.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+# ---------------------------------------------------------------------------
 # Generic CRUD scaffolding
 # ---------------------------------------------------------------------------
-class BaseListView(LoginRequiredMixin, ListView):
+class BaseListView(TrainerAccessMixin, LoginRequiredMixin, ListView):
     """
     Generic list view. Subclasses set:
       - model, headers (list[str]), columns (list[str] dotted attribute paths)
@@ -524,7 +573,7 @@ class BaseListView(LoginRequiredMixin, ListView):
         return context
 
 
-class BaseCreateView(LoginRequiredMixin, CreateView):
+class BaseCreateView(TrainerAccessMixin, LoginRequiredMixin, CreateView):
     template_name = 'core/crud_form.html'
     title = ''
     list_url_name = ''
@@ -541,7 +590,7 @@ class BaseCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy(self.list_url_name)
 
 
-class BaseUpdateView(LoginRequiredMixin, UpdateView):
+class BaseUpdateView(TrainerAccessMixin, LoginRequiredMixin, UpdateView):
     template_name = 'core/crud_form.html'
     title = ''
     list_url_name = ''
@@ -558,7 +607,7 @@ class BaseUpdateView(LoginRequiredMixin, UpdateView):
         return reverse_lazy(self.list_url_name)
 
 
-class BaseDeleteView(LoginRequiredMixin, DeleteView):
+class BaseDeleteView(TrainerAccessMixin, LoginRequiredMixin, DeleteView):
     template_name = 'core/crud_delete.html'
     title = ''
     list_url_name = ''
@@ -821,7 +870,7 @@ class ModuleDeleteView(BaseDeleteView):
     list_url_name = 'module-list'
 
 
-class ModuleToggleActiveView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class ModuleToggleActiveView(TrainerAccessMixin, LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Handles the Turn On / Turn Off buttons on the Modules list.
 
@@ -882,8 +931,15 @@ class LearningOutcomeListView(BaseListView):
     quick_add_label = 'Add contents'
     quick_add_param = 'outcome'
 
+    # Trainers can view this screen - one of the two things they're
+    # allowed to see. The queryset below scopes it to their own modules.
+    trainer_allowed = True
+
     def get_queryset(self):
-        return super().get_queryset().select_related('module__trainer')
+        qs = super().get_queryset().select_related('module__trainer')
+        if self.trainer_profile:
+            qs = qs.filter(module__trainer=self.trainer_profile)
+        return qs
 
 
 class LearningOutcomeCreateView(BaseCreateView):
@@ -927,8 +983,15 @@ class IndicativeContentListView(BaseListView):
     bulk_create_url_name = 'content-bulk-create'
     bulk_create_label = 'Add multiple'
 
+    # Trainers can view this screen - the second of the two things they're
+    # allowed to see. The queryset below scopes it to their own modules.
+    trainer_allowed = True
+
     def get_queryset(self):
-        return super().get_queryset().select_related('outcome__module__trainer')
+        qs = super().get_queryset().select_related('outcome__module__trainer')
+        if self.trainer_profile:
+            qs = qs.filter(outcome__module__trainer=self.trainer_profile)
+        return qs
 
 
 class IndicativeContentCreateView(BaseCreateView):
@@ -960,7 +1023,7 @@ class IndicativeContentDeleteView(BaseDeleteView):
 # two views let an admin pick the parent once and add a whole batch of
 # children in a single submit.
 # ---------------------------------------------------------------------------
-class LearningOutcomeBulkCreateView(LoginRequiredMixin, View):
+class LearningOutcomeBulkCreateView(TrainerAccessMixin, LoginRequiredMixin, View):
     template_name = 'core/bulk_outcome_form.html'
     picker_form_class = ModulePickerForm
     formset_class = LearningOutcomeFormSet
@@ -1026,7 +1089,7 @@ class LearningOutcomeBulkCreateView(LoginRequiredMixin, View):
         }
 
 
-class IndicativeContentBulkCreateView(LoginRequiredMixin, View):
+class IndicativeContentBulkCreateView(TrainerAccessMixin, LoginRequiredMixin, View):
     template_name = 'core/bulk_content_form.html'
     picker_form_class = OutcomePickerForm
     formset_class = IndicativeContentFormSet
