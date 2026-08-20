@@ -135,6 +135,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ---------------------------------------------------------------------------
 # Auth / Login
 # ---------------------------------------------------------------------------
+# Tried in order. ModelBackend (default) checks admin/superuser logins
+# against auth_user first; only if that fails does TrainerBackend check
+# the submitted username/password against core_trainer instead. See
+# core/auth_backends.py for why this is needed.
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'core.auth_backends.TrainerBackend',
+]
+
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'landing'
