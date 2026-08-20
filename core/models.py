@@ -1,33 +1,47 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
+
+
+class Logo(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.TextField(help_text='Base64 string or image URL')
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
 
 
 class Sector(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    code = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True)
+    sector_name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['sector_name']
 
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return self.sector_name
 
 
 class Trade(models.Model):
     sector = models.ForeignKey(Sector, on_delete=models.CASCADE, related_name='trades')
-    name = models.CharField(max_length=255)
-    code = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True)
+    trade_name = models.CharField(max_length=150)
+
+    class Meta:
+        ordering = ['trade_name']
 
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return self.trade_name
 
 
 class Level(models.Model):
-    name = models.CharField(max_length=100)  # e.g., "Level 3", "Level 4"
-    code = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True)
+    class_level = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ['class_level']
 
     def __str__(self):
-        return self.name
+        return self.class_level
 
 
 class TradeLevel(models.Model):
@@ -36,103 +50,156 @@ class TradeLevel(models.Model):
 
     class Meta:
         unique_together = ('trade', 'level')
+        ordering = ['trade__trade_name', 'level__class_level']
 
     def __str__(self):
-        return f"{self.trade.code} ({self.level.name})"
+        return f"{self.trade.trade_name} - {self.level.class_level}"
 
 
 class Trainer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='trainer_profile', null=True, blank=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=20, blank=True)
-    specialization = models.CharField(max_length=255, blank=True)
-    bio = models.TextField(blank=True)
+    # Links this trainer record to a real Django login account so trainers
+    # can sign in through the existing admin login page/Dashboard. Optional
+    # (null=True) so trainer records with no login access yet don't break.
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='trainer_profile',
+        help_text="The login account this trainer uses to sign in. "
+                  "Leave blank if this trainer doesn't need portal access.",
+    )
+
+    fname = models.CharField(max_length=100)
+    lname = models.CharField(max_length=100)
+    username = models.CharField(max_length=100, unique=True)
+    password_hash = models.TextField()
+
+    class Meta:
+        ordering = ['lname', 'fname']
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.fname} {self.lname}"
+
+    @property
+    def full_name(self):
+        return f"{self.fname} {self.lname}"
 
 
 class Module(models.Model):
-    trade_level = models.ForeignKey(TradeLevel, on_delete=models.CASCADE, related_name='modules')
-    trainer = models.ForeignKey(Trainer, on_delete=models.SET_NULL, null=True, blank=True, related_name='modules')
-    code = models.CharField(max_length=50, unique=True)
-    title = models.CharField(max_length=255)
-    credits = models.PositiveIntegerField(default=10)
-    num_terms = models.PositiveIntegerField(default=3, help_description="Number of terms for this module")
-    term_weeks = models.CharField(max_length=100, default="10,10,10", help_text="Comma-separated weeks per term, e.g. '10,10,10'")
-    is_active = models.BooleanField(default=True, help_text="Uncheck to hide this module from generation")
-    description = models.TextField(blank=True)
+    trade = models.ForeignKey(Trade, on_delete=models.CASCADE, related_name='modules')
+    level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name='modules')
+    trainer = models.ForeignKey(Trainer, null=True, blank=True, on_delete=models.SET_NULL, related_name='modules')
+
+    mod_code = models.CharField(max_length=50, unique=True)
+    mod_name = models.CharField(max_length=150)
+    learning_hours = models.IntegerField()
+    term = models.CharField(max_length=50)
+
+    # ------------------------------------------------------------------
+    # Scheme of Work term/week structure for this module. These drive the
+    # Scheme of Work generator's "Number of terms" and "Weeks per term"
+    # fields so they're loaded from the module's own record instead of
+    # defaulting to a hardcoded assumption (e.g. always 3 terms).
+    # ------------------------------------------------------------------
+    num_terms = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="How many terms this module's Scheme of Work is split across.",
+    )
+    term_weeks = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=(
+            "Comma-separated number of weeks for each term, in order, e.g. "
+            "'12,12,10' for a 3-term module where the last term is shorter. "
+            "Leave blank to split evenly (12 weeks per term by default)."
+        ),
+    )
+
+    # ------------------------------------------------------------------
+    # Lock/unlock switch. When unchecked, the module is hidden from the
+    # public Scheme of Work / Lesson Plan generators (it simply won't
+    # appear in their dropdowns), effectively blocking its usage without
+    # deleting any of its data. Admin CRUD screens still show and allow
+    # editing locked modules so an admin can fix and re-enable them.
+    # ------------------------------------------------------------------
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Unlocked (usable) modules appear in the public generators. "
+                   "Lock a module to block it from being used there.",
+    )
+
+    class Meta:
+        ordering = ['mod_code']
+        permissions = [
+            ("toggle_module_status", "Can lock/unlock module usage"),
+        ]
 
     def __str__(self):
-        return f"{self.code}: {self.title}"
+        return f"{self.mod_code} - {self.mod_name}"
 
-    @property
-    def total_hours(self):
-        return self.credits * 10
+    def get_term_weeks_list(self):
+        """
+        Resolves this module's per-term week counts into a clean list of
+        positive integers, one entry per term (length == self.num_terms),
+        regardless of whether `term_weeks` is blank, malformed, or has too
+        few/many values compared to `num_terms`:
+
+        - Blank/invalid            -> defaults every term to 12 weeks.
+        - Fewer entries than terms -> pads using the last given value.
+        - More entries than terms  -> truncates to num_terms.
+        """
+        n = max(1, self.num_terms or 1)
+        weeks = []
+        if self.term_weeks:
+            for part in self.term_weeks.split(','):
+                part = part.strip()
+                if part.isdigit() and int(part) > 0:
+                    weeks.append(int(part))
+
+        if not weeks:
+            return [12] * n
+        if len(weeks) < n:
+            weeks = weeks + [weeks[-1]] * (n - len(weeks))
+        return weeks[:n]
 
 
 class LearningOutcome(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-    ]
-
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='learning_outcomes')
-    code = models.CharField(max_length=50)  # e.g., "LO1", "LO2"
-    description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='approved')
-    review_note = models.TextField(blank=True)
+    outcome_text = models.TextField()
+    learning_hours = models.IntegerField()
 
     class Meta:
-        unique_together = ('module', 'code')
+        ordering = ['id']
 
     def __str__(self):
-        return f"{self.module.code} - {self.code}"
+        return self.outcome_text[:60]
 
 
 class IndicativeContent(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-    ]
+    outcome = models.ForeignKey(LearningOutcome, on_delete=models.CASCADE, related_name='indicative_contents')
+    indic_name = models.TextField()
 
-    learning_outcome = models.ForeignKey(LearningOutcome, on_delete=models.CASCADE, related_name='indicative_contents')
-    code = models.CharField(max_length=50, blank=True)  # e.g., "IC1.1"
-    topic = models.CharField(max_length=255)
-    details = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='approved')
-    review_note = models.TextField(blank=True)
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
-        return f"{self.learning_outcome} - {self.topic}"
+        return self.indic_name[:60]
 
 
 class LessonPlan(models.Model):
-    trainer = models.ForeignKey(Trainer, on_delete=models.CASCADE, related_name='lesson_plans')
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lesson_plans')
-    learning_outcome = models.ForeignKey(LearningOutcome, on_delete=models.CASCADE, related_name='lesson_plans')
-    indicative_content = models.ForeignKey(IndicativeContent, on_delete=models.CASCADE, related_name='lesson_plans', null=True, blank=True)
+    trainer = models.ForeignKey(Trainer, null=True, blank=True, on_delete=models.SET_NULL, related_name='lesson_plans')
 
-    week_number = models.PositiveIntegerField()
-    term_number = models.PositiveIntegerField(default=1)
-    duration_hours = models.DecimalField(max_digits=4, decimal_places=1, default=1.0)
-
-    topic = models.CharField(max_length=255)
-    introduction = models.TextField(blank=True)
-    presentation = models.TextField(blank=True)
-    summary = models.TextField(blank=True)
-    assessment = models.TextField(blank=True)
-    notes = models.TextField(blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    title = models.CharField(max_length=200)
+    week = models.CharField(max_length=50, blank=True)
+    lesson_date = models.DateField(null=True, blank=True)
+    objectives = models.TextField(blank=True)
+    activities = models.TextField(blank=True)
+    resources = models.TextField(blank=True)
 
     class Meta:
-        ordering = ['term_number', 'week_number', 'id']
+        ordering = ['-lesson_date', 'title']
 
     def __str__(self):
-        return f"T{self.term_number}W{self.week_number} - {self.topic}"
+        return self.title
