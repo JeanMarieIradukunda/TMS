@@ -1,6 +1,7 @@
 import base64
 
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 
@@ -146,7 +147,34 @@ class TrainerForm(BootstrapModelForm):
             trainer.password_hash = make_password(raw_password)
         if commit:
             trainer.save()
+            self._sync_login_account(trainer)
         return trainer
+
+    def _sync_login_account(self, trainer):
+        """
+        Keeps trainer.user (the shadow auth.User Django's session
+        framework needs) in step with core_trainer, so admins only ever
+        fill in this form - they never touch auth_user directly.
+
+        - No linked account yet -> create one now. It carries no
+          usable password of its own (login always goes through
+          TrainerBackend / core_trainer.password_hash, never
+          ModelBackend), and no staff/superuser rights.
+        - Username changed on the Trainer record -> keep the shadow
+          account's username matching, so it doesn't collide/drift.
+        """
+        User = get_user_model()
+        user = trainer.user
+
+        if user is None:
+            user = User(username=trainer.username, is_staff=False, is_superuser=False)
+            user.set_unusable_password()
+            user.save()
+            trainer.user = user
+            trainer.save(update_fields=['user'])
+        elif user.username != trainer.username:
+            user.username = trainer.username
+            user.save(update_fields=['username'])
 
 
 class ModuleForm(BootstrapModelForm):
