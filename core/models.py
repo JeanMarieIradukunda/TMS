@@ -203,3 +203,36 @@ class LessonPlan(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class AssessmentPlan(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='assessment_plans')
+    learning_outcome = models.ForeignKey(
+        LearningOutcome, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='assessment_plans'
+    )
+    trainer = models.ForeignKey(Trainer, null=True, blank=True, on_delete=models.SET_NULL, related_name='assessment_plans')
+
+    MODULE_TYPE_CHOICES = [('core', 'Core'), ('optional', 'Optional'), ('elective', 'Elective')]
+    ASSESSMENT_TYPE_CHOICES = [
+        ('written', 'Written assessment'),
+        ('oral', 'Oral assessment'),
+        ('practical', 'Practical assessment'),
+        ('assignment', 'Assignment'),
+    ]
+
+    module_type = models.CharField(max_length=20, choices=MODULE_TYPE_CHOICES, blank=True)
+    assessment_type = models.CharField(max_length=20, choices=ASSESSMENT_TYPE_CHOICES, blank=True)
+    num_candidates = models.PositiveIntegerField(default=0)
+    num_invigilators = models.PositiveIntegerField(default=0)
+    assessment_date = models.DateField(null=True, blank=True)
+    resources = models.TextField(blank=True)
+    place = models.CharField(max_length=150, blank=True)
+    publication_date = models.DateField(null=True, blank=True)
+    observation = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-assessment_date', 'module__mod_code']
+
+    def __str__(self):
+        return f"{self.module.mod_code} assessment plan"
