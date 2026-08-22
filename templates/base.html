@@ -114,13 +114,16 @@
         </div>
       </details>
 
-      <details class="topnav-dropdown {% if 'lessonplan' in request.resolver_match.url_name or 'logo' in request.resolver_match.url_name %}open has-active{% endif %}">
+      <details class="topnav-dropdown {% if 'lessonplan' in request.resolver_match.url_name or 'assessmentplan' in request.resolver_match.url_name or 'logo' in request.resolver_match.url_name %}open has-active{% endif %}">
         <summary class="topnav-link">
           <i class="fa-solid fa-folder-open"></i> Documents &amp; Media <i class="fa-solid fa-chevron-down topnav-caret"></i>
         </summary>
         <div class="topnav-dropdown-menu">
           <a href="{% url 'lessonplan-list' %}" class="topnav-dropdown-item {% if 'lessonplan' in request.resolver_match.url_name %}active{% endif %}">
             <i class="fa-solid fa-chalkboard"></i> Lesson Plans
+          </a>
+          <a href="{% url 'assessmentplan-list' %}" class="topnav-dropdown-item {% if 'assessmentplan' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-clipboard-check"></i> Assessment Plans
           </a>
           <a href="{% url 'logo-list' %}" class="topnav-dropdown-item {% if 'logo' in request.resolver_match.url_name %}active{% endif %}">
             <i class="fa-solid fa-image"></i> Logos
