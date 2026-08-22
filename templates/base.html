@@ -108,8 +108,11 @@
           <i class="fa-solid fa-users"></i> People <i class="fa-solid fa-chevron-down topnav-caret"></i>
         </summary>
         <div class="topnav-dropdown-menu">
-          <a href="{% url 'trainer-list' %}" class="topnav-dropdown-item {% if 'trainer' in request.resolver_match.url_name %}active{% endif %}">
+          <a href="{% url 'trainer-list' %}" class="topnav-dropdown-item {% if request.resolver_match.url_name|slice:':8' == 'trainer-' %}active{% endif %}">
             <i class="fa-solid fa-chalkboard-user"></i> Trainers
+          </a>
+          <a href="{% url 'traineraccess-list' %}" class="topnav-dropdown-item {% if 'traineraccess' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fa-solid fa-unlock-keyhole"></i> Trainer Access
           </a>
         </div>
       </details>
