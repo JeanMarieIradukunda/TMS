@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
-    Module, LearningOutcome, IndicativeContent, LessonPlan,
+    Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
 )
 
 
@@ -72,3 +72,10 @@ class LessonPlanAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'module', 'trainer', 'week', 'lesson_date')
     list_filter = ('module', 'trainer')
     search_fields = ('title',)
+
+
+@admin.register(AssessmentPlan)
+class AssessmentPlanAdmin(admin.ModelAdmin):
+    list_display = ('id', 'module', 'trainer', 'assessment_type', 'assessment_date', 'num_candidates')
+    list_filter = ('module', 'trainer', 'assessment_type')
+    search_fields = ('module__mod_code', 'module__mod_name')
