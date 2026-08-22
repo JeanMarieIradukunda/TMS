@@ -8,6 +8,7 @@ from django.contrib.auth.hashers import make_password
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
     Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
+    TrainerAccess,
 )
 
 MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB
@@ -175,6 +176,35 @@ class TrainerForm(BootstrapModelForm):
         elif user.username != trainer.username:
             user.username = trainer.username
             user.save(update_fields=['username'])
+
+
+class TrainerAccessForm(BootstrapModelForm):
+    """
+    Lets an Admin fine-tune a trainer's generator access straight from the
+    Dashboard (Trainer Access screen), instead of needing the separate
+    Django /admin site: flip Paid on/off, adjust the paid-until date by
+    hand (e.g. to shorten/extend a window), jot a payment reference, or
+    reset the one-time free generation so a trainer gets it again.
+    """
+    class Meta:
+        model = TrainerAccess
+        fields = ['is_paid', 'paid_until', 'payment_reference', 'free_generation_used']
+        widgets = {
+            'paid_until': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'is_paid': 'Paid access active',
+            'paid_until': 'Access expires on',
+            'payment_reference': 'Payment reference / note',
+            'free_generation_used': 'Free generation already used',
+        }
+        help_texts = {
+            'paid_until': (
+                'Leave blank while Paid access is checked to auto-set a fresh '
+                '90-day window on save. Set a date yourself to grant a custom '
+                'window, or to shorten/extend an existing one.'
+            ),
+        }
 
 
 class ModuleForm(BootstrapModelForm):
