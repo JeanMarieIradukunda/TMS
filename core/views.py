@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import re
@@ -27,7 +28,7 @@ from .forms import (
     LogoForm, SectorForm, TradeForm, LevelForm, TradeLevelForm, TrainerForm,
     ModuleForm, LearningOutcomeForm, IndicativeContentForm, StyledAuthenticationForm,
     LessonPlanForm, AssessmentPlanForm, ModulePickerForm, OutcomePickerForm,
-    LearningOutcomeFormSet, IndicativeContentFormSet,
+    LearningOutcomeFormSet, IndicativeContentFormSet, TrainerAccessForm,
 )
 
 logger = logging.getLogger(__name__)
@@ -347,6 +348,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         module_count = Module.objects.count()
         outcome_count = LearningOutcome.objects.count()
+
+        # Trainers currently blocked from generating (free generation used
+        # up and no active paid access) - surfaced on the Dashboard so an
+        # Admin notices without having to open the Trainer Access screen.
+        # has_access is a Python property (depends on today's date), so
+        # this is evaluated in Python rather than as a queryset filter.
+        pending_access = [
+            access for access in
+            TrainerAccess.objects.select_related('trainer').all()
+            if not access.has_access
+        ]
+
         context.update({
             'is_trainer': False,
             'sector_count': Sector.objects.count(),
@@ -369,6 +382,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             # first (a module has none yet) vs. contents once outcomes exist.
             'has_modules': module_count > 0,
             'has_outcomes': outcome_count > 0,
+            # Trainer generator-access snapshot for the "Trainer Access"
+            # KPI card + quick action.
+            'pending_access_count': len(pending_access),
+            'pending_access_trainers': [a.trainer for a in pending_access][:5],
         })
         return context
 
@@ -800,6 +817,105 @@ class TrainerDeleteView(BaseDeleteView):
     model = Trainer
     title = 'Trainer'
     list_url_name = 'trainer-list'
+
+
+# ---------------------------------------------------------------------------
+# Trainer Access (grant/revoke generator access)
+#
+# Previously the ONLY way to flip a trainer's paid access on/off was the
+# separate Django /admin site (TrainerAccessAdmin). This section adds that
+# same capability straight into the Admin Dashboard, admin-only (trainers
+# never see this - TrainerAccessMixin's default trainer_allowed = False
+# already blocks them, same as every other admin-only screen).
+# ---------------------------------------------------------------------------
+ACCESS_GRANT_DAYS = 90
+
+
+class TrainerAccessListView(TrainerAccessMixin, LoginRequiredMixin, ListView):
+    """
+    One screen listing every trainer's generator access status (free
+    generation used?, paid?, expiry, payment note) with one-click
+    Grant/Revoke actions plus a link into the fine-grained edit form.
+    """
+    model = TrainerAccess
+    template_name = 'core/trainer_access_list.html'
+    context_object_name = 'access_rows'
+    paginate_by = 25
+
+    def get_queryset(self):
+        return (
+            TrainerAccess.objects.select_related('trainer')
+            .order_by('trainer__lname', 'trainer__fname')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Trainer Access'
+        context['grant_days'] = ACCESS_GRANT_DAYS
+        return context
+
+
+class TrainerAccessGrantView(TrainerAccessMixin, LoginRequiredMixin, View):
+    """
+    Handles the "Grant Access" button: marks the trainer Paid and opens a
+    fresh 90-day window from today, every time it's clicked - regardless
+    of any previous paid_until date - so an Admin can use this to both
+    grant NEW access and renew/extend an existing (even still-active)
+    one. Equivalent to (and replaces the need for) manually editing
+    TrainerAccess in the Django /admin site.
+    """
+    @method_decorator(require_POST)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        access = get_object_or_404(TrainerAccess.objects.select_related('trainer'), pk=pk)
+        access.is_paid = True
+        access.paid_until = datetime.date.today() + datetime.timedelta(days=ACCESS_GRANT_DAYS)
+        access.save(update_fields=['is_paid', 'paid_until', 'updated_at'])
+
+        messages.success(
+            request,
+            f'Access granted for {access.trainer.full_name} until '
+            f'{access.paid_until.strftime("%d %b %Y")}.'
+        )
+        return redirect('traineraccess-list')
+
+
+class TrainerAccessRevokeView(TrainerAccessMixin, LoginRequiredMixin, View):
+    """
+    Handles the "Revoke Access" button: turns paid access off immediately.
+    The trainer keeps their existing free-generation status untouched
+    (this only removes PAID access), and can be re-granted at any time.
+    """
+    @method_decorator(require_POST)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        access = get_object_or_404(TrainerAccess.objects.select_related('trainer'), pk=pk)
+        access.is_paid = False
+        access.save(update_fields=['is_paid', 'updated_at'])
+
+        messages.success(request, f'Paid access revoked for {access.trainer.full_name}.')
+        return redirect('traineraccess-list')
+
+
+class TrainerAccessUpdateView(BaseUpdateView):
+    """
+    Fine-grained edit form (custom paid_until date, payment reference, or
+    resetting the one-time free generation) for cases the one-click
+    Grant/Revoke buttons don't cover.
+    """
+    model = TrainerAccess
+    form_class = TrainerAccessForm
+    title = 'Trainer Access'
+    list_url_name = 'traineraccess-list'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Edit Access — {self.object.trainer.full_name}'
+        return context
 
 
 # ---------------------------------------------------------------------------
