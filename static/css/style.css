@@ -2141,6 +2141,19 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   color: var(--text-main);
 }
 
+.btn-hero-tertiary {
+  background: rgba(143, 157, 255, 0.08);
+  border: 1px solid rgba(143, 157, 255, 0.28);
+  color: var(--text-main);
+}
+
+.btn-hero-tertiary:hover {
+  transform: translateY(-3px);
+  border-color: rgba(143, 157, 255, 0.55);
+  background: rgba(143, 157, 255, 0.14);
+  color: var(--text-main);
+}
+
 .landing-hero-login-link {
   display: inline-flex;
   align-items: center;
@@ -2375,7 +2388,27 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   color: var(--text-soft);
   font-size: 0.9rem;
   line-height: 1.6;
-  margin: 0;
+  margin: 0 0 1.1rem;
+}
+
+.landing-feature-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gold-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: gap 0.2s ease, border-color 0.2s ease;
+}
+
+.landing-feature-link i { font-size: 0.72rem; transition: transform 0.2s ease; }
+
+.landing-feature-link:hover {
+  color: var(--gold-soft);
+  gap: 0.65rem;
+  border-color: rgba(212, 175, 55, 0.4);
 }
 
 /* ---------- How it works (light section, ties to product flow) ---------- */
@@ -2510,6 +2543,7 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
 .lq-icon-login { background: linear-gradient(135deg, var(--gold), var(--gold-soft)); }
 .lq-icon-scheme { background: linear-gradient(135deg, var(--teal), #7fe9db); }
 .lq-icon-lesson { background: linear-gradient(135deg, #8f9dff, #c3cbff); }
+.lq-icon-assessment { background: linear-gradient(135deg, #ef9f6b, #f7c99b); }
 
 .lq-text { flex: 1; min-width: 0; }
 
@@ -2558,6 +2592,88 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
 .landing-quick-item:hover .lq-arrow {
   transform: translateX(5px);
   color: var(--gold);
+}
+
+/* ---------- Access & generation policy (light section) ---------- */
+.landing-access-section { background: #fff; }
+
+.landing-access-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.landing-access-card {
+  background: #f6f7fb;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 18px;
+  padding: 1.85rem 1.75rem;
+}
+
+.landing-access-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.landing-access-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.landing-access-icon.icon-navy { background: linear-gradient(135deg, var(--navy-2), var(--navy)); }
+.landing-access-icon.icon-amber { background: linear-gradient(135deg, #ef9f6b, #d4af37); }
+
+.landing-access-card-head h3 {
+  font-family: 'Sora', system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0;
+}
+
+.landing-access-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-access-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  color: #495366;
+  line-height: 1.5;
+}
+
+.landing-access-list li i {
+  color: var(--teal);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+}
+
+.landing-access-list li strong { color: var(--navy); font-weight: 700; }
+
+.landing-access-note {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
+  font-size: 0.82rem;
+  color: #7b859d;
+  line-height: 1.5;
 }
 
 /* ---------- CTA banner ---------- */
@@ -2692,6 +2808,7 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
   .landing-features-grid { grid-template-columns: 1fr; }
   .landing-steps { grid-template-columns: 1fr; gap: 2.25rem; }
   .landing-steps::before { display: none; }
+  .landing-access-grid { grid-template-columns: 1fr; }
   .landing-quick-access { grid-template-columns: 1fr; }
   .landing-cta { padding: 2.5rem 1.5rem; }
 }
