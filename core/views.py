@@ -1404,7 +1404,6 @@ class AssessmentPlanDeleteView(BaseDeleteView):
 # ---------------------------------------------------------------------------
 # Public generator pages (Scheme of Work / Lesson Plan / Assessment Plan)
 # ---------------------------------------------------------------------------
-@method_decorator(ensure_csrf_cookie, name='dispatch')
 def _generator_header_context(request):
     """
     Shared header context for the three login-gated generator pages below.
@@ -1431,6 +1430,7 @@ def _generator_header_context(request):
     }
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class SchemeOfWorkUserView(LoginRequiredMixin, TemplateView):
     """
     Generator page, now gated behind login (LoginRequiredMixin redirects
