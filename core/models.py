@@ -90,6 +90,84 @@ class Trainer(models.Model):
         return f"{self.fname} {self.lname}"
 
 
+class TrainerLoginConflict(Exception):
+    """
+    Raised by sync_trainer_login_account() when a Trainer's username is
+    already taken by an auth.User account that isn't safe to silently
+    reuse (see is_reusable_shadow_account) - e.g. it belongs to another
+    trainer, or to a real admin/staff login. Callers (TrainerForm,
+    TrainerLoginRepairView) turn this into a normal user-facing message
+    instead of letting the database's unique-constraint error surface.
+    """
+    pass
+
+
+def is_reusable_shadow_account(user):
+    """
+    True for an orphaned trainer "shadow" login account: no admin rights,
+    no usable password of its own, and not currently linked to any (other)
+    Trainer. These are safe to silently relink to a new/edited Trainer
+    with the same username, e.g. after the original Trainer was deleted.
+    """
+    return (
+        not user.is_staff
+        and not user.is_superuser
+        and not user.has_usable_password()
+        and getattr(user, 'trainer_profile', None) is None
+    )
+
+
+def sync_trainer_login_account(trainer):
+    """
+    Creates, relinks, or keeps in step the shadow auth.User login account
+    a Trainer needs to sign in (Django's session framework needs a real
+    User row to attach to - see core.auth_backends.TrainerBackend). This
+    is the single source of truth for that syncing logic, shared by
+    TrainerForm (on every admin save) and TrainerLoginRepairView (the
+    Dashboard's one-click "Create login" action for a Trainer that
+    somehow ended up without one).
+
+    - No linked account yet -> reuse a leftover shadow account with a
+      matching username if one exists and is safe to reuse (see
+      is_reusable_shadow_account), otherwise create a fresh one. Either
+      way it carries no usable password of its own - login always goes
+      through TrainerBackend / Trainer.password_hash, never ModelBackend.
+    - Username changed on the Trainer record -> keep the shadow account's
+      username matching, so it doesn't collide/drift.
+
+    Raises TrainerLoginConflict if trainer.username is already taken by
+    a User account that isn't a safe-to-reuse shadow account.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = trainer.user
+
+    if user is None:
+        existing = User.objects.filter(username=trainer.username).first()
+        if existing is not None:
+            if not is_reusable_shadow_account(existing):
+                raise TrainerLoginConflict(
+                    f'Username "{trainer.username}" is already used by another account.'
+                )
+            user = existing
+        else:
+            user = User(username=trainer.username, is_staff=False, is_superuser=False)
+            user.set_unusable_password()
+        user.save()
+        trainer.user = user
+        trainer.save(update_fields=['user'])
+    elif user.username != trainer.username:
+        existing = User.objects.filter(username=trainer.username).exclude(pk=user.pk).first()
+        if existing is not None and not is_reusable_shadow_account(existing):
+            raise TrainerLoginConflict(
+                f'Username "{trainer.username}" is already used by another account.'
+            )
+        user.username = trainer.username
+        user.save(update_fields=['username'])
+
+    return trainer.user
+
+
 class Module(models.Model):
     trade = models.ForeignKey(Trade, on_delete=models.CASCADE, related_name='modules')
     level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name='modules')
