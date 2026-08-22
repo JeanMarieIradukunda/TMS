@@ -178,6 +178,15 @@
           <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
         </a>
 
+        <a href="{% url 'assessmentplan-user' %}" class="landing-quick-item reveal" style="--reveal-delay: 0.3s">
+          <div class="lq-icon lq-icon-lesson"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div class="lq-text">
+            <h3>Assessment Plans</h3>
+            <p>Generate a ready-to-use assessment plan, one row per learning outcome.</p>
+          </div>
+          <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
+        </a>
+
       </div>
     </section>
 
@@ -203,6 +212,7 @@
       <div class="landing-footer-links">
         <a href="{% url 'schemeofwork-user' %}">Scheme of Work</a>
         <a href="{% url 'lessonplan-user' %}">Lesson Plans</a>
+        <a href="{% url 'assessmentplan-user' %}">Assessment Plans</a>
         <a href="{% url 'login' %}">Trainer / Admin Login</a>
       </div>
       <div class="landing-footer-copy">
