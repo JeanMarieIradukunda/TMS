@@ -22,7 +22,7 @@ from groq import Groq, APIError, APIConnectionError, RateLimitError
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
     Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
-    TrainerAccess,
+    TrainerAccess, sync_trainer_login_account, TrainerLoginConflict,
 )
 from .forms import (
     LogoForm, SectorForm, TradeForm, LevelForm, TradeLevelForm, TrainerForm,
@@ -821,6 +821,41 @@ class TrainerListView(BaseListView):
     delete_url_name = 'trainer-delete'
     empty_message = 'No trainers yet. Click "Add Trainer" to create one.'
 
+    # Drives the extra "Login account" column + its manage actions in
+    # crud_list.html: create a missing shadow account, or enable/disable
+    # an existing one - all without leaving the Dashboard for raw SQL.
+    show_login_management = True
+    login_toggle_url_name = 'trainer-login-toggle'
+    login_repair_url_name = 'trainer-login-repair'
+
+    def get_queryset(self):
+        return super().get_queryset().select_related('user')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Stamp each row with its trainer's own login-account state so the
+        # template can render an Active/Inactive/No account badge plus the
+        # matching action button, the same way ModuleListView stamps
+        # is_active for the lock/unlock badge above.
+        trainers_by_pk = {obj.pk: obj for obj in context['object_list']}
+        for row in context['rows']:
+            trainer = trainers_by_pk.get(row['pk'])
+            user = trainer.user if trainer else None
+            if user is None:
+                row['login_status'] = 'missing'
+            elif user.is_active:
+                row['login_status'] = 'active'
+            else:
+                row['login_status'] = 'inactive'
+            row['login_last_login'] = user.last_login if user else None
+
+        context.update({
+            'show_login_management': self.show_login_management,
+            'login_toggle_url_name': self.login_toggle_url_name,
+            'login_repair_url_name': self.login_repair_url_name,
+        })
+        return context
+
 
 class TrainerCreateView(BaseCreateView):
     model = Trainer
@@ -836,6 +871,64 @@ class TrainerUpdateView(BaseUpdateView):
     list_url_name = 'trainer-list'
 
 
+class TrainerLoginToggleView(TrainerAccessMixin, LoginRequiredMixin, View):
+    """
+    Handles the Enable/Disable buttons in the Trainers list's "Login
+    account" column. Flips the trainer's shadow auth.User.is_active, which
+    TrainerBackend checks on every login attempt - so this blocks/restores
+    a trainer's ability to sign in without touching their password or
+    deleting anything. Admin-only (default TrainerAccessMixin behaviour);
+    POST-only so it can't be triggered by a GET/crawler/back-button replay.
+    """
+    @method_decorator(require_POST)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        trainer = get_object_or_404(Trainer, pk=pk)
+        if trainer.user is None:
+            messages.error(
+                request,
+                f'"{trainer.full_name}" has no login account yet - use '
+                '"Create login" first.'
+            )
+            return redirect('trainer-list')
+
+        trainer.user.is_active = not trainer.user.is_active
+        trainer.user.save(update_fields=['is_active'])
+
+        state = 'enabled' if trainer.user.is_active else 'disabled'
+        messages.success(request, f'Login for "{trainer.full_name}" is now {state}.')
+        return redirect('trainer-list')
+
+
+class TrainerLoginRepairView(TrainerAccessMixin, LoginRequiredMixin, View):
+    """
+    Handles the "Create login" button in the Trainers list for a trainer
+    that has no linked auth.User yet (e.g. one created before Trainer.user
+    existed, or left behind by a previous manual database fix). Runs the
+    same account creation/relinking logic TrainerForm uses on every save
+    (see models.sync_trainer_login_account), so an admin never has to open
+    a database console to get a trainer signed-in again.
+    """
+    @method_decorator(require_POST)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        trainer = get_object_or_404(Trainer, pk=pk)
+        try:
+            sync_trainer_login_account(trainer)
+        except TrainerLoginConflict as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(
+                request,
+                f'Login account created for "{trainer.full_name}".'
+            )
+        return redirect('trainer-list')
+
+
 class TrainerDeleteView(BaseDeleteView):
     model = Trainer
     title = 'Trainer'
@@ -847,7 +940,7 @@ class TrainerDeleteView(BaseDeleteView):
         - it does NOT remove the shadow auth.User login account that went
         with it, which would otherwise sit in auth_user forever, holding
         that username and blocking it from ever being reused by a future
-        trainer (see TrainerForm._sync_login_account). That shadow account
+        trainer (see models.sync_trainer_login_account). That shadow account
         has no purpose without its Trainer (unusable password, no
         staff/superuser rights, login only ever happens via
         core_trainer.password_hash), so it's safe to remove here too.
