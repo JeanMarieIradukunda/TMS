@@ -141,6 +141,47 @@ class TrainerForm(BootstrapModelForm):
         if not self.instance.pk:
             self.fields['password'].required = True
 
+    def clean_username(self):
+        """
+        Trainer.username has its own unique constraint, but the shadow
+        auth.User account created in _sync_login_account() below shares
+        that same value and has its OWN unique constraint on auth_user.
+        Deleting a Trainer doesn't remove its shadow User row (see
+        TrainerDeleteView), so without this check, re-using a username
+        that still belongs to an existing User -- e.g. a leftover shadow
+        account, or a genuinely different login -- surfaces as a raw
+        IntegrityError from the database instead of a normal form error.
+
+        A leftover shadow account (no staff/superuser rights, no usable
+        password, not linked to another Trainer) is safe to silently
+        reuse/relink -- see _sync_login_account(). Anything else sharing
+        the username is rejected here with a clear message.
+        """
+        username = self.cleaned_data['username']
+        User = get_user_model()
+        existing_user = User.objects.filter(username=username).first()
+
+        if existing_user is not None:
+            same_account = self.instance.pk and self.instance.user_id == existing_user.pk
+            if not same_account and not self._is_reusable_shadow_account(existing_user):
+                raise forms.ValidationError(
+                    'This username is already in use by another account. '
+                    'Please choose a different username.'
+                )
+        return username
+
+    @staticmethod
+    def _is_reusable_shadow_account(user):
+        """True for an orphaned trainer shadow account left behind by a
+        deleted Trainer: no admin rights, no usable password, and not
+        currently linked to any (other) Trainer."""
+        return (
+            not user.is_staff
+            and not user.is_superuser
+            and not user.has_usable_password()
+            and getattr(user, 'trainer_profile', None) is None
+        )
+
     def save(self, commit=True):
         trainer = super().save(commit=False)
         raw_password = self.cleaned_data.get('password')
@@ -157,10 +198,13 @@ class TrainerForm(BootstrapModelForm):
         framework needs) in step with core_trainer, so admins only ever
         fill in this form - they never touch auth_user directly.
 
-        - No linked account yet -> create one now. It carries no
-          usable password of its own (login always goes through
-          TrainerBackend / core_trainer.password_hash, never
-          ModelBackend), and no staff/superuser rights.
+        - No linked account yet -> reuse a leftover shadow account with
+          the same username if one exists (see _is_reusable_shadow_account;
+          clean_username() above already guarantees it's safe to reuse),
+          otherwise create a fresh one. It carries no usable password of
+          its own (login always goes through TrainerBackend /
+          core_trainer.password_hash, never ModelBackend), and no
+          staff/superuser rights.
         - Username changed on the Trainer record -> keep the shadow
           account's username matching, so it doesn't collide/drift.
         """
@@ -168,8 +212,10 @@ class TrainerForm(BootstrapModelForm):
         user = trainer.user
 
         if user is None:
-            user = User(username=trainer.username, is_staff=False, is_superuser=False)
-            user.set_unusable_password()
+            user = User.objects.filter(username=trainer.username).first()
+            if user is None:
+                user = User(username=trainer.username, is_staff=False, is_superuser=False)
+                user.set_unusable_password()
             user.save()
             trainer.user = user
             trainer.save(update_fields=['user'])
