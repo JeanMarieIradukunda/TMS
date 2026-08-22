@@ -74,9 +74,16 @@ urlpatterns = [
     path('lesson-plans/create/', views.LessonPlanCreateView.as_view(), name='lessonplan-create'),
     path('lesson-plans/<int:pk>/edit/', views.LessonPlanUpdateView.as_view(), name='lessonplan-edit'),
     path('lesson-plans/<int:pk>/delete/', views.LessonPlanDeleteView.as_view(), name='lessonplan-delete'),
-    
+
+    # Assessment Plans
+    path('assessment-plans/', views.AssessmentPlanListView.as_view(), name='assessmentplan-list'),
+    path('assessment-plans/create/', views.AssessmentPlanCreateView.as_view(), name='assessmentplan-create'),
+    path('assessment-plans/<int:pk>/edit/', views.AssessmentPlanUpdateView.as_view(), name='assessmentplan-edit'),
+    path('assessment-plans/<int:pk>/delete/', views.AssessmentPlanDeleteView.as_view(), name='assessmentplan-delete'),
+
     path('scheme-of-work/user/', views.SchemeOfWorkUserView.as_view(), name='schemeofwork-user'),
     path('lesson-plan/user/', views.LessonPlanUserView.as_view(), name='lessonplan-user'),
+    path('assessment-plan/user/', views.AssessmentPlanUserView.as_view(), name='assessmentplan-user'),
     path(
         'api/scheme-of-work/ai-generate/',
         views.generate_scheme_ai_content,
@@ -86,5 +93,10 @@ urlpatterns = [
         'api/lesson-plan/ai-generate/',
         views.generate_lesson_plan_ai_content,
         name='lessonplan-ai-generate'
+    ),
+    path(
+        'api/assessment-plan/ai-generate/',
+        views.generate_assessment_plan_ai_content,
+        name='assessmentplan-ai-generate'
     ),
 ]
