@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scheme of Work Generator · Training Management System</title>
+  <title>Scheme of Work Building · Training Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -791,6 +791,12 @@
       </div>
     </section>
 
+    <!-- ==================== ACCESS BLOCKED (payment required) ==================== -->
+    <div id="accessBlockedAlert" class="gen-alert-empty d-none">
+      <i class="fa-solid fa-lock"></i>
+      <div id="accessBlockedMessage" style="white-space: pre-line;"></div>
+    </div>
+
     <!-- ==================== GENERATED DOCUMENT ==================== -->
     <section id="docSection" class="d-none">
 
@@ -954,6 +960,8 @@
       var aiGenerateBtn = document.getElementById('aiGenerateBtn');
       var docSection = document.getElementById('docSection');
       var noDataAlert = document.getElementById('noDataAlert');
+      var accessBlockedAlert = document.getElementById('accessBlockedAlert');
+      var accessBlockedMessage = document.getElementById('accessBlockedMessage');
       var selectorFields = document.getElementById('selectorFields');
       var docTitleText = document.getElementById('docTitleText');
 
@@ -1201,8 +1209,47 @@
         tradeSelect.value = '';
         onTradeChange();
         docSection.classList.add('d-none');
+        accessBlockedAlert.classList.add('d-none');
         currentContext = null;
         setDocTitle(null); // NEW: revert the doc title to the plain default
+      }
+
+      // Shows the payment-required message in place of the document area,
+      // reusing the same "empty state" visual language (.gen-alert-empty)
+      // already used above for noDataAlert - no new visual language.
+      function showAccessBlocked(message) {
+        docSection.classList.add('d-none');
+        accessBlockedMessage.textContent = message ||
+          'You need active paid access to generate this document.';
+        accessBlockedAlert.classList.remove('d-none');
+        accessBlockedAlert.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Checks the trainer's free/paid generation access before any
+      // document is rendered. Consumes the free generation server-side the
+      // first time it's used - see core/views.py: check_generation_access.
+      function checkGenerationAccess(callback) {
+        fetch('/api/generation/check-access/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        })
+          .then(function (response) { return response.json(); })
+          .then(function (resp) {
+            if (resp && resp.allowed) {
+              callback(true, null);
+            } else {
+              callback(false, (resp && resp.message) ||
+                'You need active paid access to generate this document.');
+            }
+          })
+          .catch(function (err) {
+            console.error(err);
+            callback(false, 'Could not verify your generation access. Please try again.');
+          });
       }
 
       function onGenerate(opts) {
@@ -1214,6 +1261,19 @@
           return;
         }
 
+        checkGenerationAccess(function (allowed, message) {
+          if (!allowed) {
+            if (opts.silent) return;
+            showAccessBlocked(message);
+            return;
+          }
+          accessBlockedAlert.classList.add('d-none');
+          performGenerate(moduleId, opts);
+        });
+      }
+
+      function performGenerate(moduleId, opts) {
+        opts = opts || {};
         var mod = modulesById[moduleId];
         var trade = data.trades.find(function (t) { return t.id === mod.trade_id; });
         var level = data.levels.find(function (l) { return l.id === mod.level_id; });
