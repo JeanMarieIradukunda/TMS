@@ -99,4 +99,9 @@ urlpatterns = [
         views.generate_assessment_plan_ai_content,
         name='assessmentplan-ai-generate'
     ),
+    path(
+        'api/generation/check-access/',
+        views.check_generation_access,
+        name='generation-check-access'
+    ),
 ]
