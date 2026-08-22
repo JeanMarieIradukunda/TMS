@@ -161,6 +161,7 @@
         <tr>
           {% if has_thumbnail %}<th>Preview</th>{% endif %}
           {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+          {% if show_login_management %}<th>Login account</th>{% endif %}
           <th class="text-end">Actions</th>
         </tr>
       </thead>
@@ -177,7 +178,47 @@
           </td>
           {% endif %}
           {% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}
+          {% if show_login_management %}
+          <td>
+            {% if row.login_status == 'active' %}
+              <span class="badge bg-success">Active</span>
+              {% if row.login_last_login %}
+                <div class="small text-muted">Last login {{ row.login_last_login|date:"d M Y, H:i" }}</div>
+              {% else %}
+                <div class="small text-muted">Never logged in</div>
+              {% endif %}
+            {% elif row.login_status == 'inactive' %}
+              <span class="badge bg-secondary">Disabled</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">No account</span>
+            {% endif %}
+          </td>
+          {% endif %}
           <td class="text-end">
+            {% if show_login_management %}
+              {% if row.login_status == 'missing' %}
+              <form method="post" action="{% url login_repair_url_name pk=row.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Create a login account for this trainer">
+                  Create login
+                </button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url login_toggle_url_name pk=row.pk %}" class="d-inline">
+                {% csrf_token %}
+                {% if row.login_status == 'active' %}
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Disable login"
+                        onclick="return confirm('Disable login for this trainer? They will not be able to sign in until you re-enable it.');">
+                  Disable
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Enable login">
+                  Enable
+                </button>
+                {% endif %}
+              </form>
+              {% endif %}
+            {% endif %}
             {% if quick_add_url_name %}
             <a href="{% url quick_add_url_name %}?{{ quick_add_param }}={{ row.pk }}" class="action-icon quick-add" title="{{ quick_add_label|default:'Add related records' }}">
               <i class="fa-solid fa-layer-group"></i>
