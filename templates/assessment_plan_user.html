@@ -37,19 +37,11 @@
       --ap-bg-card:     #ffffff;
     }
 
-    /* Base style.css already sets body { font-family: 'DM Sans', system-ui, sans-serif }
-       site-wide. We only want Inter inside the printable document itself (.gen-doc),
-       not on the whole page, so this page still matches the rest of the TMS. */
     body.gen-body {
       color: var(--ap-body);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ---------- Shell layout override ----------
-       Base style.css centers .gen-shell with a fairly narrow max-width and
-       large auto side margins. The assessment plan table has 13 columns and
-       needs real width, so here we widen the shell and swap the centered
-       auto-margins for small fixed side padding instead. */
     .gen-shell {
       max-width: 100% !important;
       width: 100%;
@@ -60,7 +52,6 @@
       box-sizing: border-box;
     }
 
-    /* ---------- Document container: the printable artifact ---------- */
     .gen-doc {
       background: var(--ap-bg-card);
       border: 1px solid var(--ap-line);
@@ -82,7 +73,6 @@
     }
     .gen-doc-logos img { height: 58px; width: auto; object-fit: contain; }
 
-    /* ---------- Title block ---------- */
     .gen-doc-title {
       text-align: center;
       padding-bottom: 0.9rem;
@@ -130,7 +120,6 @@
     }
     .gen-section-title i { color: var(--ap-gold); font-size: 0.9em; }
 
-    /* ---------- Table wrapper ---------- */
     .gen-table-wrap {
       border: 1px solid var(--ap-line);
       border-radius: 8px;
@@ -147,9 +136,6 @@
       font-family: 'Inter', 'Aptos', 'Calibri', sans-serif;
       font-size: 9pt;
     }
-    /* These widths are hints only (table-layout is auto) — actual rendered
-       width also depends on content, but they keep the relative proportions
-       sane on first paint across the 13 assessment-plan columns. */
     .gen-table-v2 col.col-no        { width: 1%; }
     .gen-table-v2 col.col-module    { width: 12%; }
     .gen-table-v2 col.col-modtype   { width: 6%; }
@@ -197,7 +183,6 @@
     .gen-table-v2 td:last-child, .gen-table-v2 th:last-child { border-right: none; }
     .gen-table-v2 tbody tr:last-child td { border-bottom: none; }
 
-    /* No. column shrinks to fit its content */
     .gen-table-v2 th:nth-child(1), .gen-table-v2 td:nth-child(1) {
       width: 1%;
       white-space: nowrap;
@@ -207,7 +192,6 @@
     .gen-table-v2 tbody tr:nth-child(even) td { background: var(--ap-row-alt); }
     .gen-table-v2 tbody tr:nth-child(odd) td  { background: #ffffff; }
 
-    /* Keep rows intact when printed / exported */
     .gen-table-v2 tbody tr { break-inside: avoid; page-break-inside: avoid; }
     .gen-table-v2 thead { display: table-header-group; }
 
@@ -232,9 +216,6 @@
     }
     .gen-editable-cell:focus .gen-placeholder-text { color: inherit; font-style: normal; }
 
-    /* Row-level inputs (Type of Module select, Candidates/Invigilators
-       number inputs, Date / Place / Publication inputs) — small,
-       borderless, blend into the table until focused. */
     .gen-row-input {
       width: 100%;
       border: none;
@@ -251,7 +232,23 @@
     }
     select.gen-row-input { cursor: pointer; }
 
-    /* ---------- AI generation additions ---------- */
+    /* Auto-filled fields (Number of Invigilators/Assessors, Place) get a
+       faint amber tint so it's clear at a glance that a value was
+       calculated automatically rather than typed in — same visual language
+       as the purple "AI" tint used for AI-drafted cells, just a different
+       hue so the two auto-sources stay distinguishable. Overriding by hand
+       (see the dblclick handler on the Invigilators input, and the Place
+       input which is never locked) always still works. */
+    .gen-row-input.gen-auto-filled {
+      background: rgba(201, 162, 39, 0.1);
+    }
+    .gen-row-input.gen-auto-filled:focus {
+      background: rgba(45, 212, 191, 0.08);
+    }
+    .gen-row-input[readonly] {
+      cursor: not-allowed;
+    }
+
     .gen-ai-toolbar-btn.is-loading { pointer-events: none; opacity: 0.7; }
 
     .gen-ai-loading-text {
@@ -287,7 +284,6 @@
       font-size: 8.5pt;
     }
 
-    /* ---------- Sign-off block ---------- */
     .gen-signoff-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -317,7 +313,6 @@
       border-bottom: 1.5px solid var(--ap-teal);
     }
 
-    /* ---------- Footer ---------- */
     .gen-doc-footer {
       display: flex;
       justify-content: space-between;
@@ -329,7 +324,6 @@
     }
     .gen-doc-footer span:first-child { font-weight: 700; color: var(--ap-navy-soft); }
 
-    /* ---------- Screen chrome: hero / cards / toolbar polish ---------- */
     .gen-hero {
       background: linear-gradient(135deg, var(--ap-navy-deep) 0%, var(--ap-navy) 55%, var(--ap-navy-soft) 100%);
     }
@@ -359,9 +353,6 @@
       margin-top: 1.1rem;
     }
 
-/* ============================================================
-   PRINT / EXPORT RULES
-   ============================================================ */
 @page {
   size: auto;
   margin: 15mm 13mm 16mm;
@@ -456,6 +447,7 @@
 
   .gen-editable-cell { background: none !important; outline: none !important; border: none !important; }
   .gen-row-input { background: none !important; outline: none !important; border: none !important; }
+  .gen-row-input.gen-auto-filled { background: none !important; }
 }
   </style>
 </head>
@@ -535,7 +527,8 @@
         <div class="gen-toolbar-note">
           <i class="fa-solid fa-pen me-1"></i>
           Every cell in this table is editable — click any cell to fill it in or adjust the
-          AI draft before printing.
+          AI draft before printing. Number of Invigilators/Assessors and Place fill in
+          automatically as you type, but you can always overwrite them by hand.
         </div>
         <div class="d-flex gap-2 flex-wrap">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="editSelectionBtn">
@@ -554,11 +547,6 @@
         <div class="gen-doc-logos" id="docLogos"></div>
 
         <div class="gen-doc-title">
-          <!-- Populated dynamically once a module has been generated:
-               "Assessment Plan — MOD-CODE — Module Name". Falls back to
-               the plain "Assessment Plan" default until then, and on
-               Reset. Same markup renders on screen and in print, so no
-               separate print-only title is needed. -->
           <h3 id="docTitleText">Assessment Plan</h3>
           <p id="docGeneratedOn"></p>
         </div>
@@ -641,9 +629,6 @@
 
   </div>
 
-  <!-- Curriculum snapshot: sectors, trades, levels, trade/level links, modules,
-       learning outcomes, indicative contents, trainers and logos — everything
-       the cascading selects and the document below are built from. -->
   <script type="application/json" id="tms-data">{{ tms_data_json|safe }}</script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -653,14 +638,6 @@
     (function () {
       'use strict';
 
-      // ------------------------------------------------------------------
-      // AI generation config.
-      //
-      // This calls a same-origin Django endpoint (NOT the Groq API directly)
-      // so the Groq API key stays on the server and is never shipped to this
-      // public, unauthenticated page. See the accompanying views.py / urls.py
-      // for the backend half of this integration.
-      // ------------------------------------------------------------------
       var AI_ENDPOINT = '/api/assessment-plan/ai-generate/';
 
       var DEFAULT_DOC_TITLE = 'Assessment Plan';
@@ -671,6 +648,111 @@
         { value: 'general', label: 'General' },
         { value: 'comprementary', label: 'Comprementary' },
       ];
+
+      // ------------------------------------------------------------------
+      // Auto-calculation rules
+      //
+      // - Invigilators/Assessors scale with Number of Candidates: 1 per
+      //   every 40 candidates or part thereof (1-40 -> 1, 41-80 -> 2,
+      //   81-120 -> 3, and so on).
+      // - Place follows the assessment type: Written -> Classroom,
+      //   Practical -> Computer Lab. Oral/Assignment (or anything the
+      //   auto-rule doesn't recognise) is left blank for the trainer to
+      //   fill in, since there's no single obvious default for those.
+      //
+      // Both are pre-fills, not permanent locks - the fields they touch
+      // stay editable so a trainer can always override them by hand.
+      // ------------------------------------------------------------------
+      var CANDIDATES_PER_INVIGILATOR = 40;
+
+      function computeInvigilators(candidatesValue) {
+        var n = parseInt(candidatesValue, 10);
+        if (!n || n <= 0) return '';
+        return Math.ceil(n / CANDIDATES_PER_INVIGILATOR);
+      }
+
+      function placeForAssessmentType(text) {
+        var t = (text || '').toLowerCase();
+        var hasWritten = t.indexOf('written') !== -1;
+        var hasPractical = t.indexOf('practical') !== -1;
+        if (hasPractical && hasWritten) return 'Classroom, Computer Lab';
+        if (hasPractical) return 'Computer Lab';
+        if (hasWritten) return 'Classroom';
+        return '';
+      }
+
+      /** Recomputes Number of Invigilators/Assessors for one row from its
+       *  current Number of Candidates value. */
+      function applyAutoInvigilators(row) {
+        if (!row) return;
+        var candidatesInput = row.querySelector('[data-role="num_candidates"]');
+        var invigilatorInput = row.querySelector('[data-role="num_invigilators"]');
+        if (!candidatesInput || !invigilatorInput) return;
+        // Never overwrite a value the trainer deliberately unlocked and
+        // typed by hand (see the dblclick override handler below).
+        if (invigilatorInput.dataset.overridden === '1') return;
+        invigilatorInput.value = computeInvigilators(candidatesInput.value);
+        invigilatorInput.classList.toggle('gen-auto-filled', invigilatorInput.value !== '');
+      }
+
+      /** Recomputes Place for one row from its current Type of Assessment
+       *  cell text. */
+      function applyAutoPlace(row, assessmentTypeText) {
+        if (!row) return;
+        var placeInput = row.querySelector('[data-role="place"]');
+        if (!placeInput) return;
+        if (placeInput.dataset.overridden === '1') return;
+        var suggested = placeForAssessmentType(assessmentTypeText);
+        if (suggested) {
+          placeInput.value = suggested;
+          placeInput.classList.add('gen-auto-filled');
+        }
+      }
+
+      /**
+       * Wires up both auto-calculations once on the (persistent) tbody
+       * element, using event delegation so it keeps working after
+       * renderTable() replaces the rows' innerHTML on every generate.
+       */
+      function attachRowAutomationListeners(tbody) {
+        // Candidates typed/changed -> recompute invigilators for that row.
+        tbody.addEventListener('input', function (e) {
+          var target = e.target;
+          if (target.matches && target.matches('[data-role="num_candidates"]')) {
+            applyAutoInvigilators(target.closest('tr'));
+          }
+          // Trainer typed directly into Place by hand -> stop auto-filling
+          // it for this row so their edit isn't clobbered later.
+          if (target.matches && target.matches('[data-role="place"]')) {
+            target.dataset.overridden = '1';
+            target.classList.remove('gen-auto-filled');
+          }
+        });
+
+        // Assessment type cell edited by hand and left -> recompute place
+        // for that row. (AI-filled assessment types trigger this directly
+        // from fillRowWithAiResult instead, since setting innerHTML never
+        // fires a DOM blur/focusout event.)
+        tbody.addEventListener('focusout', function (e) {
+          var target = e.target;
+          if (target.matches && target.matches('[data-field="assessment_type"]')) {
+            applyAutoPlace(target.closest('tr'), target.textContent);
+          }
+        });
+
+        // Let a trainer unlock and hand-edit an auto-calculated
+        // Invigilators/Assessors count for a session that doesn't fit the
+        // standard 1-per-40 ratio.
+        tbody.addEventListener('dblclick', function (e) {
+          var target = e.target;
+          if (target.matches && target.matches('[data-role="num_invigilators"]')) {
+            target.readOnly = false;
+            target.dataset.overridden = '1';
+            target.classList.remove('gen-auto-filled');
+            target.focus();
+          }
+        });
+      }
 
       var data = TMSGen.readData() || {
         sectors: [], trades: [], levels: [], trade_levels: [],
@@ -693,8 +775,6 @@
       var sectorsById = indexBy(data.sectors, 'id');
       var modulesById = indexBy(data.modules, 'id');
 
-      // Snapshot of whatever was last generated, so the AI button can build
-      // its request without re-reading the DOM.
       var currentContext = null; // { mod, trade, level, sector, outcomes }
 
       function indexBy(list, key) {
@@ -703,12 +783,6 @@
         return map;
       }
 
-      /**
-       * Builds the document title shown in both the on-screen preview
-       * and the printed/PDF output: "Assessment Plan — MOD-CODE —
-       * Module Name". Falls back to the plain default when no module
-       * is supplied (initial state / after Reset).
-       */
       function buildDocTitle(mod) {
         if (!mod) return DEFAULT_DOC_TITLE;
         var parts = [DEFAULT_DOC_TITLE];
@@ -729,13 +803,6 @@
           .trim();
       }
 
-      /**
-       * Swaps document.title to the current plan's title (so the
-       * browser's "Print / Save as PDF" dialog suggests a matching
-       * filename, e.g. "Assessment Plan - PLB301 - Wiring Systems.pdf")
-       * for the duration of the print action only, then restores the
-       * original tab title once the dialog has been handled.
-       */
       function printWithFilename() {
         var originalTitle = document.title;
         var suggested = currentContext
@@ -775,6 +842,11 @@
         });
         printBtn.addEventListener('click', printWithFilename);
         aiGenerateBtn.addEventListener('click', onAiGenerate);
+
+        // Attached once, on the persistent tbody node - renderTable() only
+        // ever replaces the rows' innerHTML, never the tbody element itself,
+        // so this keeps working across every "Generate assessment plan" run.
+        attachRowAutomationListeners(document.getElementById('docTableBody'));
       }
 
       function onTradeChange() {
@@ -899,10 +971,6 @@
         document.getElementById('docGeneratedOn').textContent = '';
       }
 
-      /**
-       * Builds an <option>-listed <select> for the "Type of Module"
-       * per-row dropdown, defaulting to blank/editable.
-       */
       function moduleTypeSelectHtml(rowIndex) {
         var opts = MODULE_TYPE_OPTIONS.map(function (o) {
           return '<option value="' + o.value + '">' + o.label + '</option>';
@@ -940,13 +1008,13 @@
               '<td class="gen-editable-cell" contenteditable="true" data-field="trainer">' +
                 (trainerName || '<span class="gen-placeholder-text">Type here</span>') +
               '</td>' +
-              '<td>' + emptyInputHtml('number', 'num_candidates', rowIndex, ' min="0"') + '</td>' +
-              '<td>' + emptyInputHtml('number', 'num_invigilators', rowIndex, ' min="0"') + '</td>' +
+              '<td>' + emptyInputHtml('number', 'num_candidates', rowIndex, ' min="0" placeholder="0"') + '</td>' +
+              '<td>' + emptyInputHtml('number', 'num_invigilators', rowIndex, ' min="0" readonly title="Auto-calculated from Number of Candidates — double-click to override"') + '</td>' +
               '<td>' + emptyInputHtml('date', 'assessment_date', rowIndex) + '</td>' +
               '<td class="gen-editable-cell" contenteditable="true" data-field="resources">' +
                 '<span class="gen-placeholder-text">Click "Generate with AI" or type here</span>' +
               '</td>' +
-              '<td>' + emptyInputHtml('text', 'place', rowIndex) + '</td>' +
+              '<td>' + emptyInputHtml('text', 'place', rowIndex, ' placeholder="Auto from assessment type" title="Fills in automatically from Type of Assessment — type to override"') + '</td>' +
               '<td>' + emptyInputHtml('date', 'publication_date', rowIndex) + '</td>' +
               '<td class="gen-editable-cell" contenteditable="true" data-field="observation">' +
                 '<span class="gen-placeholder-text">Click "Generate with AI" or type here</span>' +
@@ -956,8 +1024,6 @@
 
         tbody.innerHTML = html;
 
-        // Placeholder text disappears once the cell is focused and has no
-        // real content yet, matching the other two generators' behavior.
         tbody.querySelectorAll('.gen-editable-cell').forEach(function (cell) {
           cell.addEventListener('focus', function onFocus() {
             var placeholder = cell.querySelector('.gen-placeholder-text');
@@ -1030,9 +1096,16 @@
           }
           cell.innerHTML = TMSGen.escapeHtml(line) + '<span class="gen-ai-badge">AI</span>';
           cell.classList.add('gen-ai-filled');
+
+          // The AI just supplied the assessment type for this row - setting
+          // innerHTML never fires a DOM blur/focusout event, so trigger the
+          // Place auto-calculation directly here instead of relying on the
+          // focusout listener (which only covers manual typing).
+          if (field === 'assessment_type') {
+            applyAutoPlace(row, line);
+          }
         });
 
-        // Observation stays a single plain-text sentence (not a list).
         var obsCell = row.querySelector('[data-field="observation"]');
         if (obsCell) {
           var obsText = (result.observation || '').toString().trim();
