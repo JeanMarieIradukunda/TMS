@@ -841,6 +841,22 @@ class TrainerDeleteView(BaseDeleteView):
     title = 'Trainer'
     list_url_name = 'trainer-list'
 
+    def form_valid(self, form):
+        """
+        Deleting a Trainer only detaches trainer.user (on_delete=SET_NULL)
+        - it does NOT remove the shadow auth.User login account that went
+        with it, which would otherwise sit in auth_user forever, holding
+        that username and blocking it from ever being reused by a future
+        trainer (see TrainerForm._sync_login_account). That shadow account
+        has no purpose without its Trainer (unusable password, no
+        staff/superuser rights, login only ever happens via
+        core_trainer.password_hash), so it's safe to remove here too.
+        """
+        user = self.object.user
+        if user is not None and not user.is_staff and not user.is_superuser:
+            user.delete()
+        return super().form_valid(form)
+
 
 # ---------------------------------------------------------------------------
 # Trainer Access (grant/revoke generator access)
