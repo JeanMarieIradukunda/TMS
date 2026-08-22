@@ -300,6 +300,7 @@ class LandingView(TemplateView):
         context.update({
             'module_count': Module.objects.count(),
             'lesson_plan_count': LessonPlan.objects.count(),
+            'assessment_plan_count': AssessmentPlan.objects.count(),
         })
         return context
 
