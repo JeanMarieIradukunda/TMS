@@ -1,5 +1,9 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Logo(models.Model):
@@ -236,3 +240,73 @@ class AssessmentPlan(models.Model):
 
     def __str__(self):
         return f"{self.module.mod_code} assessment plan"
+
+
+class TrainerAccess(models.Model):
+    """
+    Tracks a Trainer's access to the public generator tools (Scheme of Work,
+    Lesson Plan, Assessment Plan). Each Trainer gets exactly 1 free
+    generation, shared across all three tools. After that, the trainer needs
+    active "paid" access, which an Admin grants manually from the Django
+    admin (payment happens offline via MTN MoMo - there is no live MoMo API
+    integration here).
+    """
+    trainer = models.OneToOneField(Trainer, on_delete=models.CASCADE, related_name='access')
+
+    free_generation_used = models.BooleanField(
+        default=False,
+        help_text="Whether this trainer has already used their 1 free generation "
+                   "(shared across Scheme of Work, Lesson Plan and Assessment Plan).",
+    )
+    is_paid = models.BooleanField(
+        default=False,
+        help_text="Admin toggles this on after confirming an offline MTN MoMo payment. "
+                   "Turning it on sets a 90-day access window automatically.",
+    )
+    paid_until = models.DateField(
+        null=True, blank=True,
+        help_text="Access expires at the end of this date. Set automatically to "
+                   "90 days from when an Admin marks this trainer Paid.",
+    )
+    payment_reference = models.CharField(
+        max_length=100, blank=True,
+        help_text="Optional MoMo transaction reference / note for this payment.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Access for {self.trainer.full_name}"
+
+    def save(self, *args, **kwargs):
+        # Every time an Admin flips is_paid on without already having a
+        # paid_until date, start a fresh 90-day window from today. This
+        # deliberately does NOT touch paid_until if it's already set (e.g.
+        # re-saving an already-paid record), so it must be cleared first if
+        # an Admin wants to reset the window.
+        if self.is_paid and not self.paid_until:
+            self.paid_until = datetime.date.today() + datetime.timedelta(days=90)
+        super().save(*args, **kwargs)
+
+    @property
+    def has_access(self):
+        """
+        True if the trainer can still generate:
+        - the free generation hasn't been used yet, OR
+        - they have active paid access (is_paid and not yet past paid_until).
+        """
+        if not self.free_generation_used:
+            return True
+        return bool(self.is_paid and self.paid_until and self.paid_until >= datetime.date.today())
+
+
+@receiver(post_save, sender=Trainer)
+def create_trainer_access(sender, instance, created, **kwargs):
+    """
+    Every new Trainer automatically gets a matching TrainerAccess row (with
+    defaults: free generation not yet used, not paid). This covers every
+    way a Trainer can be created - TrainerCreateView, the Django admin, a
+    data migration, etc. - so an Admin never sees a trainer with a missing
+    access record in the TrainerAccess list.
+    """
+    if created:
+        TrainerAccess.objects.get_or_create(trainer=instance)
