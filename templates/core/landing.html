@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Training Management System</title>
+  <meta name="description" content="Padri Vjeko Centre Training Management System — generate structured Schemes of Work, Lesson Plans and Assessment Plans for accredited TVET training programmes.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -24,6 +25,7 @@
       <div class="landing-topbar-stats">
         <span><i class="fa-solid fa-diagram-project" aria-hidden="true"></i>{{ module_count }} module{{ module_count|pluralize }}</span>
         <span><i class="fa-solid fa-chalkboard" aria-hidden="true"></i>{{ lesson_plan_count }} lesson plan{{ lesson_plan_count|pluralize }}</span>
+        <span><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>{{ assessment_plan_count }} assessment plan{{ assessment_plan_count|pluralize }}</span>
       </div>
     </header>
 
@@ -37,15 +39,18 @@
           <span class="pulse-dot" aria-hidden="true"></span>
           Training Management System
         </span>
-        <h1>Plan and deliver training <span class="accent">with confidence</span></h1>
-        <p class="landing-hero-sub">Plan, manage and deliver your training programme &mdash; from scheme of work to session plan &mdash; in one place, built for the way trainers actually work.</p>
+        <h1>Structured documentation for <span class="accent">accredited TVET training</span></h1>
+        <p class="landing-hero-sub">Padri Vjeko Centre's official platform for producing a Scheme of Work, Lesson Plan and Assessment Plan for any trade and level — each generated to a consistent, audit-ready standard and grounded in the Centre's own curriculum data.</p>
 
         <div class="landing-hero-actions">
           <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary">
-            Generate Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+            Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
           </a>
           <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary">
-            Generate Lesson Plan
+            Lesson Plan
+          </a>
+          <a href="{% url 'assessmentplan-user' %}" class="btn-hero btn-hero-tertiary">
+            Assessment Plan
           </a>
         </div>
 
@@ -87,35 +92,38 @@
           <div><strong data-count-to="{{ module_count }}">{{ module_count }}</strong><span>modules</span></div>
         </div>
         <div class="landing-hero-stat-card landing-hero-stat-card-alt">
-          <i class="fa-solid fa-chalkboard"></i>
-          <div><strong data-count-to="{{ lesson_plan_count }}">{{ lesson_plan_count }}</strong><span>lesson plans</span></div>
+          <i class="fa-solid fa-clipboard-check"></i>
+          <div><strong data-count-to="{{ assessment_plan_count }}">{{ assessment_plan_count }}</strong><span>assessment plans</span></div>
         </div>
       </div>
     </main>
 
-    <!-- Why this platform -->
-    <section class="landing-section landing-features-section" aria-label="Why Padri Vjeko Centre">
+    <!-- The three functions -->
+    <section class="landing-section landing-features-section" aria-label="What you can generate">
       <div class="landing-section-head reveal">
-        <span class="landing-section-eyebrow">Why trainers choose it</span>
-        <h2>Everything a training programme needs, structured properly</h2>
-        <p>No more scattered spreadsheets or one-off documents &mdash; every scheme and plan follows the same trusted structure.</p>
+        <span class="landing-section-eyebrow">What you can generate</span>
+        <h2>Three documents, one consistent standard</h2>
+        <p>Every document is built from the Centre's own sector, trade and module records, so what you generate always reflects the curriculum as it is currently configured.</p>
       </div>
 
       <div class="landing-features-grid">
         <div class="landing-feature-card reveal" style="--reveal-delay: 0s">
-          <div class="landing-feature-icon icon-gold"><i class="fa-solid fa-diagram-project"></i></div>
-          <h3>Structured schemes of work</h3>
-          <p>Build a coherent, module-by-module scheme of work for any trade and level in minutes, not days.</p>
+          <div class="landing-feature-icon icon-teal"><i class="fa-solid fa-diagram-project"></i></div>
+          <h3>Scheme of Work</h3>
+          <p>A term-by-term breakdown of a module's learning outcomes, indicative content, learning activities, resources and formative assessment evidence.</p>
+          <a href="{% url 'schemeofwork-user' %}" class="landing-feature-link">Open Scheme of Work <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
         <div class="landing-feature-card reveal" style="--reveal-delay: 0.1s">
-          <div class="landing-feature-icon icon-teal"><i class="fa-solid fa-chalkboard"></i></div>
-          <h3>Ready-to-teach lesson plans</h3>
-          <p>Turn any module into a clear, classroom-ready session plan &mdash; objectives, activities and assessment included.</p>
+          <div class="landing-feature-icon icon-gold"><i class="fa-solid fa-chalkboard"></i></div>
+          <h3>Lesson Plan</h3>
+          <p>A complete, classroom-ready session plan for a single learning outcome — objectives, introduction, development steps, reflection and assessment.</p>
+          <a href="{% url 'lessonplan-user' %}" class="landing-feature-link">Open Lesson Plan <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
         <div class="landing-feature-card reveal" style="--reveal-delay: 0.2s">
-          <div class="landing-feature-icon icon-violet"><i class="fa-solid fa-shield-halved"></i></div>
-          <h3>Role-based access</h3>
-          <p>Trainees generate documents freely, while administrators and trainers sign in for full oversight and control.</p>
+          <div class="landing-feature-icon icon-violet"><i class="fa-solid fa-clipboard-check"></i></div>
+          <h3>Assessment Plan</h3>
+          <p>One row per learning outcome, covering assessment type, required resources and a practical note on administering it — ready for scheduling.</p>
+          <a href="{% url 'assessmentplan-user' %}" class="landing-feature-link">Open Assessment Plan <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
       </div>
     </section>
@@ -124,25 +132,69 @@
     <section class="landing-section landing-steps-section" aria-label="How it works">
       <div class="landing-section-head reveal">
         <span class="landing-section-eyebrow">How it works</span>
-        <h2>From blank page to classroom-ready in three steps</h2>
-        <p>The same simple flow every time, whichever trade or level you're planning for.</p>
+        <h2>From sign-in to a finished document, in four steps</h2>
+        <p>The same process applies whichever of the three documents you're producing.</p>
       </div>
 
       <div class="landing-steps">
         <div class="landing-step reveal" style="--reveal-delay: 0s">
           <div class="landing-step-num">01</div>
-          <h3>Choose trade &amp; level</h3>
-          <p>Select the trade, module and level you're planning training for.</p>
+          <h3>Sign in</h3>
+          <p>Sign in with your administrator or trainer account. Trainer accounts are created by an administrator.</p>
         </div>
-        <div class="landing-step reveal" style="--reveal-delay: 0.12s">
+        <div class="landing-step reveal" style="--reveal-delay: 0.1s">
           <div class="landing-step-num">02</div>
-          <h3>Generate the scheme</h3>
-          <p>Get a complete, structured scheme of work built around your modules.</p>
+          <h3>Choose trade, level &amp; module</h3>
+          <p>Select the sector, trade, level and module you are planning training for, then the relevant learning outcome(s).</p>
         </div>
-        <div class="landing-step reveal" style="--reveal-delay: 0.24s">
+        <div class="landing-step reveal" style="--reveal-delay: 0.2s">
           <div class="landing-step-num">03</div>
-          <h3>Generate the lesson plan</h3>
-          <p>Turn any part of the scheme into a ready-to-deliver session plan.</p>
+          <h3>Generate the document</h3>
+          <p>Choose Scheme of Work, Lesson Plan or Assessment Plan. The system drafts the content from your curriculum data for you to review.</p>
+        </div>
+        <div class="landing-step reveal" style="--reveal-delay: 0.3s">
+          <div class="landing-step-num">04</div>
+          <h3>Review, edit &amp; print</h3>
+          <p>Adjust any field as needed, then print or export the finished document for your records or submission.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Access & generation policy -->
+    <section class="landing-section landing-access-section" aria-label="Access and generation policy">
+      <div class="landing-section-head reveal">
+        <span class="landing-section-eyebrow">Access &amp; generation policy</span>
+        <h2>Who can sign in, and how generation access works</h2>
+        <p>The three generators are only available to signed-in accounts — there is no anonymous access.</p>
+      </div>
+
+      <div class="landing-access-grid">
+        <div class="landing-access-card reveal" style="--reveal-delay: 0s">
+          <div class="landing-access-card-head">
+            <div class="landing-access-icon icon-navy"><i class="fa-solid fa-user-shield"></i></div>
+            <h3>Account types</h3>
+          </div>
+          <ul class="landing-access-list">
+            <li><i class="fa-solid fa-check"></i><span><strong>Administrators</strong> manage the full curriculum — sectors, trades, levels, modules, trainers and generation access — and can generate all three documents without restriction.</span></li>
+            <li><i class="fa-solid fa-check"></i><span><strong>Trainers</strong> sign in with an account issued by an administrator and generate documents for the modules assigned to them.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>Don't have an account yet? Contact your institution's administrator to have one created.</span></li>
+          </ul>
+        </div>
+
+        <div class="landing-access-card reveal" style="--reveal-delay: 0.15s">
+          <div class="landing-access-card-head">
+            <div class="landing-access-icon icon-amber"><i class="fa-solid fa-unlock-keyhole"></i></div>
+            <h3>Generation allowance</h3>
+          </div>
+          <ul class="landing-access-list">
+            <li><i class="fa-solid fa-check"></i><span>Every trainer account includes <strong>one free generation</strong>, shared across the Scheme of Work, Lesson Plan and Assessment Plan generators.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>After the free generation is used, continued access requires <strong>paid access</strong>, activated by an administrator once payment is confirmed.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>Paid access remains active for a fixed period once granted, and can be renewed at any time by an administrator.</span></li>
+          </ul>
+          <div class="landing-access-note">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            Payment instructions and renewal are handled directly by your administrator after your free generation has been used.
+          </div>
         </div>
       </div>
     </section>
@@ -154,8 +206,8 @@
         <a href="{% url 'login' %}" class="landing-quick-item reveal" style="--reveal-delay: 0s">
           <div class="lq-icon lq-icon-login"><i class="fa-solid fa-right-to-bracket"></i></div>
           <div class="lq-text">
-            <h3>Login <span class="lq-badge lq-badge-restricted"><i class="fa-solid fa-lock"></i>Restricted</span></h3>
-            <p>Sign in with your administrator or trainer account to access the full management system.</p>
+            <h3>Sign in <span class="lq-badge lq-badge-restricted"><i class="fa-solid fa-lock"></i>Account required</span></h3>
+            <p>Sign in with your administrator or trainer account to reach the generators and the management dashboard.</p>
           </div>
           <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
         </a>
@@ -164,7 +216,7 @@
           <div class="lq-icon lq-icon-scheme"><i class="fa-solid fa-diagram-project"></i></div>
           <div class="lq-text">
             <h3>Scheme of Work <span class="lq-badge">{{ module_count }} module{{ module_count|pluralize }}</span></h3>
-            <p>View and generate structured schemes of work for your selected trade and level.</p>
+            <p>Generate a structured, term-by-term scheme of work for a selected trade, level and module.</p>
           </div>
           <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
         </a>
@@ -172,17 +224,17 @@
         <a href="{% url 'lessonplan-user' %}" class="landing-quick-item reveal" style="--reveal-delay: 0.2s">
           <div class="lq-icon lq-icon-lesson"><i class="fa-solid fa-chalkboard"></i></div>
           <div class="lq-text">
-            <h3>Lesson Plans <span class="lq-badge">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span></h3>
-            <p>Generate ready-to-use lesson plans automatically based on selected modules.</p>
+            <h3>Lesson Plan <span class="lq-badge">{{ lesson_plan_count }} plan{{ lesson_plan_count|pluralize }}</span></h3>
+            <p>Generate a classroom-ready session plan for a single learning outcome, including objectives and assessment.</p>
           </div>
           <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
         </a>
 
         <a href="{% url 'assessmentplan-user' %}" class="landing-quick-item reveal" style="--reveal-delay: 0.3s">
-          <div class="lq-icon lq-icon-lesson"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div class="lq-icon lq-icon-assessment"><i class="fa-solid fa-clipboard-check"></i></div>
           <div class="lq-text">
-            <h3>Assessment Plans</h3>
-            <p>Generate a ready-to-use assessment plan, one row per learning outcome.</p>
+            <h3>Assessment Plan <span class="lq-badge">{{ assessment_plan_count }} plan{{ assessment_plan_count|pluralize }}</span></h3>
+            <p>Generate an assessment plan with one row per learning outcome, ready for review and scheduling.</p>
           </div>
           <i class="fa-solid fa-chevron-right lq-arrow" aria-hidden="true"></i>
         </a>
@@ -195,13 +247,16 @@
       <div class="landing-cta reveal">
         <div class="landing-cta-content">
           <h2>Ready to plan your next training programme?</h2>
-          <p>Generate a scheme of work or lesson plan right now &mdash; no account needed to get started.</p>
+          <p>Sign in to generate a Scheme of Work, Lesson Plan or Assessment Plan for any trade and level.</p>
           <div class="landing-cta-actions">
             <a href="{% url 'schemeofwork-user' %}" class="btn-hero btn-hero-primary">
-              Generate Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+              Scheme of Work <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
             </a>
             <a href="{% url 'lessonplan-user' %}" class="btn-hero btn-hero-secondary">
-              Generate Lesson Plan
+              Lesson Plan
+            </a>
+            <a href="{% url 'assessmentplan-user' %}" class="btn-hero btn-hero-tertiary">
+              Assessment Plan
             </a>
           </div>
         </div>
@@ -211,13 +266,13 @@
     <footer class="landing-footer">
       <div class="landing-footer-links">
         <a href="{% url 'schemeofwork-user' %}">Scheme of Work</a>
-        <a href="{% url 'lessonplan-user' %}">Lesson Plans</a>
-        <a href="{% url 'assessmentplan-user' %}">Assessment Plans</a>
+        <a href="{% url 'lessonplan-user' %}">Lesson Plan</a>
+        <a href="{% url 'assessmentplan-user' %}">Assessment Plan</a>
         <a href="{% url 'login' %}">Trainer / Admin Login</a>
       </div>
       <div class="landing-footer-copy">
         <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-        &copy; {% now "Y" %} Padri Vjeko Centre &middot; Training Management System
+        &copy; {% now "Y" %} Padri Vjeko Centre &middot; Training Management System &middot; Sign-in required for all generators
       </div>
     </footer>
 
