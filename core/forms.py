@@ -7,7 +7,7 @@ from django.contrib.auth.hashers import make_password
 
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
-    Module, LearningOutcome, IndicativeContent, LessonPlan,
+    Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
 )
 
 MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB
@@ -213,6 +213,22 @@ class LessonPlanForm(BootstrapModelForm):
             'objectives': forms.Textarea(attrs={'rows': 3}),
             'activities': forms.Textarea(attrs={'rows': 3}),
             'resources': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class AssessmentPlanForm(BootstrapModelForm):
+    class Meta:
+        model = AssessmentPlan
+        fields = [
+            'module', 'learning_outcome', 'trainer', 'module_type', 'assessment_type',
+            'num_candidates', 'num_invigilators', 'assessment_date', 'resources',
+            'place', 'publication_date', 'observation',
+        ]
+        widgets = {
+            'assessment_date': forms.DateInput(attrs={'type': 'date'}),
+            'publication_date': forms.DateInput(attrs={'type': 'date'}),
+            'resources': forms.Textarea(attrs={'rows': 2}),
+            'observation': forms.Textarea(attrs={'rows': 3}),
         }
 
 
