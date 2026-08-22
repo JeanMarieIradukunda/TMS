@@ -2864,6 +2864,17 @@ h1, h2, h3, h4, h5, .brand, .card-stat .value {
 
 .db-kpi-card:hover { transform: translateY(-3px); box-shadow: var(--app-shadow-md); }
 
+/* db-kpi-card is sometimes rendered as an <a> (e.g. the Trainer Access
+   card) so it needs to look identical to the <div> version instead of
+   picking up default link styling. */
+a.db-kpi-card { color: inherit; text-decoration: none; }
+a.db-kpi-card:hover { color: inherit; }
+
+/* Used on the Trainer Access KPI card when trainers are currently
+   blocked from generating, so it stands out from the neutral KPIs. */
+.db-kpi-alert { --kpi-accent: var(--app-danger, #dc3545); }
+.db-kpi-alert .db-kpi-value { color: var(--app-danger, #dc3545); }
+
 .db-kpi-card::before {
   content: '';
   position: absolute;
