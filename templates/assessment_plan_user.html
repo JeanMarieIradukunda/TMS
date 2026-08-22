@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assessment Plan Generator · Training Management System</title>
+  <title>Assessment Plan Development · Training Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,14 +12,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <style>
-    /* ============================================================
-       PROFESSIONAL DOCUMENT DESIGN SYSTEM
-       Assessment Plan — screen + print (A4)
-       Palette: deep navy / institutional gold / teal accent
-       Typeface: Inter (UI + document body), Sora (display headings)
-       Same design language as Scheme of Work / Lesson Plan so all
-       three generator documents look consistent when printed.
-       ============================================================ */
 
     :root {
       --ap-navy:        #0f1b3d;
@@ -129,26 +121,26 @@
     }
 
     .gen-table-v2 {
-      table-layout: auto;
-      width: 100%;
+      table-layout: fixed;
+      width: 1680px;
       border-collapse: separate;
       border-spacing: 0;
       font-family: 'Inter', 'Aptos', 'Calibri', sans-serif;
       font-size: 9pt;
     }
-    .gen-table-v2 col.col-no        { width: 1%; }
-    .gen-table-v2 col.col-module    { width: 12%; }
-    .gen-table-v2 col.col-modtype   { width: 6%; }
-    .gen-table-v2 col.col-lo        { width: 16%; }
-    .gen-table-v2 col.col-asstype   { width: 8%; }
-    .gen-table-v2 col.col-trainer   { width: 8%; }
-    .gen-table-v2 col.col-candidates { width: 6%; }
-    .gen-table-v2 col.col-invig     { width: 6%; }
-    .gen-table-v2 col.col-date      { width: 7%; }
-    .gen-table-v2 col.col-resources { width: 12%; }
-    .gen-table-v2 col.col-place     { width: 6%; }
-    .gen-table-v2 col.col-pubdate   { width: 7%; }
-    .gen-table-v2 col.col-obs       { width: 10%; }
+    .gen-table-v2 col.col-no        { width: 34px; }
+    .gen-table-v2 col.col-module    { width: 150px; }
+    .gen-table-v2 col.col-modtype   { width: 96px; }
+    .gen-table-v2 col.col-lo        { width: 200px; }
+    .gen-table-v2 col.col-asstype   { width: 118px; }
+    .gen-table-v2 col.col-trainer   { width: 110px; }
+    .gen-table-v2 col.col-candidates { width: 90px; }
+    .gen-table-v2 col.col-invig     { width: 92px; }
+    .gen-table-v2 col.col-date      { width: 100px; }
+    .gen-table-v2 col.col-resources { width: 160px; }
+    .gen-table-v2 col.col-place     { width: 90px; }
+    .gen-table-v2 col.col-pubdate   { width: 100px; }
+    .gen-table-v2 col.col-obs       { width: 340px; }
 
     .gen-table-v2 thead th {
       background: var(--ap-navy);
@@ -184,7 +176,6 @@
     .gen-table-v2 tbody tr:last-child td { border-bottom: none; }
 
     .gen-table-v2 th:nth-child(1), .gen-table-v2 td:nth-child(1) {
-      width: 1%;
       white-space: nowrap;
       text-align: center;
     }
@@ -232,13 +223,6 @@
     }
     select.gen-row-input { cursor: pointer; }
 
-    /* Auto-filled fields (Number of Invigilators/Assessors, Place) get a
-       faint amber tint so it's clear at a glance that a value was
-       calculated automatically rather than typed in — same visual language
-       as the purple "AI" tint used for AI-drafted cells, just a different
-       hue so the two auto-sources stay distinguishable. Overriding by hand
-       (see the dblclick handler on the Invigilators input, and the Place
-       input which is never locked) always still works. */
     .gen-row-input.gen-auto-filled {
       background: rgba(201, 162, 39, 0.1);
     }
@@ -453,7 +437,6 @@
 </head>
 <body class="gen-body">
 
-  <!-- ==================== HERO ==================== -->
   <header class="gen-hero">
     <div class="gen-hero-top">
       <a href="{% url 'landing' %}" class="gen-back-link">
@@ -471,7 +454,6 @@
 
   <div class="gen-shell">
 
-    <!-- ==================== SELECTOR ==================== -->
     <section class="gen-card no-print" id="selectorCard">
       <h2>1. Choose trade, level &amp; module</h2>
       <p class="gen-card-sub">The level and module lists narrow down automatically based on what you pick.</p>
@@ -646,23 +628,18 @@
         { value: '', label: 'Select…' },
         { value: 'specific', label: 'Specific' },
         { value: 'general', label: 'General' },
-        { value: 'comprementary', label: 'Comprementary' },
+        { value: 'complementary', label: 'Complementary' },
       ];
 
-      // ------------------------------------------------------------------
-      // Auto-calculation rules
-      //
-      // - Invigilators/Assessors scale with Number of Candidates: 1 per
-      //   every 40 candidates or part thereof (1-40 -> 1, 41-80 -> 2,
-      //   81-120 -> 3, and so on).
-      // - Place follows the assessment type: Written -> Classroom,
-      //   Practical -> Computer Lab. Oral/Assignment (or anything the
-      //   auto-rule doesn't recognise) is left blank for the trainer to
-      //   fill in, since there's no single obvious default for those.
-      //
-      // Both are pre-fills, not permanent locks - the fields they touch
-      // stay editable so a trainer can always override them by hand.
-      // ------------------------------------------------------------------
+      function detectModuleType(modCode) {
+        var code = (modCode || '').toString().trim().toUpperCase();
+        if (!code) return '';
+        if (code.indexOf('GEN') === 0) return 'general';
+        if (code.indexOf('CC') === 0) return 'complementary';
+        if (/^[A-Z]/.test(code)) return 'specific';
+        return '';
+      }
+
       var CANDIDATES_PER_INVIGILATOR = 40;
 
       function computeInvigilators(candidatesValue) {
@@ -695,8 +672,6 @@
         invigilatorInput.classList.toggle('gen-auto-filled', invigilatorInput.value !== '');
       }
 
-      /** Recomputes Place for one row from its current Type of Assessment
-       *  cell text. */
       function applyAutoPlace(row, assessmentTypeText) {
         if (!row) return;
         var placeInput = row.querySelector('[data-role="place"]');
@@ -709,11 +684,6 @@
         }
       }
 
-      /**
-       * Wires up both auto-calculations once on the (persistent) tbody
-       * element, using event delegation so it keeps working after
-       * renderTable() replaces the rows' innerHTML on every generate.
-       */
       function attachRowAutomationListeners(tbody) {
         // Candidates typed/changed -> recompute invigilators for that row.
         tbody.addEventListener('input', function (e) {
@@ -721,18 +691,13 @@
           if (target.matches && target.matches('[data-role="num_candidates"]')) {
             applyAutoInvigilators(target.closest('tr'));
           }
-          // Trainer typed directly into Place by hand -> stop auto-filling
-          // it for this row so their edit isn't clobbered later.
+
           if (target.matches && target.matches('[data-role="place"]')) {
             target.dataset.overridden = '1';
             target.classList.remove('gen-auto-filled');
           }
         });
 
-        // Assessment type cell edited by hand and left -> recompute place
-        // for that row. (AI-filled assessment types trigger this directly
-        // from fillRowWithAiResult instead, since setting innerHTML never
-        // fires a DOM blur/focusout event.)
         tbody.addEventListener('focusout', function (e) {
           var target = e.target;
           if (target.matches && target.matches('[data-field="assessment_type"]')) {
@@ -740,9 +705,6 @@
           }
         });
 
-        // Let a trainer unlock and hand-edit an auto-calculated
-        // Invigilators/Assessors count for a session that doesn't fit the
-        // standard 1-per-40 ratio.
         tbody.addEventListener('dblclick', function (e) {
           var target = e.target;
           if (target.matches && target.matches('[data-role="num_invigilators"]')) {
@@ -843,9 +805,6 @@
         printBtn.addEventListener('click', printWithFilename);
         aiGenerateBtn.addEventListener('click', onAiGenerate);
 
-        // Attached once, on the persistent tbody node - renderTable() only
-        // ever replaces the rows' innerHTML, never the tbody element itself,
-        // so this keeps working across every "Generate assessment plan" run.
         attachRowAutomationListeners(document.getElementById('docTableBody'));
       }
 
@@ -971,11 +930,14 @@
         document.getElementById('docGeneratedOn').textContent = '';
       }
 
-      function moduleTypeSelectHtml(rowIndex) {
+      function moduleTypeSelectHtml(rowIndex, modCode) {
+        var detected = detectModuleType(modCode);
         var opts = MODULE_TYPE_OPTIONS.map(function (o) {
-          return '<option value="' + o.value + '">' + o.label + '</option>';
+          var selected = o.value === detected ? ' selected' : '';
+          return '<option value="' + o.value + '"' + selected + '>' + o.label + '</option>';
         }).join('');
-        return '<select class="gen-row-input" data-role="module-type" data-row="' + rowIndex + '">' + opts + '</select>';
+        var autoClass = detected ? ' gen-auto-filled' : '';
+        return '<select class="gen-row-input' + autoClass + '" data-role="module-type" data-row="' + rowIndex + '">' + opts + '</select>';
       }
 
       function emptyInputHtml(type, role, rowIndex, extraAttrs) {
@@ -1000,7 +962,7 @@
             '<tr data-outcome-id="' + outcome.id + '" data-row="' + rowIndex + '">' +
               '<td>' + rowIndex + '</td>' +
               '<td>' + moduleLabel + '</td>' +
-              '<td>' + moduleTypeSelectHtml(rowIndex) + '</td>' +
+              '<td>' + moduleTypeSelectHtml(rowIndex, mod.mod_code) + '</td>' +
               '<td>' + TMSGen.escapeHtml(outcome.outcome_text) + '</td>' +
               '<td class="gen-editable-cell" contenteditable="true" data-field="assessment_type">' +
                 '<span class="gen-placeholder-text">Click "Generate with AI" or type here</span>' +
