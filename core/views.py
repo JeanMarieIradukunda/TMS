@@ -53,14 +53,20 @@ def get_client():
 # ---------------------------------------------------------------------------
 # Shared data payload for the public "generator" pages
 # ---------------------------------------------------------------------------
-def _build_generator_payload():
+def _build_generator_payload(trainer=None):
     """
-    Builds one JSON-serialisable snapshot of the full curriculum structure
+    Builds one JSON-serialisable snapshot of the curriculum structure
     (sectors -> trades -> trade/level links -> modules -> learning outcomes
     -> indicative contents, plus trainers and institution logos) so that the
-    public Scheme of Work and Lesson Plan generator pages can drive their
-    cascading dropdowns and document preview entirely in the browser,
+    Scheme of Work / Lesson Plan / Assessment Plan generator pages can drive
+    their cascading dropdowns and document preview entirely in the browser,
     without extra round trips to the server.
+
+    `trainer` scopes the payload to a single trainer's own assigned modules
+    (and, cascading from that, only the learning outcomes/indicative
+    contents that belong to those modules) - this is what keeps a logged-in
+    trainer from ever seeing or selecting a module they aren't assigned to.
+    Pass None (the default) for the full, unscoped snapshot used by admins.
     """
     sectors = list(Sector.objects.values('id', 'sector_name'))
 
@@ -74,6 +80,15 @@ def _build_generator_payload():
         {'id': t.id, 'name': t.full_name}
         for t in Trainer.objects.all()
     ]
+
+    # Locked modules (is_active=False) are deliberately left out of this
+    # payload so they never appear in the generator dropdowns - that's what
+    # "blocks" their usage. When `trainer` is set, the queryset is further
+    # narrowed to that trainer's own modules only, so a trainer's browser
+    # never even receives data for modules assigned to someone else.
+    modules_qs = Module.objects.select_related('trainer').filter(is_active=True)
+    if trainer is not None:
+        modules_qs = modules_qs.filter(trainer=trainer)
 
     modules = [
         {
@@ -92,18 +107,24 @@ def _build_generator_payload():
             'num_terms': m.num_terms,
             'term_weeks': m.get_term_weeks_list(),
         }
-        # Locked modules (is_active=False) are deliberately left out of this
-        # payload so they never appear in the public Scheme of Work / Lesson
-        # Plan generator dropdowns - that's what "blocks" their usage.
-        for m in Module.objects.select_related('trainer').filter(is_active=True)
+        for m in modules_qs
     ]
+    module_ids = {m['id'] for m in modules}
 
+    # Outcomes/contents are cascaded from the (possibly trainer-scoped)
+    # module list above, so a trainer's payload never leaks outcomes or
+    # indicative content belonging to a module they aren't assigned to.
     outcomes = list(
-        LearningOutcome.objects.values('id', 'module_id', 'outcome_text', 'learning_hours')
+        LearningOutcome.objects
+        .filter(module_id__in=module_ids)
+        .values('id', 'module_id', 'outcome_text', 'learning_hours')
     )
+    outcome_ids = {o['id'] for o in outcomes}
 
     contents = list(
-        IndicativeContent.objects.values('id', 'outcome_id', 'indic_name')
+        IndicativeContent.objects
+        .filter(outcome_id__in=outcome_ids)
+        .values('id', 'outcome_id', 'indic_name')
     )
 
     logos = [
@@ -125,13 +146,14 @@ def _build_generator_payload():
     }
 
 
-def _dump_generator_payload():
+def _dump_generator_payload(trainer=None):
     """
-    JSON-encodes the generator payload and neutralises any literal '</'
-    sequence (which could otherwise prematurely close the surrounding
-    <script> tag if it appeared inside free-text curriculum content).
+    JSON-encodes the generator payload (optionally scoped to `trainer`, see
+    _build_generator_payload) and neutralises any literal '</' sequence
+    (which could otherwise prematurely close the surrounding <script> tag
+    if it appeared inside free-text curriculum content).
     """
-    raw = json.dumps(_build_generator_payload(), cls=DjangoJSONEncoder)
+    raw = json.dumps(_build_generator_payload(trainer), cls=DjangoJSONEncoder)
     return raw.replace('</', '<\\/')
 
 
@@ -1383,6 +1405,32 @@ class AssessmentPlanDeleteView(BaseDeleteView):
 # Public generator pages (Scheme of Work / Lesson Plan / Assessment Plan)
 # ---------------------------------------------------------------------------
 @method_decorator(ensure_csrf_cookie, name='dispatch')
+def _generator_header_context(request):
+    """
+    Shared header context for the three login-gated generator pages below.
+
+    - `tms_data_json`: the curriculum snapshot driving the page's cascading
+      dropdowns, scoped to the logged-in trainer's own assigned modules
+      only (admins/staff with no linked Trainer profile still get the full,
+      unscoped snapshot - they aren't "assigned" a subset of modules).
+    - `is_trainer` / `assigned_module_count`: drive the page header's
+      signed-in summary (who's logged in and how much data/access they
+      have), replacing the old static "Public tool - no login required"
+      copy now that these pages require login.
+    """
+    trainer = getattr(request.user, 'trainer_profile', None)
+    if trainer is not None:
+        module_count = Module.objects.filter(trainer=trainer, is_active=True).count()
+    else:
+        module_count = Module.objects.filter(is_active=True).count()
+
+    return {
+        'tms_data_json': _dump_generator_payload(trainer),
+        'is_trainer': trainer is not None,
+        'assigned_module_count': module_count,
+    }
+
+
 class SchemeOfWorkUserView(LoginRequiredMixin, TemplateView):
     """
     Generator page, now gated behind login (LoginRequiredMixin redirects
@@ -1398,7 +1446,7 @@ class SchemeOfWorkUserView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['tms_data_json'] = _dump_generator_payload()
+        context.update(_generator_header_context(self.request))
         return context
 
 
@@ -1409,7 +1457,7 @@ class LessonPlanUserView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['tms_data_json'] = _dump_generator_payload()
+        context.update(_generator_header_context(self.request))
         return context
 
 
@@ -1421,7 +1469,7 @@ class AssessmentPlanUserView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['tms_data_json'] = _dump_generator_payload()
+        context.update(_generator_header_context(self.request))
         return context
 
 
