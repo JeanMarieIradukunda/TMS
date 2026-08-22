@@ -41,6 +41,8 @@ urlpatterns = [
     path('trainers/create/', views.TrainerCreateView.as_view(), name='trainer-create'),
     path('trainers/<int:pk>/edit/', views.TrainerUpdateView.as_view(), name='trainer-edit'),
     path('trainers/<int:pk>/delete/', views.TrainerDeleteView.as_view(), name='trainer-delete'),
+    path('trainers/<int:pk>/login/toggle/', views.TrainerLoginToggleView.as_view(), name='trainer-login-toggle'),
+    path('trainers/<int:pk>/login/repair/', views.TrainerLoginRepairView.as_view(), name='trainer-login-repair'),
 
     # Trainer Access (grant/revoke generator access from the Dashboard)
     path('trainer-access/', views.TrainerAccessListView.as_view(), name='traineraccess-list'),
