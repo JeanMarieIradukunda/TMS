@@ -249,6 +249,13 @@
             <div class="db-nav-sub">{{ lesson_plan_count }} record{{ lesson_plan_count|pluralize }}</div>
           </div>
         </a>
+        <a href="{% url 'assessmentplan-list' %}" class="db-nav-card db-accent-purple">
+          <div class="db-nav-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div>
+            <div class="db-nav-title">Assessment Plans</div>
+            <div class="db-nav-sub">{{ assessment_plan_count }} record{{ assessment_plan_count|pluralize }}</div>
+          </div>
+        </a>
         <a href="{% url 'logo-list' %}" class="db-nav-card db-accent-purple">
           {% if latest_logo and latest_logo.image %}
             <div class="db-nav-icon db-nav-icon-image"><img src="{{ latest_logo.image }}" alt="{{ latest_logo.name }}"></div>
