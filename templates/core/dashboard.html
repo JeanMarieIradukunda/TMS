@@ -155,7 +155,30 @@
       <div class="db-kpi-value">{{ lesson_plan_count }}</div>
       <div class="db-kpi-label">Lesson Plans</div>
     </div>
+    <a href="{% url 'traineraccess-list' %}" class="db-kpi-card db-kpi-1 {% if pending_access_count %}db-kpi-alert{% endif %}">
+      <div class="db-kpi-top">
+        <div class="db-kpi-icon"><i class="fa-solid fa-unlock-keyhole"></i></div>
+      </div>
+      <div class="db-kpi-value">{{ pending_access_count }}</div>
+      <div class="db-kpi-label">Trainers Awaiting Access</div>
+    </a>
   </div>
+
+  {% if pending_access_count %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <strong>{{ pending_access_count }} trainer{{ pending_access_count|pluralize }}</strong>
+      used their free generation and now need{{ pending_access_count|pluralize:",s" }} paid access
+      granted to keep generating Schemes of Work, Lesson Plans or Assessment Plans
+      {% if pending_access_trainers %}
+        (e.g. {% for t in pending_access_trainers %}{{ t.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if pending_access_count > pending_access_trainers|length %}, …{% endif %}).
+      {% else %}.{% endif %}
+    </div>
+    <a href="{% url 'traineraccess-list' %}" class="btn btn-sm btn-gold">
+      <i class="fa-solid fa-unlock me-1"></i> Review Trainer Access
+    </a>
+  </div>
+  {% endif %}
 
   <!-- Browse by category: tabbed switcher instead of stacked accordions -->
   <section class="db-section">
@@ -235,6 +258,15 @@
           <div>
             <div class="db-nav-title">Trainers</div>
             <div class="db-nav-sub">{{ trainer_count }} record{{ trainer_count|pluralize }}</div>
+          </div>
+        </a>
+        <a href="{% url 'traineraccess-list' %}" class="db-nav-card db-accent-gold">
+          <div class="db-nav-icon"><i class="fa-solid fa-unlock-keyhole"></i></div>
+          <div>
+            <div class="db-nav-title">Trainer Access</div>
+            <div class="db-nav-sub">
+              {% if pending_access_count %}{{ pending_access_count }} awaiting access{% else %}All up to date{% endif %}
+            </div>
           </div>
         </a>
       </div>
