@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
     Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
+    TrainerAccess,
 )
 
 
@@ -79,3 +80,14 @@ class AssessmentPlanAdmin(admin.ModelAdmin):
     list_display = ('id', 'module', 'trainer', 'assessment_type', 'assessment_date', 'num_candidates')
     list_filter = ('module', 'trainer', 'assessment_type')
     search_fields = ('module__mod_code', 'module__mod_name')
+
+
+@admin.register(TrainerAccess)
+class TrainerAccessAdmin(admin.ModelAdmin):
+    # Same pattern as ModuleAdmin.list_editable = ('is_active',): an Admin
+    # can flip Paid/Not Paid (and jot down a payment reference) straight
+    # from the change-list, no need to open each trainer's record.
+    list_display = ('trainer', 'free_generation_used', 'is_paid', 'paid_until', 'payment_reference')
+    list_editable = ('is_paid', 'payment_reference')
+    list_filter = ('is_paid',)
+    search_fields = ('trainer__fname', 'trainer__lname', 'trainer__username')
