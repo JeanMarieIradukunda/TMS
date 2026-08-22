@@ -21,6 +21,7 @@ from groq import Groq, APIError, APIConnectionError, RateLimitError
 from .models import (
     Logo, Sector, Trade, Level, TradeLevel, Trainer,
     Module, LearningOutcome, IndicativeContent, LessonPlan, AssessmentPlan,
+    TrainerAccess,
 )
 from .forms import (
     LogoForm, SectorForm, TradeForm, LevelForm, TradeLevelForm, TrainerForm,
@@ -1265,14 +1266,16 @@ class AssessmentPlanDeleteView(BaseDeleteView):
 # Public generator pages (Scheme of Work / Lesson Plan / Assessment Plan)
 # ---------------------------------------------------------------------------
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class SchemeOfWorkUserView(TemplateView):
+class SchemeOfWorkUserView(LoginRequiredMixin, TemplateView):
     """
-    Public generator page. ensure_csrf_cookie is required here because this
+    Generator page, now gated behind login (LoginRequiredMixin redirects
+    anonymous visitors to LOGIN_URL) since generating costs a trainer's
+    free/paid access. ensure_csrf_cookie is still required here because this
     page has no {% csrf_token %} in its template (it's not a Django <form>
-    POST) - without it, Django never sets the csrftoken cookie for anonymous
-    visitors, so the page's own JS fetch() to /api/scheme-of-work/ai-generate/
-    has no token to send and every request is rejected with 403 CSRF cookie
-    not set, before it ever reaches Groq.
+    POST) - without it, Django never sets the csrftoken cookie, so the
+    page's own JS fetch() calls (AI-generate and the access check) have no
+    token to send and every request is rejected with 403 CSRF cookie not
+    set, before it ever reaches Groq or the access check.
     """
     template_name = "scheme_of_work_user.html"
 
@@ -1283,7 +1286,7 @@ class SchemeOfWorkUserView(TemplateView):
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class LessonPlanUserView(TemplateView):
+class LessonPlanUserView(LoginRequiredMixin, TemplateView):
     """Same reasoning as SchemeOfWorkUserView above."""
     template_name = "lesson_plan_user.html"
 
@@ -1294,7 +1297,7 @@ class LessonPlanUserView(TemplateView):
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class AssessmentPlanUserView(TemplateView):
+class AssessmentPlanUserView(LoginRequiredMixin, TemplateView):
     """Same reasoning as SchemeOfWorkUserView above: no {% csrf_token %} form on
     this page, so ensure_csrf_cookie is required for the JS fetch() to work."""
     template_name = "assessment_plan_user.html"
@@ -1303,6 +1306,56 @@ class AssessmentPlanUserView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['tms_data_json'] = _dump_generator_payload()
         return context
+
+
+# ---------------------------------------------------------------------------
+# Trainer payment/access gating for the three generator pages above.
+# ---------------------------------------------------------------------------
+# Trainer-facing copy shown once the free generation has been used and the
+# trainer has no active paid access. Manual/offline MTN MoMo flow - an
+# Admin verifies the payment and flips `is_paid` on for the trainer from
+# the Django admin (see TrainerAccessAdmin in admin.py).
+GENERATION_ACCESS_BLOCKED_MESSAGE = (
+    "Free Generation Used\n\n"
+    "You have used your 1 free generation. To generate another Scheme, "
+    "Lesson Plan, or Assessment Plan, please make a payment of 1000 FRW via "
+    "MTN MoMo.\n\n"
+    "Payment Number/Code: 0787306250/444322\n"
+    "Amount: 1000 FRW\n\n"
+    "After payment, please contact Jean Marie Vianney on WhatsApp. An "
+    "administrator will verify your payment and activate your generation "
+    "access.\n\n"
+    "Note: Your access will be activated after payment verification."
+)
+
+
+@require_POST
+@csrf_protect
+def check_generation_access(request):
+    """
+    Called by the Scheme of Work / Lesson Plan / Assessment Plan generator
+    pages before they render a document. Consumes the trainer's 1 free
+    generation the first time it's used; after that, requires active paid
+    access (granted manually by an Admin - see TrainerAccess/TrainerAccessAdmin).
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Login required."}, status=403)
+
+    trainer = getattr(request.user, 'trainer_profile', None)
+    if trainer is None:
+        return JsonResponse(
+            {"error": "This account has no linked trainer profile."}, status=403
+        )
+
+    access, _ = TrainerAccess.objects.get_or_create(trainer=trainer)
+
+    if access.has_access:
+        if not access.free_generation_used:
+            access.free_generation_used = True
+            access.save()
+        return JsonResponse({"allowed": True})
+
+    return JsonResponse({"allowed": False, "message": GENERATION_ACCESS_BLOCKED_MESSAGE})
 
 # ---------------------------------------------------------------------------
 # AI (Groq) endpoint used by the Scheme of Work generator page
